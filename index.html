@@ -311,14 +311,26 @@ $("loadOdds").addEventListener("click", async () => {
           const outcomes = Array.isArray(market.outcomes)
             ? market.outcomes
             : [];
-          return outcomes.map(outcome =>
-            `<li>${esc(book.title || book.key || "Casa")}
-            — ${esc(market.key || "Mercado")}
-            — ${esc(outcome.name || "")}
-            : ${Number.isFinite(Number(outcome.price))
-              ? Number(outcome.price)
-              : "N/D"}</li>`
-          );
+          return outcomes.map(outcome => {
+  const price = Number(outcome.price);
+  const implied = probabilidadImplicita(price);
+
+  const cuotaTexto = Number.isFinite(price) && price !== 0
+    ? (price > 0 ? "+" : "") + price
+    : "N/D";
+
+  const probTexto = implied !== null
+    ? implied.toFixed(2) + "%"
+    : "N/D";
+
+  return `<li>
+    ${esc(book.title || book.key || "Casa")}
+    — ${esc(market.key || "Mercado")}
+    — ${esc(outcome.name || "")}
+    : ${cuotaTexto}
+    | Prob. implícita bruta: ${probTexto}
+  </li>`;
+});
         });
       }).join("");
 
