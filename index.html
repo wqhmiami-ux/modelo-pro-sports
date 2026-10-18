@@ -252,6 +252,17 @@ $("clear").onclick=()=>{
   try{localStorage.removeItem(key);render()}catch(e){alert("No se pudo borrar el historial.")}
  }
 };
+  function probabilidadImplicita(cuota) {
+  const n = Number(cuota);
+
+  if (!Number.isFinite(n) || n === 0) return null;
+
+  if (n < 0) {
+    return (-n / (-n + 100)) * 100;
+  }
+
+  return (100 / (n + 100)) * 100;
+}
 const ODDS_API_URL = "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
 
 $("loadOdds").addEventListener("click", async () => {
