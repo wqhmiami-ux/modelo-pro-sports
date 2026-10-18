@@ -92,9 +92,15 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 <button class="primary full" id="save" disabled>GUARDAR PRONÓSTICO</button>
 <p class="note">Esta calculadora no descarga datos deportivos. El resultado depende de la probabilidad que introduzcas. El EDGE bruto compara esa probabilidad con la implícita de la cuota, que incluye el margen de la casa.</p>
 </section>
-
 <section class="card">
-<h2>Registro y rendimiento</h2>
+  <h2>Cuotas deportivas reales</h2>
+  <p class="note">Consulta los eventos y las cuotas disponibles desde la API.</p>
+  <button class="primary full" id="loadOdds">CARGAR CUOTAS REALES</button>
+  <div id="oddsStatus" class="note" aria-live="polite"></div>
+  <div id="oddsResults"></div>
+</section>
+<section class="card">
+n<h2>Registro y rendimiento</h2>
 <div class="metrics">
 <div class="metric"><small>Pronósticos</small><strong id="count">0</strong></div>
 <div class="metric"><small>Acierto de resueltos</small><strong id="hit">—</strong></div>
@@ -106,7 +112,7 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 <button class="full" id="export">EXPORTAR CSV</button>
 <button class="full" id="clear">BORRAR HISTORIAL</button>
 </section>
-<p class="note">Herramienta de análisis, no garantía de ganancias. Verifica las estadísticas y apuesta responsablemente.</p>
+<p class="note">Herramienta de aálisis, no garantía de ganancias. Verifica las estadísticas y apuesta responsablemente.</p>
 </main>
 
 <script>
@@ -246,6 +252,79 @@ $("clear").onclick=()=>{
   try{localStorage.removeItem(key);render()}catch(e){alert("No se pudo borrar el historial.")}
  }
 };
+const ODDS_API_URL = "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
+
+$("loadOdds").addEventListener("click", async () => {
+  const status = $("oddsStatus");
+  const results = $("oddsResults");
+
+  status.textContent = "Consultando cuotas reales...";
+  results.textContent = "";
+
+  try {
+    const response = await fetch(ODDS_API_URL);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Error al consultar las cuotas.");
+    }
+
+    const events = Array.isArray(data)
+      ? data
+      : Array.isArray(data.events)
+        ? data.events
+        : Array.isArray(data.data)
+          ? data.data
+          : [];
+
+    if (!events.length) {
+      status.textContent =
+        "La API respondió, pero debemos revisar el formato de los datos.";
+      results.textContent = JSON.stringify(data).slice(0, 3000);
+      return;
+    }
+
+    results.innerHTML = events.map(event => {
+      const teams = [
+        event.away_team,
+        event.home_team
+      ].filter(Boolean).map(esc).join(" vs ");
+
+      const bookmakers = Array.isArray(event.bookmakers)
+        ? event.bookmakers
+        : [];
+
+      const odds = bookmakers.flatMap(book => {
+        const markets = Array.isArray(book.markets) ? book.markets : [];
+        return markets.flatMap(market => {
+          const outcomes = Array.isArray(market.outcomes)
+            ? market.outcomes
+            : [];
+          return outcomes.map(outcome =>
+            `<li>${esc(book.title || book.key || "Casa")}
+            — ${esc(market.key || "Mercado")}
+            — ${esc(outcome.name || "")}
+            : ${Number.isFinite(Number(outcome.price))
+              ? Number(outcome.price)
+              : "N/D"}</li>`
+          );
+        });
+      }).join("");
+
+      return `<div class="entry">
+        <b>${teams || esc(event.name || "Evento deportivo")}</b>
+        <ul>${odds || "<li>No hay cuotas disponibles para este evento.</li>"}</ul>
+      </div>`;
+    }).join("");
+
+    status.textContent = `Eventos recibidos: ${events.length}.`;
+  } catch (error) {
+    status.textContent =
+      "No se pudieron cargar las cuotas. Comprueba la conexión con Cloudflare.";
+    console.error(error);
+  }
+});
+
 render();
 </script>
 </body>
