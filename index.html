@@ -311,9 +311,28 @@ $("loadOdds").addEventListener("click", async () => {
           const outcomes = Array.isArray(market.outcomes)
             ? market.outcomes
             : [];
-          return outcomes.map(outcome => {
+          
+const probabilidades = outcomes.map(outcome =>
+  probabilidadImplicita(outcome.price)
+);
+
+const sumaProbabilidades = probabilidades.reduce(
+  (total, p) => total + (p === null ? 0 : p),
+  0
+);
+
+const puedeCalcularSinMargen =
+  probabilidades.length >= 2 &&
+  probabilidades.every(p => p !== null) &&
+  sumaProbabilidades > 0;
+
+return outcomes.map((outcome, index) => {
   const price = Number(outcome.price);
-  const implied = probabilidadImplicita(price);
+  const implied = probabilidades[index];
+
+  const fair = puedeCalcularSinMargen
+    ? (implied / sumaProbabilidades) * 100
+    : null;
 
   const cuotaTexto = Number.isFinite(price) && price !== 0
     ? (price > 0 ? "+" : "") + price
@@ -323,14 +342,20 @@ $("loadOdds").addEventListener("click", async () => {
     ? implied.toFixed(2) + "%"
     : "N/D";
 
+  const justaTexto = fair !== null
+    ? fair.toFixed(2) + "%"
+    : "N/D";
+
   return `<li>
     ${esc(book.title || book.key || "Casa")}
     — ${esc(market.key || "Mercado")}
     — ${esc(outcome.name || "")}
     : ${cuotaTexto}
     | Prob. implícita bruta: ${probTexto}
+    | Prob. sin margen: ${justaTexto}
   </li>`;
 });
+
         });
       }).join("");
 
