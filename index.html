@@ -313,12 +313,16 @@ $("sports").addEventListener("click", event => {
   }
 });
 
+
 $("sport").addEventListener("change", () => {
   syncSportButtons();
   invalidateCalculation();
+
+  $("events").innerHTML = "";
+  $("event").value = "";
+  $("loadOdds").disabled = false;
 });
 
-[
   "event", "market", "odds", "prob",
   "stake", "threshold", "verified", "notes"
 ].forEach(id => {
