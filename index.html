@@ -332,6 +332,7 @@ $("event").value = "";
 $("loadOdds").disabled = false;
 });
 
+ [
   "event", "market", "odds", "prob",
   "stake", "threshold", "verified", "notes"
 ].forEach(id => {
@@ -340,7 +341,6 @@ $("loadOdds").disabled = false;
     invalidateCalculation
   );
 });
-
 $("calculate").addEventListener("click", () => {
   const rawOdds = $("odds").value.trim();
   const rawProb = $("prob").value.trim();
