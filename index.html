@@ -341,7 +341,46 @@ $("loadOdds").disabled = false;
     invalidateCalculation
   );
 });
-$("calculate").addEventListener("click", () => {
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".use-odds");
+  if (!button) return;
+
+  const eventName = button.dataset.event || "";
+  const outcome = button.dataset.outcome || "";
+  const price = Number(button.dataset.price);
+
+  if (!Number.isFinite(price) || price === 0) {
+    alert("Esta selección no tiene una cuota válida.");
+    return;
+  }
+
+  $("event").value = outcome
+    ? `${eventName} — ${outcome}`
+    : eventName;
+
+  $("odds").value = price;
+
+  const marketKey = (button.dataset.market || "").toLowerCase();
+
+  const marketMap = {
+    h2h: "Ganador / Moneyline",
+    spreads: "Hándicap / Spread",
+    totals: "Más / Menos puntos o goles"
+  };
+
+  if (marketMap[marketKey]) {
+    $("market").value = marketMap[marketKey];
+  }
+
+  $("prob").focus();
+
+  alert(
+    "Cuota cargada. Introduce tu probabilidad estimada antes de calcular el EDGE."
+  );
+});
+
+  $("calculate").addEventListener("click", () => {
   const rawOdds = $("odds").value.trim();
   const rawProb = $("prob").value.trim();
   const rawStake = $("stake").value.trim();
@@ -751,16 +790,26 @@ $("loadOdds").addEventListener("click", async () => {
                 ? ` | Línea: ${escapeHTML(outcome.point)}`
                 : "";
 
-            return `<li>
-              ${escapeHTML(outcome.name || "Selección")}:
-              <b>${priceText}</b>
-              | Prob. implícita:
-              ${implied === null ? "N/D" : implied.toFixed(2) + "%"}
-              | Prob. sin margen:
-              ${fair === null ? "N/D" : fair.toFixed(2) + "%"}
-              ${pointText}
-            </li>`;
-          }).join("");
+            
+return `<li>
+  ${escapeHTML(outcome.name || "Selección")}:
+  <b>${priceText}</b>
+  | Prob. implícita:
+  ${implied === null ? "N/D" : implied.toFixed(2) + "%"}
+  | Prob. sin margen:
+  ${fair === null ? "N/D" : fair.toFixed(2) + "%"}
+  ${pointText}
+  <button
+    type="button"
+    class="use-odds"
+    data-event="${escapeHTML(teams || event.name || "Evento deportivo")}"
+    data-market="${escapeHTML(market.key || "h2h")}"
+    data-price="${Number.isFinite(price) && price !== 0 ? price : ""}"
+    data-outcome="${escapeHTML(outcome.name || "Selección")}"
+  >USAR ESTA CUOTA</button>
+</li>`;
+}).join("");
+
 
           return `<div class="entry">
             <b>${escapeHTML(book.title || book.key || "Casa de apuestas")}
