@@ -7,154 +7,209 @@
 <meta name="theme-color" content="#101827">
 <title>Modelo PRO Sports</title>
 <style>
-:root{color-scheme:dark;--bg:#101827;--panel:#1b2638;--line:#344256;--text:#f5f7fb;--muted:#aab6c8;--green:#35d39a;--blue:#65a9ff;--red:#ff7777;--amber:#ffd166}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:16px Arial,sans-serif}
-header{padding:22px 16px;background:#14243b;border-bottom:2px solid var(--green)}
-h1{margin:0;color:var(--green);font-size:25px}
-header p{color:var(--muted);margin-bottom:0}
-main{max-width:850px;margin:auto;padding:14px}
-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
-button,select,input{font:inherit}
-button{cursor:pointer;border:1px solid var(--line);border-radius:9px;padding:11px;background:#26364c;color:white}
-button:disabled{opacity:.5;cursor:not-allowed}
-nav button.active,.primary{background:var(--green);color:#09251d;border-color:var(--green);font-weight:bold}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:14px}
-h2{font-size:19px;margin:0 0 12px}
-label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
-input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:#101827;color:white}
-.grid,.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.metric{background:#101827;border-radius:10px;padding:12px;min-width:0}
-.metric small{color:var(--muted);display:block;margin-bottom:7px}
-.metric strong{font-size:20px;overflow-wrap:anywhere}
-.result{padding:14px;border-radius:10px;background:#101827;margin-top:14px}
-.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.muted,.note{color:var(--muted)}
-.note{font-size:12px;line-height:1.5}
-.entry{border-top:1px solid var(--line);padding:13px 0}
-.entry p{margin:6px 0}
-.entry button{margin:4px}
-.full{width:100%;margin-top:12px}
-.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--muted)}
-.check input{width:auto;margin-top:3px}
-.odds-list{padding-left:20px;overflow-wrap:anywhere}
-@media(max-width:430px){main{padding:10px}.card{padding:12px}.grid,.metrics{gap:8px}}
+:root {
+  color-scheme: dark;
+  --bg: #101827;
+  --panel: #1b2638;
+  --line: #344256;
+  --text: #f5f7fb;
+  --muted: #aab6c8;
+  --green: #35d39a;
+  --red: #ff7777;
+  --amber: #ffd166;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px Arial, sans-serif;
+}
+header {
+  padding: 22px 16px;
+  background: #14243b;
+  border-bottom: 2px solid var(--green);
+}
+h1 { margin: 0; color: var(--green); font-size: 25px; }
+header p, .muted, .note { color: var(--muted); }
+main { max-width: 850px; margin: auto; padding: 14px; }
+nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+button, select, input { font: inherit; }
+button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 11px;
+  background: #26364c;
+  color: white;
+}
+button:disabled { opacity: .5; cursor: not-allowed; }
+nav button.active, .primary {
+  background: var(--green);
+  color: #09251d;
+  border-color: var(--green);
+  font-weight: bold;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 15px;
+  margin-bottom: 14px;
+}
+h2 { font-size: 19px; margin: 0 0 12px; }
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 12px 0 6px;
+}
+input, select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: white;
+}
+.grid, .metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.metric {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 0;
+}
+.metric small { color: var(--muted); display: block; margin-bottom: 7px; }
+.metric strong { font-size: 20px; overflow-wrap: anywhere; }
+.result { padding: 14px; border-radius: 10px; background: var(--bg); margin-top: 14px; }
+.green { color: var(--green); }
+.red { color: var(--red); }
+.amber { color: var(--amber); }
+.note { font-size: 12px; line-height: 1.5; }
+.entry { border-top: 1px solid var(--line); padding: 13px 0; }
+.entry p { margin: 6px 0; }
+.entry button { margin: 4px; }
+.full { width: 100%; margin-top: 12px; }
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.check input { width: auto; margin-top: 3px; }
+.odds-list { padding-left: 20px; overflow-wrap: anywhere; }
+@media(max-width:430px) {
+  main { padding: 10px; }
+  .card { padding: 12px; }
+  .grid, .metrics { gap: 8px; }
+}
 </style>
 </head>
 <body>
 <header>
-<h1>MODELO PRO SPORTS</h1>
-<p>Análisis · Cuotas · Probabilidades · EDGE · Rendimiento</p>
+  <h1>MODELO PRO SPORTS</h1>
+  <p>Análisis · Cuotas · Probabilidades · EDGE · Rendimiento</p>
 </header>
 
 <main>
 <nav id="sports" aria-label="Seleccionar deporte">
-<button type="button" class="active" data-sport="Fútbol">⚽ Fútbol</button>
-<button type="button" data-sport="NFL">🏈 NFL</button>
-<button type="button" data-sport="NBA">🏀 NBA</button>
-<button type="button" data-sport="MLB">⚾ MLB</button>
-<button type="button" data-sport="NHL">🏒 NHL</button>
-<button type="button" data-sport="UFC">🥊 UFC</button>
+  <button type="button" class="active" data-sport="Fútbol">⚽ Fútbol</button>
+  <button type="button" data-sport="NFL">🏈 NFL</button>
+  <button type="button" data-sport="NBA">🏀 NBA</button>
+  <button type="button" data-sport="MLB">⚾ MLB</button>
+  <button type="button" data-sport="NHL">🏒 NHL</button>
+  <button type="button" data-sport="UFC">🥊 UFC</button>
 </nav>
 
 <section class="card">
 <h2>Calculadora Modelo PRO</h2>
-
 <label for="sport">Deporte</label>
 <select id="sport">
-<option>Fútbol</option>
-<option>NFL</option>
-<option>NBA</option>
-<option>MLB</option>
-<option>NHL</option>
-<option>UFC</option>
+  <option>Fútbol</option><option>NFL</option><option>NBA</option>
+  <option>MLB</option><option>NHL</option><option>UFC</option>
 </select>
-
 <label for="event">Partido o pelea</label>
 <input id="event" maxlength="160" placeholder="Equipo A vs Equipo B">
-
 <label for="market">Mercado</label>
 <select id="market">
-<option>Ganador / Moneyline</option>
-<option>Hándicap / Spread</option>
-<option>Más / Menos puntos o goles</option>
-<option>Ambos marcan</option>
-<option>Córners</option>
-<option>Tiros a puerta</option>
-<option>Touchdowns</option>
-<option>Props de jugador</option>
-<option>UFC: método de victoria</option>
-<option>UFC: total de asaltos</option>
-<option>UFC: llega a decisión</option>
-<option>Otro mercado</option>
+  <option>Ganador / Moneyline</option>
+  <option>Hándicap / Spread</option>
+  <option>Más / Menos puntos o goles</option>
+  <option>Ambos marcan</option><option>Córners</option>
+  <option>Tiros a puerta</option><option>Touchdowns</option>
+  <option>Props de jugador</option><option>UFC: método de victoria</option>
+  <option>UFC: total de asaltos</option><option>UFC: llega a decisión</option>
+  <option>Otro mercado</option>
 </select>
-
 <div class="grid">
-<div>
-<label for="odds">Cuota americana</label>
-<input id="odds" type="number" step="1" placeholder="-110">
+  <div><label for="odds">Cuota americana</label><input id="odds" type="number" step="1" placeholder="-110"></div>
+  <div><label for="prob">Probabilidad estimada (%)</label><input id="prob" type="number" min="0.1" max="99.9" step="0.1" placeholder="58"></div>
+  <div><label for="stake">Importe ($)</label><input id="stake" type="number" min="0.01" step="0.01" value="10"></div>
+  <div><label for="threshold">EDGE mínimo (puntos porcentuales)</label><input id="threshold" type="number" min="0" max="99" step="0.5" value="3"></div>
 </div>
-<div>
-<label for="prob">Probabilidad estimada (%)</label>
-<input id="prob" type="number" min="0.1" max="99.9" step="0.1" placeholder="58">
-</div>
-<div>
-<label for="stake">Importe ($)</label>
-<input id="stake" type="number" min="0.01" step="0.01" value="10">
-</div>
-<div>
-<label for="threshold">EDGE mínimo (puntos porcentuales)</label>
-<input id="threshold" type="number" min="0" max="99" step="0.5" value="3">
-</div>
-</div>
-
 <label for="notes">Fuente y notas de verificación</label>
 <input id="notes" maxlength="500" placeholder="Fuente, hora de cuota y estadísticas revisadas">
-
 <label class="check">
-<input id="verified" type="checkbox">
-<span>He verificado independientemente la cuota y la estimación con datos actuales.</span>
+  <input id="verified" type="checkbox">
+  <span>He verificado independientemente la cuota y la estimación con datos actuales.</span>
 </label>
-
 <button class="primary full" id="calculate" type="button">CALCULAR</button>
 <div class="result" id="output" aria-live="polite">Introduce una cuota y una probabilidad estimada.</div>
 <button class="primary full" id="save" type="button" disabled>GUARDAR PRONÓSTICO</button>
-
-<p class="note">
-La calculadora utiliza la probabilidad que introduces. Marcar la casilla de verificación es una declaración manual; no verifica los datos automáticamente. EDGE positivo no garantiza ganancias.
-</p>
+<p class="note">La calculadora utiliza la probabilidad que introduces. La casilla de verificación es manual; no comprueba los datos automáticamente. EDGE positivo no garantiza ganancias.</p>
 </section>
 
 <section class="card">
 <h2>Cuotas deportivas reales</h2>
-<p class="note">
-Las cuotas dependen de la disponibilidad de la API y de sus casas de apuestas. La probabilidad implícita no equivale a una estimación independiente.
-</p>
+<p class="note">La disponibilidad depende de la API y del proveedor de cuotas. No se garantiza que las cuotas correspondan a Hard Rock Bet.</p>
 <button class="primary full" id="loadOdds" type="button">CARGAR CUOTAS REALES</button>
 <div id="oddsStatus" class="note" aria-live="polite"></div>
 <div id="oddsResults"></div>
 </section>
 
 <section class="card">
+<h2>Resultados reales de fútbol</h2>
+<p class="note">Resultados finalizados de la Premier League consultados mediante Cloudflare. Son marcadores, no predicciones.</p>
+<label for="footballLimit">Partidos a mostrar</label>
+<select id="footballLimit">
+  <option value="5">Últimos 5</option>
+  <option value="10" selected>Últimos 10</option>
+</select>
+<label for="footballTeam">Filtrar por equipo (opcional)</label>
+<input id="footballTeam" maxlength="80" placeholder="Ej.: Arsenal">
+<button class="primary full" id="loadFootball" type="button">CARGAR RESULTADOS REALES</button>
+<div id="footballStatus" class="note" aria-live="polite"></div>
+<div id="footballResults"></div>
+</section>
+
+<section class="card">
 <h2>Registro y rendimiento</h2>
 <div class="metrics">
-<div class="metric"><small>Pronósticos</small><strong id="count">0</strong></div>
-<div class="metric"><small>Acierto de resueltos</small><strong id="hit">—</strong></div>
-<div class="metric"><small>Beneficio neto</small><strong id="profit">$0.00</strong></div>
-<div class="metric"><small>ROI</small><strong id="roi">—</strong></div>
+  <div class="metric"><small>Pronósticos</small><strong id="count">0</strong></div>
+  <div class="metric"><small>Acierto de resueltos</small><strong id="hit">—</strong></div>
+  <div class="metric"><small>Beneficio neto</small><strong id="profit">$0.00</strong></div>
+  <div class="metric"><small>ROI</small><strong id="roi">—</strong></div>
 </div>
-<p class="note">El historial se guarda en este navegador. No se sincroniza automáticamente con otros dispositivos.</p>
+<p class="note">El historial se guarda en este navegador y no se sincroniza automáticamente entre dispositivos.</p>
 <div id="history"></div>
 <button class="full" id="export" type="button">EXPORTAR HISTORIAL CSV</button>
 <button class="full" id="clear" type="button">BORRAR HISTORIAL</button>
 </section>
 
-<p class="note">Herramienta de análisis, no garantía de ganancias. Verifica las estadísticas, las cuotas y las reglas de cada mercado antes de apostar.</p>
+<p class="note">Herramienta de análisis, no garantía de ganancias. Verifica las estadísticas, cuotas y reglas de cada mercado antes de apostar.</p>
 </main>
 
 <script>
 "use strict";
 
 const $ = id => document.getElementById(id);
+
 const HISTORY_KEY = "modeloProSportsHistoryV3";
 
 const SPORT_KEYS = {
@@ -169,11 +224,16 @@ const SPORT_KEYS = {
 const ODDS_API_URL =
   "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
 
+const FOOTBALL_API_URL =
+  "https://modelo-pro-api.wqhmiami.workers.dev/api/football";
+
 let lastCalculation = null;
 
 function readHistory() {
   try {
-    const rows = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    const rows = JSON.parse(
+      localStorage.getItem(HISTORY_KEY) || "[]"
+    );
     return Array.isArray(rows) ? rows : [];
   } catch (error) {
     return [];
@@ -185,20 +245,26 @@ function writeHistory(rows) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(rows));
     renderHistory();
   } catch (error) {
-    alert("No se pudo guardar. Exporta el historial y revisa el almacenamiento del navegador.");
+    alert("No se pudo guardar el historial. Exporta los datos y revisa el almacenamiento.");
   }
 }
 
 function money(value) {
   const n = Number(value) || 0;
-  return (n < 0 ? "-$" : "$") + Math.abs(n).toFixed(2);
+  return (n < 0 ? "-$" : "$") +
+    Math.abs(n).toFixed(2);
 }
 
 function oddsInfo(value) {
   const n = Number(value);
-  if (!Number.isFinite(n) || n === 0) return null;
 
-  const decimal = n > 0 ? 1 + n / 100 : 1 + 100 / Math.abs(n);
+  if (!Number.isFinite(n) || n === 0) {
+    return null;
+  }
+
+  const decimal = n > 0
+    ? 1 + n / 100
+    : 1 + 100 / Math.abs(n);
 
   return {
     decimal,
@@ -231,7 +297,7 @@ function invalidateCalculation() {
   lastCalculation = null;
   $("save").disabled = true;
   $("output").textContent =
-    "La selección cambió. Vuelve a pulsar CALCULAR antes de guardar.";
+    "La selección cambió. Pulsa CALCULAR nuevamente.";
 }
 
 $("sports").addEventListener("click", event => {
@@ -252,22 +318,23 @@ $("sport").addEventListener("change", () => {
   invalidateCalculation();
 });
 
-$("event").addEventListener("input", invalidateCalculation);
-$("market").addEventListener("change", invalidateCalculation);
-$("odds").addEventListener("input", invalidateCalculation);
-$("prob").addEventListener("input", invalidateCalculation);
-$("stake").addEventListener("input", invalidateCalculation);
-$("threshold").addEventListener("input", invalidateCalculation);
-$("verified").addEventListener("change", invalidateCalculation);
-$("notes").addEventListener("input", invalidateCalculation);
+[
+  "event", "market", "odds", "prob",
+  "stake", "threshold", "verified", "notes"
+].forEach(id => {
+  $(id).addEventListener(
+    ["market", "verified"].includes(id) ? "change" : "input",
+    invalidateCalculation
+  );
+});
 
 $("calculate").addEventListener("click", () => {
   const rawOdds = $("odds").value.trim();
   const rawProb = $("prob").value.trim();
   const rawStake = $("stake").value.trim();
   const rawThreshold = $("threshold").value.trim();
-  const eventName = $("event").value.trim();
 
+  const eventName = $("event").value.trim();
   const odds = oddsInfo(Number(rawOdds));
   const probability = Number(rawProb);
   const stake = Number(rawStake);
@@ -290,7 +357,7 @@ $("calculate").addEventListener("click", () => {
     threshold > 99
   ) {
     $("output").textContent =
-      "Revisa el evento, la cuota, la probabilidad, el importe y el EDGE mínimo.";
+      "Revisa el evento, cuota, probabilidad, importe y EDGE mínimo.";
     lastCalculation = null;
     $("save").disabled = true;
     return;
@@ -298,26 +365,29 @@ $("calculate").addEventListener("click", () => {
 
   const edge = probability - odds.implied;
   const p = probability / 100;
-  const expectedValuePerDollar = p * (odds.decimal - 1) - (1 - p);
-  const expectedValue = stake * expectedValuePerDollar;
+
+  const evPerDollar =
+    p * (odds.decimal - 1) - (1 - p);
+
+  const expectedValue = stake * evPerDollar;
 
   let decision = "NO APOSTAR";
   let reason = "El valor esperado calculado no es positivo.";
 
-  if (expectedValuePerDollar > 0 && edge >= threshold) {
+  if (evPerDollar > 0 && edge >= threshold) {
     if ($("verified").checked) {
       decision = "APUESTA CONDICIONAL";
       reason =
-        "Cumple los filtros matemáticos con los datos introducidos. Verifica que la estimación sea independiente y esté respaldada por evidencia.";
+        "Cumple los filtros matemáticos con los valores introducidos. Verifica la calidad de los datos.";
     } else {
       decision = "NO APOSTAR: FALTA VERIFICAR";
       reason =
-        "Los números cumplen el filtro, pero no has marcado la verificación independiente.";
+        "Los números cumplen el filtro, pero falta marcar la verificación independiente.";
     }
-  } else if (expectedValuePerDollar > 0) {
+  } else if (evPerDollar > 0) {
     decision = "ESPERAR PRECIO";
     reason =
-      "El valor esperado calculado es positivo, pero el EDGE no alcanza el mínimo configurado.";
+      "El valor esperado es positivo, pero el EDGE no alcanza el mínimo configurado.";
   }
 
   lastCalculation = {
@@ -330,7 +400,7 @@ $("calculate").addEventListener("click", () => {
     threshold,
     implied: odds.implied,
     edge,
-    ev: expectedValuePerDollar,
+    ev: evPerDollar,
     decision,
     notes: $("notes").value.trim(),
     verified: $("verified").checked,
@@ -346,11 +416,11 @@ $("calculate").addEventListener("click", () => {
   $("output").innerHTML = `
     <div class="metrics">
       <div class="metric">
-        <small>Prob. implícita bruta</small>
+        <small>Prob. implícita</small>
         <strong>${odds.implied.toFixed(2)}%</strong>
       </div>
       <div class="metric">
-        <small>Prob. estimada introducida</small>
+        <small>Prob. estimada</small>
         <strong>${probability.toFixed(2)}%</strong>
       </div>
       <div class="metric">
@@ -363,15 +433,18 @@ $("calculate").addEventListener("click", () => {
       </div>
     </div>
     <p><b>Decisión:
-      <span class="${decisionClass}">${escapeHTML(decision)}</span>
+      <span class="${decisionClass}">
+        ${escapeHTML(decision)}
+      </span>
     </b></p>
     <p>${escapeHTML(reason)}</p>
     <p class="note">
       Deporte: ${escapeHTML(lastCalculation.sport)}.
       Cuota decimal: ${odds.decimal.toFixed(3)}.
-      Retorno total potencial si gana: ${money(stake * odds.decimal)}.
-      El cálculo no es una predicción automática.
-    </p>`;
+      Retorno potencial total: ${money(stake * odds.decimal)}.
+      No es una predicción automática.
+    </p>
+  `;
 
   $("save").disabled = false;
 });
@@ -382,7 +455,6 @@ $("save").addEventListener("click", () => {
     return;
   }
 
-  // Guardar exactamente el deporte y los valores usados en el cálculo.
   const record = { ...lastCalculation };
   const rows = readHistory();
 
@@ -394,7 +466,9 @@ $("save").addEventListener("click", () => {
 
   $("output").insertAdjacentHTML(
     "beforeend",
-    `<p class="green">Pronóstico guardado: ${escapeHTML(record.sport)} — ${escapeHTML(record.event)}.</p>`
+    `<p class="green">Pronóstico guardado: ${
+      escapeHTML(record.event)
+    }.</p>`
   );
 });
 
@@ -403,35 +477,42 @@ function renderHistory() {
 
   $("count").textContent = rows.length;
 
-  const wins = rows.filter(row => row.status === "Ganada").length;
-  const losses = rows.filter(row => row.status === "Perdida").length;
+  const wins = rows.filter(r => r.status === "Ganada").length;
+  const losses = rows.filter(r => r.status === "Perdida").length;
   const decided = wins + losses;
 
-  $("hit").textContent =
-    decided ? (100 * wins / decided).toFixed(1) + "%" : "—";
+  $("hit").textContent = decided
+    ? (100 * wins / decided).toFixed(1) + "%"
+    : "—";
 
-  const settled = rows.filter(row =>
-    ["Ganada", "Perdida", "Nula"].includes(row.status)
+  const settled = rows.filter(r =>
+    ["Ganada", "Perdida", "Nula"].includes(r.status)
   );
 
   const profit = settled.reduce(
-    (sum, row) => sum + (Number(row.pnl) || 0),
+    (sum, r) => sum + (Number(r.pnl) || 0),
     0
   );
 
   const risk = settled
-    .filter(row => ["Ganada", "Perdida"].includes(row.status))
-    .reduce((sum, row) => sum + (Number(row.stake) || 0), 0);
+    .filter(r => ["Ganada", "Perdida"].includes(r.status))
+    .reduce((sum, r) => sum + (Number(r.stake) || 0), 0);
 
   $("profit").textContent = money(profit);
-  $("roi").textContent = risk ? (100 * profit / risk).toFixed(1) + "%" : "—";
+
+  $("roi").textContent = risk
+    ? (100 * profit / risk).toFixed(1) + "%"
+    : "—";
 
   $("history").innerHTML = rows.map((row, index) => `
     <div class="entry">
-      <b>${escapeHTML(row.sport)} — ${escapeHTML(row.event || "Evento no indicado")}</b>
+      <b>${escapeHTML(row.sport)} — ${
+        escapeHTML(row.event || "Evento no indicado")
+      }</b>
       <p>
-        ${escapeHTML(row.market)} · Cuota
-        ${Number(row.odds) > 0 ? "+" : ""}${escapeHTML(row.odds)}
+        ${escapeHTML(row.market)} · Cuota ${
+          Number(row.odds) > 0 ? "+" : ""
+        }${escapeHTML(row.odds)}
         · Prob. ${Number(row.prob).toFixed(1)}%
         · EDGE ${Number(row.edge).toFixed(2)} pp
       </p>
@@ -441,7 +522,7 @@ function renderHistory() {
       </p>
       <p class="note">
         ${escapeHTML(row.date ? new Date(row.date).toLocaleString() : "")}
-        ${row.verified ? " · Verificación declarada por el usuario" : " · No verificado"}
+        ${row.verified ? " · Verificación declarada" : " · No verificado"}
         ${row.notes ? " · " + escapeHTML(row.notes) : ""}
       </p>
       ${row.status === "Pendiente" ? `
@@ -451,7 +532,8 @@ function renderHistory() {
       ` : ""}
       <button type="button" data-delete="${index}">Eliminar</button>
     </div>
-  `).join("") || '<p class="muted">Todavía no hay pronósticos guardados.</p>';
+  `).join("") ||
+    '<p class="muted">Todavía no hay pronósticos guardados.</p>';
 }
 
 $("history").addEventListener("click", event => {
@@ -470,9 +552,13 @@ $("history").addEventListener("click", event => {
     if (!odds) return;
 
     row.status = button.dataset.result;
+
     row.pnl =
-      row.status === "Ganada" ? Number(row.stake) * (odds.decimal - 1) :
-      row.status === "Perdida" ? -Number(row.stake) : 0;
+      row.status === "Ganada"
+        ? Number(row.stake) * (odds.decimal - 1)
+        : row.status === "Perdida"
+        ? -Number(row.stake)
+        : 0;
 
     writeHistory(rows);
     return;
@@ -480,6 +566,7 @@ $("history").addEventListener("click", event => {
 
   if (button.dataset.delete !== undefined) {
     const index = Number(button.dataset.delete);
+
     if (!Number.isInteger(index) || !rows[index]) return;
 
     if (confirm("¿Eliminar este pronóstico del historial?")) {
@@ -498,9 +585,10 @@ $("export").addEventListener("click", () => {
   }
 
   const columns = [
-    "date", "sport", "event", "market", "odds", "prob",
-    "implied", "edge", "ev", "stake", "threshold",
-    "decision", "verified", "status", "pnl", "notes"
+    "date", "sport", "event", "market", "odds",
+    "prob", "implied", "edge", "ev", "stake",
+    "threshold", "decision", "verified",
+    "status", "pnl", "notes"
   ];
 
   const csv = [
@@ -513,7 +601,9 @@ $("export").addEventListener("click", () => {
   ].join("\r\n");
 
   const blobURL = URL.createObjectURL(
-    new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" })
+    new Blob(["\ufeff" + csv], {
+      type: "text/csv;charset=utf-8"
+    })
   );
 
   const link = document.createElement("a");
@@ -527,7 +617,7 @@ $("export").addEventListener("click", () => {
 });
 
 $("clear").addEventListener("click", () => {
-  if (!confirm("¿Seguro que quieres borrar TODO el historial? Esta acción no se puede deshacer.")) {
+  if (!confirm("¿Seguro que quieres borrar TODO el historial?")) {
     return;
   }
 
@@ -541,6 +631,7 @@ $("clear").addEventListener("click", () => {
 
 function americanImpliedProbability(price) {
   const value = Number(price);
+
   if (!Number.isFinite(value) || value === 0) return null;
 
   return value < 0
@@ -561,16 +652,12 @@ $("loadOdds").addEventListener("click", async () => {
 
   status.textContent = `Consultando cuotas para ${selectedSport}...`;
   results.textContent = "";
-
   $("loadOdds").disabled = true;
 
   try {
     const url = new URL(ODDS_API_URL);
 
-    // FIX PRINCIPAL: enviar el deporte elegido a Cloudflare.
     url.searchParams.set("sport", sportKey);
-
-    // UFC solo solicita ganador; los otros deportes solicitan estos mercados.
     url.searchParams.set(
       "markets",
       selectedSport === "UFC" ? "h2h" : "h2h,spreads,totals"
@@ -583,31 +670,40 @@ $("loadOdds").addEventListener("click", async () => {
       throw new Error(data.error || `Error HTTP ${response.status}`);
     }
 
-    const events = Array.isArray(data) ? data :
-      Array.isArray(data.events) ? data.events :
-      Array.isArray(data.data) ? data.data : [];
+    const events = Array.isArray(data)
+      ? data
+      : Array.isArray(data.events)
+      ? data.events
+      : Array.isArray(data.data)
+      ? data.data
+      : [];
 
     if (!events.length) {
       status.textContent =
-        `La API no devolvió eventos para ${selectedSport}. Puede que no haya cuotas disponibles o que el proveedor no admita ese deporte.`;
+        `La API no devolvió eventos para ${selectedSport}. ` +
+        "Puede que no haya cuotas disponibles o que el proveedor no admita ese deporte.";
       return;
     }
 
     results.innerHTML = events.map(event => {
-      const teams = [event.away_team, event.home_team]
-        .filter(Boolean)
-        .map(escapeHTML)
-        .join(" vs ");
+      const teams = [
+        event.away_team,
+        event.home_team
+      ].filter(Boolean).map(escapeHTML).join(" vs ");
 
       const bookmakers = Array.isArray(event.bookmakers)
-        ? event.bookmakers : [];
+        ? event.bookmakers
+        : [];
 
       const marketHTML = bookmakers.map(book => {
-        const markets = Array.isArray(book.markets) ? book.markets : [];
+        const markets = Array.isArray(book.markets)
+          ? book.markets
+          : [];
 
         return markets.map(market => {
           const outcomes = Array.isArray(market.outcomes)
-            ? market.outcomes : [];
+            ? market.outcomes
+            : [];
 
           if (!outcomes.length) return "";
 
@@ -643,15 +739,19 @@ $("loadOdds").addEventListener("click", async () => {
                 : "";
 
             return `<li>
-              ${escapeHTML(outcome.name || "Selección")}: <b>${priceText}</b>
-              | Prob. implícita: ${implied === null ? "N/D" : implied.toFixed(2) + "%"}
-              | Prob. sin margen: ${fair === null ? "N/D" : fair.toFixed(2) + "%"}
+              ${escapeHTML(outcome.name || "Selección")}:
+              <b>${priceText}</b>
+              | Prob. implícita:
+              ${implied === null ? "N/D" : implied.toFixed(2) + "%"}
+              | Prob. sin margen:
+              ${fair === null ? "N/D" : fair.toFixed(2) + "%"}
               ${pointText}
             </li>`;
           }).join("");
 
           return `<div class="entry">
-            <b>${escapeHTML(book.title || book.key || "Casa de apuestas")} — ${escapeHTML(market.key || "Mercado")}</b>
+            <b>${escapeHTML(book.title || book.key || "Casa de apuestas")}
+            — ${escapeHTML(market.key || "Mercado")}</b>
             <ul class="odds-list">${outcomeHTML}</ul>
           </div>`;
         }).join("");
@@ -660,9 +760,12 @@ $("loadOdds").addEventListener("click", async () => {
       return `<div class="entry">
         <b>${teams || escapeHTML(event.name || "Evento deportivo")}</b>
         ${event.commence_time
-          ? `<p class="note">Inicio: ${escapeHTML(new Date(event.commence_time).toLocaleString())}</p>`
+          ? `<p class="note">Inicio: ${
+              escapeHTML(new Date(event.commence_time).toLocaleString())
+            }</p>`
           : ""}
-        ${marketHTML || '<p class="note">No hay mercados disponibles para este evento.</p>'}
+        ${marketHTML ||
+          '<p class="note">No hay mercados disponibles para este evento.</p>'}
       </div>`;
     }).join("");
 
@@ -670,10 +773,121 @@ $("loadOdds").addEventListener("click", async () => {
       `Deporte solicitado: ${selectedSport}. Eventos recibidos: ${events.length}.`;
   } catch (error) {
     status.textContent =
-      `No se pudieron cargar las cuotas para ${selectedSport}. ${error.message || "Comprueba la conexión con Cloudflare."}`;
+      `No se pudieron cargar las cuotas. ${
+        error.message || "Comprueba la conexión con Cloudflare."
+      }`;
     console.error(error);
   } finally {
     $("loadOdds").disabled = false;
+  }
+});
+
+$("loadFootball").addEventListener("click", async () => {
+  const status = $("footballStatus");
+  const results = $("footballResults");
+  const button = $("loadFootball");
+
+  status.textContent =
+    "Consultando resultados finalizados de la Premier League...";
+  results.textContent = "";
+  button.disabled = true;
+
+  try {
+    const url = new URL(FOOTBALL_API_URL);
+    url.searchParams.set("competition", "PL");
+    url.searchParams.set("status", "FINISHED");
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Error HTTP ${response.status}`);
+    }
+
+    const matches = Array.isArray(data)
+      ? data
+      : Array.isArray(data.matches)
+      ? data.matches
+      : [];
+
+    const filter = $("footballTeam").value.trim().toLowerCase();
+    const limit = Number($("footballLimit").value) || 10;
+
+    const finished = matches
+      .filter(match =>
+        match &&
+        (
+          match.status === "FINISHED" ||
+          (
+            match.score?.fullTime &&
+            match.score.fullTime.home !== null &&
+            match.score.fullTime.away !== null
+          )
+        )
+      )
+      .sort((a, b) =>
+        new Date(b.utcDate || b.date || 0) -
+        new Date(a.utcDate || a.date || 0)
+      );
+
+    const filtered = finished
+      .filter(match => {
+        const home = typeof match.homeTeam === "object"
+          ? match.homeTeam?.name || ""
+          : match.homeTeam || "";
+
+        const away = typeof match.awayTeam === "object"
+          ? match.awayTeam?.name || ""
+          : match.awayTeam || "";
+
+        return !filter ||
+          `${home} ${away}`.toLowerCase().includes(filter);
+      })
+      .slice(0, limit);
+
+    if (!filtered.length) {
+      status.textContent = filter
+        ? "No hay resultados coincidentes con ese equipo en los datos recibidos."
+        : "No hay resultados finalizados disponibles en la respuesta de la API.";
+      return;
+    }
+
+    results.innerHTML = filtered.map(match => {
+      const home = typeof match.homeTeam === "object"
+        ? match.homeTeam?.name || "Local"
+        : match.homeTeam || "Local";
+
+      const away = typeof match.awayTeam === "object"
+        ? match.awayTeam?.name || "Visitante"
+        : match.awayTeam || "Visitante";
+
+      const score = match.score?.fullTime || match.score || {};
+      const homeScore = score.home ?? match.homeScore ?? "—";
+      const awayScore = score.away ?? match.awayScore ?? "—";
+      const date = match.utcDate || match.date;
+
+      return `<div class="entry">
+        <b>${escapeHTML(home)} ${escapeHTML(homeScore)}
+        – ${escapeHTML(awayScore)} ${escapeHTML(away)}</b>
+        <p class="note">${
+          date
+            ? escapeHTML(new Date(date).toLocaleString())
+            : "Fecha no disponible"
+        }</p>
+      </div>`;
+    }).join("");
+
+    status.textContent =
+      `Resultados finalizados mostrados: ${filtered.length}. ` +
+      "Fuente solicitada: football-data.org mediante Cloudflare.";
+  } catch (error) {
+    status.textContent =
+      `No se pudieron cargar los resultados. ${
+        error.message || "Comprueba el endpoint /api/football en Cloudflare."
+      }`;
+    console.error(error);
+  } finally {
+    button.disabled = false;
   }
 });
 
