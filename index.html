@@ -300,6 +300,7 @@ function invalidateCalculation() {
     "La selección cambió. Pulsa CALCULAR nuevamente.";
 }
 
+
 $("sports").addEventListener("click", event => {
   const button = event.target.closest("button[data-sport]");
   if (!button) return;
@@ -307,6 +308,11 @@ $("sports").addEventListener("click", event => {
   $("sport").value = button.dataset.sport;
   syncSportButtons();
   invalidateCalculation();
+
+  $("oddsResults").innerHTML = "";
+  $("oddsStatus").textContent = "";
+  $("event").value = "";
+  $("loadOdds").disabled = false;
 
   if (button.dataset.sport === "UFC") {
     $("market").value = "UFC: método de victoria";
