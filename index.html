@@ -355,11 +355,35 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  $("event").value = outcome
+ 
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".use-odds");
+  if (!button) return;
+
+  const eventName = button.dataset.event || "";
+  const outcome = button.dataset.outcome || "";
+  const price = Number(button.dataset.price);
+
+  if (!Number.isFinite(price) || price === 0) {
+    alert("Esta selección no tiene una cuota válida.");
+    return;
+  }
+
+  const eventInput = $("event");
+  const oddsInput = $("odds");
+  const marketInput = $("market");
+  const probInput = $("prob");
+
+  if (!eventInput || !oddsInput) {
+    alert("No se encontraron los campos del evento o la cuota.");
+    return;
+  }
+
+  eventInput.value = outcome
     ? `${eventName} — ${outcome}`
     : eventName;
 
-  $("odds").value = price;
+  oddsInput.value = price;
 
   const marketKey = (button.dataset.market || "").toLowerCase();
 
@@ -369,16 +393,20 @@ document.addEventListener("click", (event) => {
     totals: "Más / Menos puntos o goles"
   };
 
-  if (marketMap[marketKey]) {
-    $("market").value = marketMap[marketKey];
+  if (marketInput && marketMap[marketKey]) {
+    marketInput.value = marketMap[marketKey];
+    marketInput.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  $("prob").focus();
+  if (probInput) {
+    probInput.focus();
+  }
 
   alert(
-    "Cuota cargada. Introduce tu probabilidad estimada antes de calcular el EDGE."
+    "Cuota cargada correctamente. Introduce tu probabilidad estimada para calcular el EDGE."
   );
 });
+
 
   $("calculate").addEventListener("click", () => {
   const rawOdds = $("odds").value.trim();
