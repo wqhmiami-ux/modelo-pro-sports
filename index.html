@@ -341,20 +341,6 @@ $("loadOdds").disabled = false;
     invalidateCalculation
   );
 });
-
-document.addEventListener("click", (event) => {
-  const button = event.target.closest(".use-odds");
-  if (!button) return;
-
-  const eventName = button.dataset.event || "";
-  const outcome = button.dataset.outcome || "";
-  const price = Number(button.dataset.price);
-
-  if (!Number.isFinite(price) || price === 0) {
-    alert("Esta selección no tiene una cuota válida.");
-    return;
-  }
-
  
 document.addEventListener("click", (event) => {
   const button = event.target.closest(".use-odds");
