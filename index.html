@@ -1062,11 +1062,11 @@ renderHistory();
       const homeKey = normalize(homeName);
       const awayKey = normalize(awayName);
 
-      const teamStats = name => {
+            const teamStats = name => {
         const played = valid.filter(match =>
           normalize(match.homeTeam.name) === normalize(name) ||
           normalize(match.awayTeam.name) === normalize(name)
-       .slice(0, 10)
+        ).slice(0, 10);
 
         if (played.length < 5) return null;
 
@@ -1085,7 +1085,6 @@ renderHistory();
           conceded: conceded / played.length
         };
       };
-
       const homeStats = teamStats(homeName);
       const awayStats = teamStats(awayName);
 
@@ -1095,13 +1094,13 @@ renderHistory();
         return;
       }
 
-      const homeMatches = valid.filter(match =>
+            const homeMatches = valid.filter(match =>
         normalize(match.homeTeam.name) === homeKey
-      .slice(0, 10)
+      ).slice(0, 10);
 
       const awayMatches = valid.filter(match =>
         normalize(match.awayTeam.name) === awayKey
-      .slice(0, 10)
+      ).slice(0, 10);
 
       if (homeMatches.length < 3 || awayMatches.length < 3) {
         status.textContent =
