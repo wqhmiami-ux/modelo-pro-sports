@@ -359,6 +359,7 @@ document.addEventListener("click", (event) => {
   const oddsInput = $("odds");
   const marketInput = $("market");
   const probInput = $("prob");
+  const consensus = Number(button.dataset.consensus);
 
   if (!eventInput || !oddsInput) {
     alert("No se encontraron los campos del evento o la cuota.");
@@ -384,14 +385,35 @@ document.addEventListener("click", (event) => {
     marketInput.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  if (probInput) {
-    probInput.focus();
+  
+
+if (probInput) {
+  const rawConsensus = button.dataset.consensus;
+
+  probInput.value = "";
+
+  if (rawConsensus !== "" && rawConsensus !== undefined) {
+    const consensusValue = Number(rawConsensus);
+
+    if (
+      Number.isFinite(consensusValue) &&
+      consensusValue > 0 &&
+      consensusValue < 100
+    ) {
+      probInput.value = consensusValue.toFixed(2);
+    }
   }
 
-  alert(
-    "Cuota cargada correctamente. Introduce tu probabilidad estimada para calcular el EDGE."
-  );
+  probInput.focus();
+}
+
+
+ 
+alert(
+  "Cuota cargada. Si hay datos suficientes, se rellenó la probabilidad sin margen de la casa; revísala antes de calcular el EDGE."
+);
 });
+
   $("calculate").addEventListener("click", () => {
   const rawOdds = $("odds").value.trim();
   const rawProb = $("prob").value.trim();
@@ -817,6 +839,7 @@ return `<li>
     data-event="${escapeHTML(teams || event.name || "Evento deportivo")}"
     data-market="${escapeHTML(market.key || "h2h")}"
     data-price="${Number.isFinite(price) && price !== 0 ? price : ""}"
+    data-consensus="${canRemoveMargin ? fair.toFixed(2) : ""}"
     data-outcome="${escapeHTML(outcome.name || "Selección")}"
   >USAR ESTA CUOTA</button>
 </li>`;
