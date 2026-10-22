@@ -991,5 +991,171 @@ $("loadFootball").addEventListener("click", async () => {
 syncSportButtons();
 renderHistory();
 </script>
-</body>
+
+<section id="football-model" class="entry">
+  <h2>Predicción estadística de fútbol</h2>
+  <p>Modelo independiente de las cuotas. Utiliza resultados históricos disponibles en la API.</p>
+
+  <label for="football-home">Equipo local</label>
+  <input id="football-home" type="text" placeholder="Ej. Arsenal">
+
+  <label for="football-away">Equipo visitante</label>
+  <input id="football-away" type="text" placeholder="Ej. Chelsea">
+
+  <button id="football-predict" type="button">
+    CALCULAR PREDICCIÓN
+  </button>
+
+  <p id="football-model-status" role="status">
+    Introduce los dos equipos para comenzar.
+  </p>
+  <div id="football-model-results"></div>
+</section>
+
+<script>
+(() => {
+  const api = "https://modelo-pro-api.wqhmiami.workers.dev/api/football?competition=PL&status=FINISHED";
+  const button = document.getElementById("football-predict");
+  const status = document.getElementById("football-model-status");
+  const results = document.getElementById("football-model-results");
+
+  if (!button || button.dataset.ready) return;
+  button.dataset.ready = "1";
+
+  button.addEventListener("click", async () => {
+    const homeName = document.getElementById("football-home").value.trim();
+    const awayName = document.getElementById("football-away").value.trim();
+
+    results.innerHTML = "";
+
+    if (!homeName || !awayName || homeName.toLowerCase() === awayName.toLowerCase()) {
+      status.textContent = "Escribe dos equipos diferentes.";
+      return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Consultando resultados históricos reales…";
+
+    try {
+      const response = await fetch(api);
+      if (!response.ok) throw new Error("La API respondió con error.");
+
+      const payload = await response.json();
+      const matches = Array.isArray(payload)
+        ? payload
+        : payload.matches || payload.data || payload.results || [];
+
+      const valid = matches.filter(match =>
+        match &&
+        match.homeTeam && match.awayTeam &&
+        match.score && match.score.fullTime &&
+        Number.isFinite(Number(match.score.fullTime.home)) &&
+        Number.isFinite(Number(match.score.fullTime.away))
+      );
+
+      const normalize = value => String(value).trim().toLowerCase();
+      const homeKey = normalize(homeName);
+      const awayKey = normalize(awayName);
+
+      const teamStats = name => {
+        const played = valid.filter(match =>
+          normalize(match.homeTeam.name) === normalize(name) ||
+          normalize(match.awayTeam.name) === normalize(name)
+        ).slice(-10);
+
+        if (played.length < 5) return null;
+
+        let scored = 0;
+        let conceded = 0;
+
+        for (const match of played) {
+          const isHome = normalize(match.homeTeam.name) === normalize(name);
+          scored += Number(isHome ? match.score.fullTime.home : match.score.fullTime.away);
+          conceded += Number(isHome ? match.score.fullTime.away : match.score.fullTime.home);
+        }
+
+        return {
+          played: played.length,
+          scored: scored / played.length,
+          conceded: conceded / played.length
+        };
+      };
+
+      const homeStats = teamStats(homeName);
+      const awayStats = teamStats(awayName);
+
+      if (!homeStats || !awayStats) {
+        status.textContent =
+          "No hay al menos 5 partidos históricos disponibles para ambos equipos en esta competición. No se generó una predicción.";
+        return;
+      }
+
+      const homeMatches = valid.filter(match =>
+        normalize(match.homeTeam.name) === homeKey
+      ).slice(-10);
+
+      const awayMatches = valid.filter(match =>
+        normalize(match.awayTeam.name) === awayKey
+      ).slice(-10);
+
+      if (homeMatches.length < 3 || awayMatches.length < 3) {
+        status.textContent =
+          "Faltan al menos 3 partidos como local para el primer equipo o como visitante para el segundo. No se generó una predicción.";
+        return;
+      }
+
+      const avg = (items, selector) =>
+        items.reduce((sum, item) => sum + selector(item), 0) / items.length;
+
+      const homeScored = avg(homeMatches, m => Number(m.score.fullTime.home));
+      const homeConceded = avg(homeMatches, m => Number(m.score.fullTime.away));
+      const awayScored = avg(awayMatches, m => Number(m.score.fullTime.away));
+      const awayConceded = avg(awayMatches, m => Number(m.score.fullTime.home));
+
+      const homeExpected = (homeScored + awayConceded) / 2;
+      const awayExpected = (awayScored + homeConceded) / 2;
+
+      const poisson = (lambda, goals) =>
+        Math.exp(-lambda) * Math.pow(lambda, goals) /
+        Array.from({ length: goals }, (_, i) => i + 1)
+          .reduce((factor, value) => factor * value, 1);
+
+      let homeWin = 0, draw = 0, awayWin = 0, over25 = 0, btts = 0;
+
+      for (let h = 0; h <= 10; h++) {
+        for (let a = 0; a <= 10; a++) {
+          const probability = poisson(homeExpected, h) * poisson(awayExpected, a);
+          if (h > a) homeWin += probability;
+          else if (h === a) draw += probability;
+          else awayWin += probability;
+          if (h + a >= 3) over25 += probability;
+          if (h > 0 && a > 0) btts += probability;
+        }
+      }
+
+      const pct = value => (value * 100).toFixed(1) + "%";
+
+      status.textContent =
+        "Estimación estadística inicial calculada con resultados históricos; no utiliza cuotas como entrada.";
+
+      results.innerHTML = `
+        <p><b>Goles esperados — ${homeName}:</b> ${homeExpected.toFixed(2)}</p>
+        <p><b>Goles esperados — ${awayName}:</b> ${awayExpected.toFixed(2)}</p>
+        <p><b>Victoria local:</b> ${pct(homeWin)}</p>
+        <p><b>Empate:</b> ${pct(draw)}</p>
+        <p><b>Victoria visitante:</b> ${pct(awayWin)}</p>
+        <p><b>Más de 2.5 goles:</b> ${pct(over25)}</p>
+        <p><b>Ambos marcan:</b> ${pct(btts)}</p>
+        <p><small>Modelo Poisson básico basado en promedios recientes; estimación preliminar, no validada. La disponibilidad de datos depende de la competición de la API.</small></p>
+      `;
+    } catch (error) {
+      status.textContent =
+        "No se pudieron consultar los resultados. Comprueba la conexión y la disponibilidad de la API. No se generó una predicción.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+
 </html>
