@@ -2302,7 +2302,6 @@ setInterval(() => {
 
      const teamAliases = {
         mancity: "manchestercity",
-        manchester: "manchestercity",
         manutd: "manchesterunited",
         manunited: "manchesterunited",
         spurs: "tottenhamhotspur",
@@ -2466,6 +2465,7 @@ setInterval(() => {
       ? event.target.closest(".use-daily-game")
       : null;
     if (!button) return;
+    event.stopPropagation();
 
     const sport = button.dataset.sport || "Fútbol";
     const eventName = button.dataset.event || "";
