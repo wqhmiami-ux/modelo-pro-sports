@@ -499,10 +499,20 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
   <a href="#bet-summary">Resumen</a>
   <a href="#football-model">Predicción</a>
   <a href="#odds-section">Cuotas</a>
+  <a href="#data-health">Estado de datos</a>
   <a href="#results-section">Resultados</a>
   <a href="#calculator-section">Calculadora</a>
   <a href="#history-section">Historial</a>
 </nav>
+
+
+<section id="data-health" class="card" aria-labelledby="data-health-title">
+  <h2 id="data-health-title">Estado de datos en vivo</h2>
+  <p class="note">Comprueba la conexión con Cloudflare y consulta cada deporte directamente al proveedor. Una conexión correcta no garantiza que haya eventos disponibles en ese momento.</p>
+  <button id="check-data-health" class="primary full" type="button">COMPROBAR CONEXIÓN Y LOS 6 DEPORTES</button>
+  <p id="data-health-status" class="daily-meta" role="status" aria-live="polite">Sin comprobar todavía.</p>
+  <div id="data-health-results" aria-live="polite"></div>
+</section>
 
 <section id="daily-games" class="card" aria-labelledby="daily-games-title">
   <h2 id="daily-games-title">Calendario global · Todos los deportes</h2>
@@ -2268,6 +2278,90 @@ renderHistory();
     calculator.scrollIntoView({ behavior: "smooth", block: "start" });
     eventInput.focus({ preventScroll: true });
   }, true);
+})();
+</script>
+
+
+<script>
+(() => {
+  "use strict";
+  const apiRoot = "https://modelo-pro-api.wqhmiami.workers.dev/";
+  const apiOdds = "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
+  const sports = [
+    ["Fútbol (Premier League)", "soccer_epl"],
+    ["NFL", "americanfootball_nfl"],
+    ["NBA", "basketball_nba"],
+    ["MLB", "baseball_mlb"],
+    ["NHL", "icehockey_nhl"],
+    ["UFC", "mma_mixed_martial_arts"]
+  ];
+  const button = document.getElementById("check-data-health");
+  const status = document.getElementById("data-health-status");
+  const results = document.getElementById("data-health-results");
+  if (!button || !status || !results) return;
+
+  function safeText(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+  }
+
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    results.innerHTML = "";
+    status.textContent = "Comprobando API y fuentes de cuotas…";
+    const rows = [];
+    try {
+      const rootResponse = await fetch(apiRoot, { cache: "no-store" });
+      const rootData = await rootResponse.json().catch(() => ({}));
+      if (!rootResponse.ok || rootData.ok !== true) {
+        throw new Error(rootData.error || ("API respondió HTTP " + rootResponse.status));
+      }
+      rows.push({ name: "API Cloudflare", message: "Conectada", good: true });
+    } catch (error) {
+      status.textContent = "No se pudo confirmar la conexión con Cloudflare.";
+      results.innerHTML = '<p class="red">' + safeText(error.message || "Error de conexión") + '</p>';
+      button.disabled = false;
+      return;
+    }
+
+    for (const [name, sport] of sports) {
+      try {
+        const url = new URL(apiOdds);
+        url.searchParams.set("sport", sport);
+        url.searchParams.set("markets", "h2h");
+        const response = await fetch(url.toString(), { cache: "no-store" });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          rows.push({ name, message: data.error || ("HTTP " + response.status), good: false });
+          continue;
+        }
+        const events = Array.isArray(data) ? data :
+          (Array.isArray(data.events) ? data.events :
+          (Array.isArray(data.data) ? data.data : null));
+        if (!events) {
+          rows.push({ name, message: "Formato de respuesta inesperado", good: false });
+        } else if (!events.length) {
+          rows.push({ name, message: "Conexión correcta; no hay eventos devueltos ahora", good: true, empty: true });
+        } else {
+          rows.push({ name, message: events.length + " eventos recibidos", good: true });
+        }
+      } catch (error) {
+        rows.push({ name, message: error.message || "Error de conexión", good: false });
+      }
+    }
+
+    results.innerHTML = rows.map(row =>
+      '<div class="daily-game"><b class="' + (row.good ? (row.empty ? 'amber' : 'green') : 'red') + '">' +
+      safeText(row.name) + '</b><p class="daily-meta">' + safeText(row.message) + '</p></div>'
+    ).join("");
+    const failures = rows.filter(row => !row.good).length;
+    const withEvents = rows.filter(row => row.good && !row.empty && row.name !== "API Cloudflare").length;
+    status.textContent = failures === 0
+      ? "Comprobación terminada. Deportes con eventos recibidos: " + withEvents + " de 6."
+      : "Comprobación terminada con " + failures + " fuente(s) con error. Revisa el detalle antes de usar cuotas.";
+    button.disabled = false;
+  });
 })();
 </script>
 
