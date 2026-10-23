@@ -1694,7 +1694,7 @@ function renderDailyGames() {
       <div class="daily-game-tags">${details.map(item => `<span>${escapeHTML(item)}</span>`).join("")}</div>
       <p class="daily-meta">Inicio: ${escapeHTML(dateLabel)}</p>
       <div class="grid">
-        <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ABRIR CALCULADORA</button>
+        <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-away="${escapeHTML(game.away_team || "")}" data-home="${escapeHTML(game.home_team || "")}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ANALIZAR PARTIDO</button>
         <button type="button" class="load-game-odds" data-sport="${escapeHTML(game.sport)}" data-sport-key="${escapeHTML(game.sport_key || SPORT_KEYS[game.sport] || "")}" data-event-id="${escapeHTML(game.id || "")}" data-away="${escapeHTML(game.away_team || "")}" data-home="${escapeHTML(game.home_team || "")}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">CARGAR CUOTAS DE ESTE PARTIDO</button>
       </div>
     </article>`;
@@ -2300,12 +2300,34 @@ setInterval(() => {
           new Date(a.utcDate || a.date || 0)
         );
 
-     const normalize = value => String(value ?? "")
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .toLowerCase()
-  .replace(/\b(fc|afc|cf|sc)\b/g, "")
-  .replace(/[^a-z0-9]/g, "");
+     const teamAliases = {
+        mancity: "manchestercity",
+        manchester: "manchestercity",
+        manutd: "manchesterunited",
+        manunited: "manchesterunited",
+        spurs: "tottenhamhotspur",
+        tottenham: "tottenhamhotspur",
+        wolves: "wolverhamptonwanderers",
+        wolverhampton: "wolverhamptonwanderers",
+        newcastle: "newcastleunited",
+        westham: "westhamunited",
+        brighton: "brightonandhovealbion",
+        "brightonhovealbion": "brightonandhovealbion",
+        nottingham: "nottinghamforest",
+        "nottforest": "nottinghamforest",
+        leicester: "leicestercity",
+        leeds: "leedsunited",
+        ipswich: "ipswichtown"
+      };
+      const normalize = value => {
+        const base = String(value ?? "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/\b(fc|afc|cf|sc)\b/g, "")
+          .replace(/[^a-z0-9]/g, "");
+        return teamAliases[base] || base;
+      };
       const homeKey = normalize(homeName);
       const awayKey = normalize(awayName);
 
@@ -2451,6 +2473,10 @@ setInterval(() => {
     const eventInput = document.getElementById("event");
     const status = document.getElementById("dailyGamesStatus");
     const calculator = document.getElementById("calculator-section");
+    const modelSection = document.getElementById("football-model");
+    const modelHome = document.getElementById("football-home");
+    const modelAway = document.getElementById("football-away");
+    const modelButton = document.getElementById("football-predict");
 
     if (!sportInput || !eventInput || !calculator) {
       if (status) status.textContent = "No se pudo abrir la calculadora: faltan campos en la página. Recarga la aplicación y vuelve a intentarlo.";
@@ -2476,8 +2502,17 @@ setInterval(() => {
       if (output) output.textContent = "Partido seleccionado. Introduce la cuota y una probabilidad independiente, y pulsa CALCULAR.";
     }
 
-    if (status) status.textContent = "Partido seleccionado: " + eventName + ". Revisa la calculadora que aparece abajo e introduce la cuota y tu probabilidad estimada.";
-    calculator.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (sport === "Fútbol" && button.dataset.home && button.dataset.away &&
+        modelHome && modelAway && modelButton && modelSection) {
+      modelHome.value = button.dataset.home;
+      modelAway.value = button.dataset.away;
+      if (status) status.textContent = "Partido seleccionado. Cargando la estimación estadística de fútbol y preparando la calculadora.";
+      modelButton.click();
+      modelSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      if (status) status.textContent = "Partido seleccionado: " + eventName + ". Revisa la calculadora que aparece abajo e introduce una probabilidad independiente y verificable.";
+      calculator.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
     eventInput.focus({ preventScroll: true });
   }, true);
 })();
