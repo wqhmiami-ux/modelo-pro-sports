@@ -175,6 +175,8 @@ input, select {
   <div class="metric"><small>Partidos para apostar ahora</small><strong id="betCount">0</strong></div>
 </div>
 <p class="note">Cuenta los pronósticos guardados que tienen la decisión “APUESTA CONDICIONAL” y siguen pendientes. No incluye partidos que aún no hayas analizado y guardado.</p>
+<button id="enableNotifications" class="primary full" type="button">ACTIVAR NOTIFICACIONES</button>
+<p id="notificationStatus" class="note" role="status" aria-live="polite">Activa las notificaciones para recibir un aviso cuando un cálculo cumpla los filtros de apuesta condicional.</p>
 </section>
 
 
@@ -300,6 +302,50 @@ const FOOTBALL_API_URL =
   "https://modelo-pro-api.wqhmiami.workers.dev/api/football";
 
 let lastCalculation = null;
+
+function notifyBetOpportunity(record) {
+  const message = `${record.sport}: ${record.event}. EDGE ${Number(record.edge).toFixed(2)} pp. Revisa la cuota y los datos antes de apostar.`;
+  const status = $("notificationStatus");
+
+  if (status) {
+    status.textContent = record.decision === "APUESTA CONDICIONAL"
+      ? "Opción detectada: APUESTA CONDICIONAL. " + message
+      : "No se detectó una opción que cumpla todos los filtros.";
+  }
+
+  if (record.decision !== "APUESTA CONDICIONAL") return;
+
+  if ("Notification" in window && Notification.permission === "granted") {
+    try {
+      new Notification("Modelo PRO Sports: opción detectada", {
+        body: message,
+        tag: "modelo-pro-opcion-" + record.sport + "-" + record.event
+      });
+    } catch (error) {
+      console.warn("No se pudo mostrar la notificación del navegador.", error);
+    }
+  }
+}
+
+$("enableNotifications").addEventListener("click", async () => {
+  const status = $("notificationStatus");
+
+  if (!("Notification" in window)) {
+    status.textContent = "Este navegador no admite notificaciones. El aviso aparecerá dentro de la aplicación cuando calcules una opción.";
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      status.textContent = "Notificaciones activadas. Recibirás un aviso cuando un cálculo dé APUESTA CONDICIONAL mientras esta página esté abierta.";
+    } else {
+      status.textContent = "Las notificaciones no están permitidas. Puedes habilitarlas en los ajustes del navegador; los avisos dentro de la aplicación seguirán apareciendo.";
+    }
+  } catch (error) {
+    status.textContent = "No se pudieron activar las notificaciones del navegador. Revisa los permisos del sitio.";
+  }
+});
 
 function readHistory() {
   try {
@@ -605,6 +651,7 @@ alert(
   `;
 
   $("save").disabled = false;
+  notifyBetOpportunity(lastCalculation);
 });
 
 $("save").addEventListener("click", () => {
