@@ -34,3 +34,8 @@ GitHub Pages debe seguir publicando desde la rama `main`. No cambies Pages a una
 ## Muestra histórica para la predicción de fútbol
 
 El panel de resultados solicita 10 partidos por defecto. El modelo estadístico de fútbol solicita `limit=100` para tener una muestra más amplia por equipo; el Worker limita ese parámetro a un máximo de 200 partidos. Estos cambios deben desplegarse también en Cloudflare: actualizar GitHub no publica automáticamente el Worker.
+
+
+## Predicción con historial específico de los equipos
+
+El botón de predicción envía los nombres de los dos equipos al Worker. El Worker resuelve sus identificadores en la competición seleccionada y consulta los últimos partidos finalizados de cada equipo por separado (hasta 20 por equipo, sujeto a la cobertura y permisos del proveedor). Esto evita depender solo de la lista limitada de partidos de toda la competición. Los nombres deben coincidir con los nombres oficiales de la competición.
