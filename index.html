@@ -1309,8 +1309,8 @@ function renderBestOdds(events, selectedSport) {
       if ($("bestOddsBookFilter")?.value === "hardrock" && !/hard\s?rock/i.test(bookIdentity)) continue;
       for (const market of (Array.isArray(book.markets) ? book.markets : [])) {
         for (const outcome of (Array.isArray(market.outcomes) ? market.outcomes : [])) {
-          const price = Number(outcome.price);
-          if (!Number.isFinite(price) || price === 0 || Math.abs(price) < 100) continue;
+          const price = toAmericanOdds(outcome.price);
+          if (price === null) continue;
           const point = outcome.point === undefined || outcome.point === null ? "" : String(outcome.point);
           const outcomeName = outcome.name || "Selección";
           const key = [event.id || eventName, market.key || "market", outcomeName, point].join("|");
@@ -1357,11 +1357,23 @@ function renderBestOdds(events, selectedSport) {
   }
 }
 
-function americanImpliedProbability(price) {
+function toAmericanOdds(price) {
   const value = Number(price);
-
   if (!Number.isFinite(value) || value === 0) return null;
+  // American odds are integers with absolute value >= 100.
+  if (Number.isInteger(value) && Math.abs(value) >= 100) return value;
+  // If the API returns decimal odds instead, normalize them before display/calculation.
+  if (value > 1) {
+    return value >= 2
+      ? Math.round((value - 1) * 100)
+      : -Math.round(100 / (value - 1));
+  }
+  return null;
+}
 
+function americanImpliedProbability(price) {
+  const value = toAmericanOdds(price);
+  if (value === null) return null;
   return value < 0
     ? (-value / (-value + 100)) * 100
     : (100 / (value + 100)) * 100;
@@ -1582,14 +1594,14 @@ $("loadOdds").addEventListener("click", async () => {
             total > 0;
 
           const outcomeHTML = outcomes.map((outcome, index) => {
-            const price = Number(outcome.price);
+            const price = toAmericanOdds(outcome.price);
             const implied = probabilities[index];
             const fair = canRemoveMargin
               ? implied / total * 100
               : null;
 
             const priceText =
-              Number.isFinite(price) && price !== 0
+              price !== null
                 ? (price > 0 ? "+" : "") + price
                 : "N/D";
 
@@ -1612,7 +1624,7 @@ return `<li>
     class="use-odds"
     data-event="${escapeHTML(teams || event.name || "Evento deportivo")}"
     data-market="${escapeHTML(market.key || "h2h")}"
-    data-price="${Number.isFinite(price) && price !== 0 ? price : ""}"
+    data-price="${price !== null ? price : ""}"
     data-consensus="${canRemoveMargin ? fair.toFixed(2) : ""}"
     data-outcome="${escapeHTML(outcome.name || "Selección")}"
   >USAR ESTA CUOTA</button>
