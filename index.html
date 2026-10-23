@@ -333,6 +333,15 @@ input:focus, select:focus {
 .entry button { margin: 5px 4px 0 0; }
 .note { font-size: 12px; line-height: 1.65; }
 .green { color: var(--green); }
+/* Calendario global: diseño compacto y adaptable */
+.daily-controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin:16px 0; }
+.daily-controls label { display:block; margin-bottom:6px; font-weight:650; }
+.daily-controls select, .daily-controls input { width:100%; }
+.daily-meta { color:var(--muted); font-size:.92rem; }
+.daily-game { border:1px solid var(--line); border-radius:14px; padding:14px; margin:10px 0; background:rgba(255,255,255,.025); }
+.daily-game-title { font-weight:800; font-size:1.04rem; }
+.daily-game-tags { display:flex; flex-wrap:wrap; gap:7px; margin:8px 0; }
+.daily-game-tags span { border:1px solid var(--line); border-radius:999px; padding:4px 8px; font-size:.8rem; color:var(--muted); }
 .odds-list { padding-left: 20px; }
 #oddsResults > *, #footballResults > *, #football-model-results > * { margin-top: 12px; }
 @media (min-width: 760px) {
@@ -391,6 +400,33 @@ input:focus, select:focus {
   <a href="#calculator-section">Calculadora</a>
   <a href="#history-section">Historial</a>
 </nav>
+
+<section id="daily-games" class="card" aria-labelledby="daily-games-title">
+  <h2 id="daily-games-title">Juegos de hoy · Todos los deportes</h2>
+  <p class="note">Consulta los eventos que las fuentes conectadas devuelven para hoy, en tu hora local. La cobertura depende del proveedor; no significa que estén incluidos todos los torneos del mundo.</p>
+  <div class="daily-controls">
+    <div>
+      <label for="dailySportFilter">Deporte</label>
+      <select id="dailySportFilter">
+        <option value="Todos">Todos los deportes</option>
+        <option value="Fútbol">Fútbol</option><option value="NFL">NFL</option>
+        <option value="NBA">NBA</option><option value="MLB">MLB</option>
+        <option value="NHL">NHL</option><option value="UFC">UFC</option>
+      </select>
+    </div>
+    <div>
+      <label for="dailyCountryFilter">País (si la fuente lo informa)</label>
+      <input id="dailyCountryFilter" maxlength="80" placeholder="Ej.: España, México">
+    </div>
+    <div>
+      <label for="dailyTournamentFilter">Torneo o liga</label>
+      <input id="dailyTournamentFilter" maxlength="100" placeholder="Ej.: Premier League, Liga MX">
+    </div>
+  </div>
+  <button class="primary full" id="loadDailyGames" type="button">CARGAR JUEGOS DE HOY</button>
+  <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
+  <div id="dailyGamesResults"></div>
+</section>
 
 <section id="bet-summary" class="card" aria-labelledby="bet-summary-title">
 <h2 id="bet-summary-title">Resumen de apuestas</h2>
@@ -1092,6 +1128,126 @@ function americanImpliedProbability(price) {
     ? (-value / (-value + 100)) * 100
     : (100 / (value + 100)) * 100;
 }
+
+const DAILY_SPORTS = [
+  { name: "Fútbol", key: SPORT_KEYS["Fútbol"] },
+  { name: "NFL", key: SPORT_KEYS.NFL },
+  { name: "NBA", key: SPORT_KEYS.NBA },
+  { name: "MLB", key: SPORT_KEYS.MLB },
+  { name: "NHL", key: SPORT_KEYS.NHL },
+  { name: "UFC", key: SPORT_KEYS.UFC }
+];
+
+let dailyGamesCache = [];
+
+function getLocalDateKey(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function renderDailyGames() {
+  const sportFilter = $("dailySportFilter").value;
+  const countryFilter = $("dailyCountryFilter").value.trim().toLocaleLowerCase();
+  const tournamentFilter = $("dailyTournamentFilter").value.trim().toLocaleLowerCase();
+  const filtered = dailyGamesCache.filter(game => {
+    const sportMatch = sportFilter === "Todos" || game.sport === sportFilter;
+    const countryMatch = !countryFilter || (game.country || "").toLocaleLowerCase().includes(countryFilter);
+    const tournamentMatch = !tournamentFilter || (game.tournament || "").toLocaleLowerCase().includes(tournamentFilter);
+    return sportMatch && countryMatch && tournamentMatch;
+  });
+  const target = $("dailyGamesResults");
+  if (!filtered.length) {
+    target.innerHTML = '<p class="note">No hay eventos que coincidan con estos filtros entre los datos recibidos. Puede faltar cobertura del proveedor; no se han inventado partidos.</p>';
+    return;
+  }
+  target.innerHTML = filtered.map(game => {
+    const kickoff = new Date(game.commence_time);
+    const dateLabel = Number.isFinite(kickoff.getTime())
+      ? kickoff.toLocaleString(undefined, { dateStyle:"medium", timeStyle:"short" })
+      : "Hora no informada";
+    const details = [
+      game.sport,
+      game.country || "País no informado",
+      game.tournament || "Torneo no informado"
+    ];
+    return `<article class="daily-game">
+      <div class="daily-game-title">${escapeHTML(game.away_team || "Por confirmar")} vs ${escapeHTML(game.home_team || "Por confirmar")}</div>
+      <div class="daily-game-tags">${details.map(item => `<span>${escapeHTML(item)}</span>`).join("")}</div>
+      <p class="daily-meta">Inicio: ${escapeHTML(dateLabel)}</p>
+      <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ANALIZAR ESTE PARTIDO</button>
+    </article>`;
+  }).join("");
+  $("dailyGamesStatus").textContent = `Eventos de hoy recibidos: ${filtered.length}. Fuentes consultadas: ${DAILY_SPORTS.length}. La lista refleja únicamente la cobertura devuelta por las APIs.`;
+}
+
+$("dailySportFilter").addEventListener("change", renderDailyGames);
+$("dailyCountryFilter").addEventListener("input", renderDailyGames);
+$("dailyTournamentFilter").addEventListener("input", renderDailyGames);
+
+$("dailyGamesResults").addEventListener("click", event => {
+  const button = event.target.closest(".use-daily-game");
+  if (!button) return;
+  $("sport").value = button.dataset.sport;
+  $("event").value = button.dataset.event;
+  document.querySelectorAll("#sports button").forEach(item => {
+    const active = item.dataset.sport === button.dataset.sport;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-pressed", String(active));
+  });
+  document.getElementById("calculator-section").scrollIntoView({behavior:"smooth", block:"start"});
+});
+
+$("loadDailyGames").addEventListener("click", async () => {
+  const button = $("loadDailyGames");
+  const status = $("dailyGamesStatus");
+  const target = $("dailyGamesResults");
+  button.disabled = true;
+  target.innerHTML = "";
+  status.textContent = "Consultando eventos disponibles de los seis deportes...";
+  const today = getLocalDateKey(new Date());
+  const failures = [];
+  try {
+    const responses = await Promise.all(DAILY_SPORTS.map(async sport => {
+      try {
+        const url = new URL(ODDS_API_URL);
+        url.searchParams.set("sport", sport.key);
+        // Solo moneyline para reducir el consumo de cuota del proveedor.
+        url.searchParams.set("markets", "h2h");
+        const response = await fetch(url.toString());
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        const events = Array.isArray(data) ? data :
+          Array.isArray(data.events) ? data.events :
+          Array.isArray(data.data) ? data.data : [];
+        return events.map(event => ({
+          ...event,
+          sport: sport.name,
+          tournament: event.sport_title || event.league_name || event.league || "",
+          country: event.country || event.sport_region || ""
+        }));
+      } catch (error) {
+        failures.push(`${sport.name}: ${error.message || "sin respuesta"}`);
+        return [];
+      }
+    }));
+    dailyGamesCache = responses.flat().filter(game =>
+      game.commence_time && getLocalDateKey(game.commence_time) === today
+    ).sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
+    renderDailyGames();
+    const failureNote = failures.length
+      ? ` No se pudieron consultar todas las fuentes: ${failures.join("; ")}.`
+      : "";
+    status.textContent += failureNote;
+  } catch (error) {
+    status.textContent = `No se pudo cargar el calendario: ${error.message || "error de conexión"}.`;
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("loadOdds").addEventListener("click", async () => {
   const status = $("oddsStatus");
