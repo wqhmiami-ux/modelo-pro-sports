@@ -899,7 +899,7 @@ $("loadOdds").addEventListener("click", async () => {
       const teams = [
         event.away_team,
         event.home_team
-      ].filter(Boolean).map(escapeHTML).join(" vs ");
+      ].filter(Boolean).join(" vs ");
 
       const bookmakers = Array.isArray(event.bookmakers)
         ? event.bookmakers
@@ -979,7 +979,7 @@ return `<li>
       }).join("");
 
       return `<div class="entry">
-        <b>${teams || escapeHTML(event.name || "Evento deportivo")}</b>
+        <b>${escapeHTML(teams || event.name || "Evento deportivo")}</b>
         ${event.commence_time
           ? `<p class="note">Inicio: ${
               escapeHTML(new Date(event.commence_time).toLocaleString())
