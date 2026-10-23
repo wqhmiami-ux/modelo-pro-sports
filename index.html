@@ -374,6 +374,89 @@ input:focus, select:focus {
   font-weight: 750;
 }
 
+
+/* Dashboard premium: nueva capa visual sin alterar la lógica existente */
+:root {
+  --bg: #070b13;
+  --panel: #0e1726;
+  --line: rgba(145,169,205,.19);
+  --text: #f5f8ff;
+  --muted: #94a6c2;
+  --green: #c5fb62;
+  --accent-blue: #76dcff;
+}
+body {
+  background:
+    radial-gradient(ellipse at 78% 0%, rgba(90,120,255,.13), transparent 33%),
+    radial-gradient(ellipse at 8% 24%, rgba(197,251,98,.075), transparent 27%),
+    #070b13;
+  letter-spacing: -.01em;
+}
+header {
+  padding-top: 25px;
+  padding-bottom: 25px;
+  background: rgba(8,14,25,.84);
+  border-bottom: 1px solid rgba(197,251,98,.25);
+  box-shadow: 0 8px 40px rgba(0,0,0,.22);
+  backdrop-filter: blur(18px);
+}
+header p { color:#a8b7cf; }
+main { max-width: 1240px; }
+.premium-hero {
+  position:relative; isolation:isolate; overflow:hidden;
+  display:grid; grid-template-columns:minmax(0,1.35fr) minmax(220px,.65fr);
+  gap:24px; align-items:center;
+  min-height:300px; margin:0 0 24px; padding:clamp(24px,4vw,46px);
+  border:1px solid rgba(151,178,220,.22); border-radius:28px;
+  background:
+    radial-gradient(circle at 80% 32%, rgba(197,251,98,.12), transparent 25%),
+    linear-gradient(120deg,rgba(19,32,54,.98),rgba(11,20,35,.96) 60%,rgba(18,32,34,.96));
+  box-shadow:0 24px 65px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.045);
+}
+.premium-hero::before {
+  content:""; position:absolute; z-index:-1; width:440px;height:440px;right:-160px;top:-250px;
+  border:1px solid rgba(197,251,98,.15);border-radius:50%;
+  box-shadow:0 0 0 35px rgba(197,251,98,.025),0 0 0 75px rgba(118,220,255,.025),0 0 0 115px rgba(118,220,255,.018);
+}
+.hero-copy { position:relative; z-index:1; }
+.hero-kicker { display:flex;align-items:center;gap:9px;color:#c5fb62;font-size:11px;font-weight:850;letter-spacing:.18em; }
+.live-pulse { width:8px;height:8px;border-radius:50%;background:#c5fb62;box-shadow:0 0 0 5px rgba(197,251,98,.11),0 0 18px rgba(197,251,98,.6); }
+.premium-hero h2 { display:block;font-size:clamp(32px,4.8vw,57px);line-height:1.02;letter-spacing:-.055em;font-weight:850;margin:20px 0 13px; }
+.premium-hero h2::before { display:none; }
+.premium-hero h2 span { color:#c5fb62; }
+.premium-hero p { max-width:520px;color:#aab9d0;font-size:15px;line-height:1.7;margin:0; }
+.hero-actions { display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin-top:25px; }
+.hero-cta { display:inline-flex;gap:22px;align-items:center;text-decoration:none;background:#c5fb62;color:#101708;font-weight:850;padding:13px 17px;border-radius:13px;box-shadow:0 8px 25px rgba(197,251,98,.12); }
+.hero-cta span { font-size:18px; }
+.hero-link { color:#e3ebf9;text-decoration:none;font-size:13px;font-weight:750; }
+.hero-link:hover { color:#c5fb62; }
+.hero-side { display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:190px; }
+.hero-orbit { position:relative;display:grid;place-items:center;width:176px;height:176px;border:1px solid rgba(197,251,98,.25);border-radius:50%;background:radial-gradient(circle,rgba(197,251,98,.09),rgba(8,14,25,.1) 65%);box-shadow:0 0 65px rgba(197,251,98,.06),inset 0 0 35px rgba(118,220,255,.045); }
+.hero-orbit::before,.hero-orbit::after { content:"";position:absolute;inset:14px;border:1px dashed rgba(118,220,255,.22);border-radius:50%; }
+.hero-orbit::after { inset:31px;border-style:solid;border-color:rgba(197,251,98,.17); }
+.orbit-ball { display:grid;place-items:center;width:76px;height:76px;border-radius:24px;transform:rotate(-8deg);background:linear-gradient(145deg,#d8ff8e,#a9e849);color:#101708;font-weight:950;font-size:22px;letter-spacing:-.08em;box-shadow:0 12px 35px rgba(197,251,98,.18); }
+.hero-orbit i,.hero-orbit b { position:absolute;z-index:2;width:10px;height:10px;border-radius:50%;background:#76dcff;box-shadow:0 0 17px rgba(118,220,255,.8);top:23px;right:27px; }
+.hero-orbit b { width:7px;height:7px;background:#c5fb62;top:auto;right:auto;bottom:31px;left:17px; }
+.hero-side-caption { display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px; }
+.hero-side-caption strong { font-size:11px;letter-spacing:.2em;color:#eaf2ff; }
+.hero-side-caption span { font-size:11px;color:#8fa1bc; }
+.hero-bottom { grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px 25px;padding-top:18px;margin-top:4px;border-top:1px solid rgba(145,169,205,.16);color:#8fa1bc;font-size:11px;text-transform:uppercase;letter-spacing:.08em; }
+.hero-bottom span { display:flex;gap:7px;align-items:center; }
+.hero-bottom b { color:#f4f8ff;font-size:13px; }
+nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);backdrop-filter:blur(14px); }
+.card { border-color:rgba(145,169,205,.16);background:linear-gradient(145deg,rgba(16,27,45,.96),rgba(10,17,30,.98));box-shadow:0 14px 36px rgba(0,0,0,.17); }
+.card h2::before { box-shadow:0 0 16px rgba(197,251,98,.2); }
+.quick-nav { background:rgba(7,11,19,.88);border-color:rgba(145,169,205,.14); }
+.quick-nav a { background:rgba(18,29,47,.92);border-color:rgba(145,169,205,.14); }
+.daily-game { background:linear-gradient(110deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border-color:rgba(145,169,205,.16);padding:17px; }
+.daily-game button { margin-top:8px; }
+@media(max-width:700px) {
+  .premium-hero { grid-template-columns:1fr;min-height:0;padding:25px 21px;border-radius:22px; }
+  .premium-hero h2 { font-size:clamp(32px,9vw,44px); }
+  .hero-side { display:none; }
+  .hero-bottom { gap:10px 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -383,6 +466,26 @@ input:focus, select:focus {
 </header>
 
 <main>
+
+<section class="premium-hero" aria-label="Panel principal">
+  <div class="hero-copy">
+    <div class="hero-kicker"><span class="live-pulse"></span> CENTRO DE ANÁLISIS DEPORTIVO</div>
+    <h2>Decide con datos.<br><span>No con corazonadas.</span></h2>
+    <p>Partidos, cuotas y seguimiento de tus picks en un solo lugar.</p>
+    <div class="hero-actions">
+      <a class="hero-cta" href="#daily-games">Ver partidos <span aria-hidden="true">↗</span></a>
+      <a class="hero-link" href="#calculator-section">Analizar una cuota</a>
+    </div>
+  </div>
+  <div class="hero-side">
+    <div class="hero-orbit"><span class="orbit-ball">PRO</span><i></i><b></b></div>
+    <div class="hero-side-caption"><strong>MODELO PRO</strong><span>Sports intelligence</span></div>
+  </div>
+  <div class="hero-bottom">
+    <span><b>06</b> deportes</span><span><b>01</b> panel central</span><span><b>0</b> cuotas inventadas</span>
+  </div>
+</section>
+
 <nav id="sports" aria-label="Seleccionar deporte">
   <button type="button" class="active" data-sport="Fútbol">⚽ Fútbol</button>
   <button type="button" data-sport="NFL">🏈 NFL</button>
