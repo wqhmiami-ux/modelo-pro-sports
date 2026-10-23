@@ -1049,6 +1049,10 @@ renderHistory();
           match &&
           match.homeTeam && match.awayTeam &&
           match.score && match.score.fullTime &&
+          match.score.fullTime.home !== null &&
+          match.score.fullTime.home !== undefined &&
+          match.score.fullTime.away !== null &&
+          match.score.fullTime.away !== undefined &&
           Number.isFinite(Number(match.score.fullTime.home)) &&
           Number.isFinite(Number(match.score.fullTime.away))
         )
