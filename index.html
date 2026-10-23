@@ -1718,6 +1718,7 @@ $("loadDailyGames").addEventListener("click", async () => {
     { name: "Fútbol", key: "soccer" },
     ...DAILY_SPORTS.filter(sport => sport.name !== "Fútbol")
   ];
+  try {
     const responses = await Promise.all(requestedSports.map(async sport => {
       try {
         const url = new URL(ODDS_API_URL);
