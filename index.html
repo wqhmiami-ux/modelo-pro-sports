@@ -2135,10 +2135,12 @@ renderHistory();
   .toLowerCase()
   .replace(/\b(fc|afc|cf|sc)\b/g, "")
   .replace(/[^a-z0-9]/g, "");
-      const homeKey = normalize(homeName);
-      const awayKey = normalize(awayName);
+      const canonicalHomeName = payload.sampleTeams?.home || homeName;
+      const canonicalAwayName = payload.sampleTeams?.away || awayName;
+      const homeKey = normalize(canonicalHomeName);
+      const awayKey = normalize(canonicalAwayName);
 
-            const teamStats = name => {
+      const teamStats = name => {
         const played = valid.filter(match =>
           normalize(match.homeTeam.name) === normalize(name) ||
           normalize(match.awayTeam.name) === normalize(name)
@@ -2161,8 +2163,8 @@ renderHistory();
           conceded: conceded / played.length
         };
       };
-      const homeStats = teamStats(homeName);
-      const awayStats = teamStats(awayName);
+      const homeStats = teamStats(canonicalHomeName);
+      const awayStats = teamStats(canonicalAwayName);
 
       if (!homeStats || !awayStats) {
         const homeCount = valid.filter(match =>
@@ -2241,8 +2243,8 @@ renderHistory();
         "Estimación estadística inicial calculada con resultados históricos; no utiliza cuotas como entrada.";
 
       results.innerHTML = `
-        <p><b>Goles esperados — ${escapeHTML(homeName)}:</b> ${homeExpected.toFixed(2)}</p>
-        <p><b>Goles esperados — ${escapeHTML(awayName)}:</b> ${awayExpected.toFixed(2)}</p>
+        <p><b>Goles esperados — ${escapeHTML(canonicalHomeName)}:</b> ${homeExpected.toFixed(2)}</p>
+        <p><b>Goles esperados — ${escapeHTML(canonicalAwayName)}:</b> ${awayExpected.toFixed(2)}</p>
         <p><b>Victoria local:</b> ${pct(homeWin)}</p>
         <p><b>Empate:</b> ${pct(draw)}</p>
         <p><b>Victoria visitante:</b> ${pct(awayWin)}</p>
