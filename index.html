@@ -118,6 +118,17 @@ input, select {
 </header>
 
 <main>
+<section class="card" id="inicio-rapido">
+  <h2>Empieza aquí</h2>
+  <p class="muted">Sigue estos pasos: calcula la cuota y el EDGE, revisa datos recientes y registra el resultado. Si falta información fiable, no apuestes.</p>
+  <div class="grid">
+    <button type="button" class="primary" data-go="calculadora">1. Calcular EDGE</button>
+    <button type="button" data-go="cuotas">2. Comparar cuotas</button>
+    <button type="button" data-go="resultados">3. Revisar resultados</button>
+    <button type="button" data-go="registro">4. Ver historial</button>
+  </div>
+  <p class="note">Las cuotas disponibles dependen del proveedor; no se deben considerar de Hard Rock Bet salvo verificación directa. La app no garantiza resultados.</p>
+</section>
 <nav id="sports" aria-label="Seleccionar deporte">
   <button type="button" class="active" data-sport="Fútbol">⚽ Fútbol</button>
   <button type="button" data-sport="NFL">🏈 NFL</button>
@@ -138,7 +149,7 @@ input, select {
   <p class="note">La app calcula con los datos introducidos y los que consiga cargar de su proveedor. No confirma por sí sola lesiones, alineaciones, cuotas de Hard Rock Bet ni la exactitud de tu probabilidad estimada.</p>
 </section>
 
-<h2>Calculadora Modelo PRO</h2>
+<h2 id="calculadora">Calculadora Modelo PRO</h2>
 <label for="sport">Deporte</label>
 <select id="sport">
   <option>Fútbol</option><option>NFL</option><option>NBA</option>
@@ -187,7 +198,7 @@ input, select {
 </section>
 
 <section class="card">
-<h2>Cuotas deportivas reales</h2>
+<h2 id="cuotas">Cuotas deportivas reales</h2>
 <p class="note">La disponibilidad depende de la API y del proveedor de cuotas. No se garantiza que las cuotas correspondan a Hard Rock Bet.</p>
 <button class="primary full" id="loadOdds" type="button">CARGAR CUOTAS REALES</button>
 <div id="oddsStatus" class="note" aria-live="polite"></div>
@@ -195,7 +206,7 @@ input, select {
 </section>
 
 <section class="card">
-<h2>Resultados reales de fútbol</h2>
+<h2 id="resultados">Resultados reales de fútbol</h2>
 <p class="note">Resultados finalizados de la Premier League consultados mediante Cloudflare. Son marcadores, no predicciones.</p>
 <label for="footballLimit">Partidos a mostrar</label>
 <select id="footballLimit">
@@ -210,7 +221,7 @@ input, select {
 </section>
 
 <section class="card">
-<h2>Registro y rendimiento</h2>
+<h2 id="registro">Registro y rendimiento</h2>
 <div class="metrics">
   <div class="metric"><small>Pronósticos</small><strong id="count">0</strong></div>
   <div class="metric"><small>Acierto de resueltos</small><strong id="hit">—</strong></div>
@@ -230,6 +241,13 @@ input, select {
 "use strict";
 
 const $ = id => document.getElementById(id);
+
+document.addEventListener("click", event => {
+  const shortcut = event.target.closest("[data-go]");
+  if (!shortcut) return;
+  const target = document.getElementById(shortcut.dataset.go);
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 const HISTORY_KEY = "modeloProSportsHistoryV3";
 
