@@ -341,7 +341,80 @@ $("loadOdds").disabled = false;
     invalidateCalculation
   );
 });
-$("calculate").addEventListener("click", () => {
+ 
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".use-odds");
+  if (!button) return;
+
+  const eventName = button.dataset.event || "";
+  const outcome = button.dataset.outcome || "";
+  const price = Number(button.dataset.price);
+
+  if (!Number.isFinite(price) || price === 0) {
+    alert("Esta selección no tiene una cuota válida.");
+    return;
+  }
+
+  const eventInput = $("event");
+  const oddsInput = $("odds");
+  const marketInput = $("market");
+  const probInput = $("prob");
+  const consensus = Number(button.dataset.consensus);
+
+  if (!eventInput || !oddsInput) {
+    alert("No se encontraron los campos del evento o la cuota.");
+    return;
+  }
+
+  eventInput.value = outcome
+    ? `${eventName} — ${outcome}`
+    : eventName;
+
+  oddsInput.value = price;
+
+  const marketKey = (button.dataset.market || "").toLowerCase();
+
+  const marketMap = {
+    h2h: "Ganador / Moneyline",
+    spreads: "Hándicap / Spread",
+    totals: "Más / Menos puntos o goles"
+  };
+
+  if (marketInput && marketMap[marketKey]) {
+    marketInput.value = marketMap[marketKey];
+    marketInput.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  
+
+if (probInput) {
+  const rawConsensus = button.dataset.consensus;
+
+  probInput.value = "";
+
+  if (rawConsensus !== "" && rawConsensus !== undefined) {
+    const consensusValue = Number(rawConsensus);
+
+    if (
+      Number.isFinite(consensusValue) &&
+      consensusValue > 0 &&
+      consensusValue < 100
+    ) {
+      probInput.value = consensusValue.toFixed(2);
+    }
+  }
+
+  probInput.focus();
+}
+
+
+ 
+alert(
+  "Cuota cargada. Si hay datos suficientes, se rellenó la probabilidad sin margen de la casa; revísala antes de calcular el EDGE."
+);
+});
+
+  $("calculate").addEventListener("click", () => {
   const rawOdds = $("odds").value.trim();
   const rawProb = $("prob").value.trim();
   const rawStake = $("stake").value.trim();
@@ -751,16 +824,27 @@ $("loadOdds").addEventListener("click", async () => {
                 ? ` | Línea: ${escapeHTML(outcome.point)}`
                 : "";
 
-            return `<li>
-              ${escapeHTML(outcome.name || "Selección")}:
-              <b>${priceText}</b>
-              | Prob. implícita:
-              ${implied === null ? "N/D" : implied.toFixed(2) + "%"}
-              | Prob. sin margen:
-              ${fair === null ? "N/D" : fair.toFixed(2) + "%"}
-              ${pointText}
-            </li>`;
-          }).join("");
+            
+return `<li>
+  ${escapeHTML(outcome.name || "Selección")}:
+  <b>${priceText}</b>
+  | Prob. implícita:
+  ${implied === null ? "N/D" : implied.toFixed(2) + "%"}
+  | Prob. sin margen:
+  ${fair === null ? "N/D" : fair.toFixed(2) + "%"}
+  ${pointText}
+  <button
+    type="button"
+    class="use-odds"
+    data-event="${escapeHTML(teams || event.name || "Evento deportivo")}"
+    data-market="${escapeHTML(market.key || "h2h")}"
+    data-price="${Number.isFinite(price) && price !== 0 ? price : ""}"
+    data-consensus="${canRemoveMargin ? fair.toFixed(2) : ""}"
+    data-outcome="${escapeHTML(outcome.name || "Selección")}"
+  >USAR ESTA CUOTA</button>
+</li>`;
+}).join("");
+
 
           return `<div class="entry">
             <b>${escapeHTML(book.title || book.key || "Casa de apuestas")}
@@ -808,7 +892,6 @@ $("loadFootball").addEventListener("click", async () => {
   try {
     const url = new URL(FOOTBALL_API_URL);
     url.searchParams.set("competition", "PL");
-    url.searchParams.set("status", "FINISHED");
 
     const response = await fetch(url.toString());
     const data = await response.json();
@@ -907,5 +990,203 @@ $("loadFootball").addEventListener("click", async () => {
 syncSportButtons();
 renderHistory();
 </script>
+
+<section id="football-model" class="entry">
+  <h2>Predicción estadística de fútbol</h2>
+  <p>Modelo independiente de las cuotas. Utiliza resultados históricos disponibles en la API.</p>
+
+  <label for="football-home">Equipo local</label>
+  <input id="football-home" type="text" placeholder="Ej. Arsenal">
+
+  <label for="football-away">Equipo visitante</label>
+  <input id="football-away" type="text" placeholder="Ej. Chelsea">
+
+  <button id="football-predict" type="button">
+    CALCULAR PREDICCIÓN
+  </button>
+
+  <p id="football-model-status" role="status">
+    Introduce los dos equipos para comenzar.
+  </p>
+  <div id="football-model-results"></div>
+</section>
+
+<script>
+(() => {
+  const api = "https://modelo-pro-api.wqhmiami.workers.dev/api/football?competition=PL";
+  const button = document.getElementById("football-predict");
+  const status = document.getElementById("football-model-status");
+  const results = document.getElementById("football-model-results");
+
+  if (!button || button.dataset.ready) return;
+  button.dataset.ready = "1";
+
+  button.addEventListener("click", async () => {
+    const homeName = document.getElementById("football-home").value.trim();
+    const awayName = document.getElementById("football-away").value.trim();
+
+    results.innerHTML = "";
+
+    if (!homeName || !awayName || homeName.toLowerCase() === awayName.toLowerCase()) {
+      status.textContent = "Escribe dos equipos diferentes.";
+      return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Consultando resultados históricos reales…";
+
+    try {
+      const response = await fetch(api);
+      if (!response.ok) throw new Error("La API respondió con error.");
+
+      const payload = await response.json();
+      const matches = Array.isArray(payload)
+        ? payload
+        : payload.matches || payload.data || payload.results || [];
+
+      const valid = matches
+        .filter(match =>
+          match &&
+          match.homeTeam && match.awayTeam &&
+          match.score && match.score.fullTime &&
+          Number.isFinite(Number(match.score.fullTime.home)) &&
+          Number.isFinite(Number(match.score.fullTime.away))
+        )
+        .sort((a, b) =>
+          new Date(b.utcDate || b.date || 0) -
+          new Date(a.utcDate || a.date || 0)
+        );
+
+     const normalize = value => String(value ?? "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .replace(/\b(fc|afc|cf|sc)\b/g, "")
+  .replace(/[^a-z0-9]/g, "");
+      const homeKey = normalize(homeName);
+      const awayKey = normalize(awayName);
+
+            const teamStats = name => {
+        const played = valid.filter(match =>
+          normalize(match.homeTeam.name) === normalize(name) ||
+          normalize(match.awayTeam.name) === normalize(name)
+        ).slice(0, 10);
+
+        if (played.length < 5) return null;
+
+        let scored = 0;
+        let conceded = 0;
+
+        for (const match of played) {
+          const isHome = normalize(match.homeTeam.name) === normalize(name);
+          scored += Number(isHome ? match.score.fullTime.home : match.score.fullTime.away);
+          conceded += Number(isHome ? match.score.fullTime.away : match.score.fullTime.home);
+        }
+
+        return {
+          played: played.length,
+          scored: scored / played.length,
+          conceded: conceded / played.length
+        };
+      };
+      const homeStats = teamStats(homeName);
+      const awayStats = teamStats(awayName);
+
+      if (!homeStats || !awayStats) {
+        const homeCount = valid.filter(match =>
+          normalize(match.homeTeam.name) === homeKey ||
+          normalize(match.awayTeam.name) === homeKey
+        ).length;
+        const awayCount = valid.filter(match =>
+          normalize(match.homeTeam.name) === awayKey ||
+          normalize(match.awayTeam.name) === awayKey
+        ).length;
+        const examples = [...new Set(valid.flatMap(match => [
+          match.homeTeam.name,
+          match.awayTeam.name
+        ]))].slice(0, 12).join(", ");
+        status.textContent =
+          `Diagnóstico: ${valid.length} partidos con marcador válido; coincidencias para "${homeName}": ${homeCount}; para "${awayName}": ${awayCount}. Nombres recibidos: ${examples}. No se generó una predicción.`;
+        return;
+      }
+
+            const homeMatches = valid.filter(match =>
+        normalize(match.homeTeam.name) === homeKey
+      ).slice(0, 10);
+
+      const awayMatches = valid.filter(match =>
+        normalize(match.awayTeam.name) === awayKey
+      ).slice(0, 10);
+
+      if (homeMatches.length < 3 || awayMatches.length < 3) {
+        status.textContent =
+          "Faltan al menos 3 partidos como local para el primer equipo o como visitante para el segundo. No se generó una predicción.";
+        return;
+      }
+
+      const avg = (items, selector) =>
+        items.reduce((sum, item) => sum + selector(item), 0) / items.length;
+
+      const homeScored = avg(homeMatches, m => Number(m.score.fullTime.home));
+      const homeConceded = avg(homeMatches, m => Number(m.score.fullTime.away));
+      const awayScored = avg(awayMatches, m => Number(m.score.fullTime.away));
+      const awayConceded = avg(awayMatches, m => Number(m.score.fullTime.home));
+
+      const homeExpected = (homeScored + awayConceded) / 2;
+      const awayExpected = (awayScored + homeConceded) / 2;
+
+      const poisson = (lambda, goals) =>
+        Math.exp(-lambda) * Math.pow(lambda, goals) /
+        Array.from({ length: goals }, (_, i) => i + 1)
+          .reduce((factor, value) => factor * value, 1);
+
+      let homeWin = 0, draw = 0, awayWin = 0, over25 = 0, btts = 0;
+      let totalMass = 0;
+
+      for (let h = 0; h <= 10; h++) {
+        for (let a = 0; a <= 10; a++) {
+          const probability = poisson(homeExpected, h) * poisson(awayExpected, a);
+          totalMass += probability;
+          if (h > a) homeWin += probability;
+          else if (h === a) draw += probability;
+          else awayWin += probability;
+          if (h + a >= 3) over25 += probability;
+          if (h > 0 && a > 0) btts += probability;
+        }
+      }
+
+      if (totalMass > 0) {
+        homeWin /= totalMass;
+        draw /= totalMass;
+        awayWin /= totalMass;
+        over25 /= totalMass;
+        btts /= totalMass;
+      }
+
+      const pct = value => (value * 100).toFixed(1) + "%";
+
+      status.textContent =
+        "Estimación estadística inicial calculada con resultados históricos; no utiliza cuotas como entrada.";
+
+      results.innerHTML = `
+        <p><b>Goles esperados — ${escapeHTML(homeName)}:</b> ${homeExpected.toFixed(2)}</p>
+        <p><b>Goles esperados — ${escapeHTML(awayName)}:</b> ${awayExpected.toFixed(2)}</p>
+        <p><b>Victoria local:</b> ${pct(homeWin)}</p>
+        <p><b>Empate:</b> ${pct(draw)}</p>
+        <p><b>Victoria visitante:</b> ${pct(awayWin)}</p>
+        <p><b>Más de 2.5 goles:</b> ${pct(over25)}</p>
+        <p><b>Ambos marcan:</b> ${pct(btts)}</p>
+        <p><small>Modelo Poisson básico basado en promedios recientes; estimación preliminar, no validada. La disponibilidad de datos depende de la competición de la API.</small></p>
+      `;
+    } catch (error) {
+      status.textContent =
+        "No se pudieron consultar los resultados. Comprueba la conexión y la disponibilidad de la API. No se generó una predicción.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
