@@ -145,6 +145,8 @@ jobs:
               errors.append("El Worker no limita de forma segura el tamaño de muestra de resultados.")
           if "data.matches.slice(0, competitionLimit)" not in worker:
               errors.append("El Worker no aplica el límite solicitado al devolver partidos.")
+          if 'Cache-Control": "public, max-age=30"' not in worker or 'caches.default.put(cacheKey' not in worker:
+              errors.append("El Worker no cachea temporalmente las cuotas para reducir llamadas repetidas.")
           if errors:
               sys.exit("\\n".join(errors))
           print("OK: Worker y aplicación declaran los seis deportes y los endpoints esperados.")
