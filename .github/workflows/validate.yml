@@ -75,6 +75,14 @@ jobs:
           if missing:
               sys.exit("ERROR: enlaces internos sin destino: " + ", ".join(missing))
 
+          import re
+          combined_scripts = "\\n".join("".join(chunks) for chunks in parser.scripts)
+          referenced_ids = set(re.findall(r'\\$\\(\\s*["\\']([A-Za-z][\\w-]*)["\\']\\s*\\)', combined_scripts))
+          referenced_ids.update(re.findall(r'getElementById\\(\\s*["\\']([^"\\']+)["\\']\\s*\\)', combined_scripts))
+          missing_ids = sorted(referenced_ids - id_set)
+          if missing_ids:
+              sys.exit("ERROR: JavaScript referencia IDs inexistentes: " + ", ".join(missing_ids))
+
           if parser.html_lang != "es":
               sys.exit("ERROR: el documento debe declarar lang=\"es\".")
 
