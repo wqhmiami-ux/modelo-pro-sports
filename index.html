@@ -874,7 +874,7 @@ $("loadOdds").addEventListener("click", async () => {
     );
 
     const response = await fetch(url.toString());
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(data.error || `Error HTTP ${response.status}`);
@@ -1018,7 +1018,7 @@ $("loadFootball").addEventListener("click", async () => {
     url.searchParams.set("competition", "PL");
 
     const response = await fetch(url.toString());
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(data.error || `Error HTTP ${response.status}`);
@@ -1145,7 +1145,7 @@ renderHistory();
       const response = await fetch(api);
       if (!response.ok) throw new Error("La API respondió con error.");
 
-      const payload = await response.json();
+      const payload = await response.json().catch(() => ({}));
       const matches = Array.isArray(payload)
         ? payload
         : payload.matches || payload.data || payload.results || [];
