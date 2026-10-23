@@ -7,7 +7,7 @@ Actualizado: 2026-10-23
 - Rama de pruebas: `mejoras-modelo-pro`.
 - GitHub Pages sigue publicando desde `main`. No cambiarlo ni fusionar automáticamente hasta completar la revisión manual en navegador.
 - Último cambio de la app en pruebas: `99a1ef89e611e4e777b00b0bb2d08fe048038a84`.
-- Validación automatizada de un commit anterior cercano pasó: IDs HTML únicos, destinos de enlaces internos y sintaxis de los 3 bloques JavaScript. La validación del último commit está ejecutándose en GitHub Actions.
+- Validación automatizada del último commit de la app completada con éxito en GitHub Actions: 67 IDs únicos, enlaces internos válidos y sintaxis correcta de los 3 bloques JavaScript. Esto no sustituye la prueba en navegador ni la comprobación de APIs.
 
 ## Mejoras en la rama de pruebas
 - Se tomó como base el index.html más reciente de `main` para no perder las funciones avanzadas que ya estaban allí (calendario global, filtros de eventos, mejores cuotas, resultados, calculadora, notificaciones e historial).
