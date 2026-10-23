@@ -259,6 +259,19 @@ export default {
     upstream.searchParams.set("dateFormat", "iso");
     if (mapped.league) upstream.searchParams.set("league", mapped.league);
 
+    const cacheKey = new Request(upstream.toString(), { method: "GET" });
+    try {
+      const cachedResponse = await caches.default.match(cacheKey);
+      if (cachedResponse) {
+        return new Response(cachedResponse.body, {
+          status: cachedResponse.status,
+          headers: { ...Object.fromEntries(cachedResponse.headers), "X-Cache": "HIT" },
+        });
+      }
+    } catch {
+      // Cache is an optimization; continue to the provider if unavailable.
+    }
+
     try {
       const response = await fetch(upstream.toString(), {
         headers: {
@@ -308,13 +321,20 @@ export default {
         return jsonError("Unexpected response format from OddsLink", 502);
       }
 
-      return Response.json(events, {
+      const oddsResponse = Response.json(events, {
         headers: {
           ...corsHeaders,
-          "Cache-Control": "no-store",
+          "Cache-Control": "public, max-age=30",
           "X-Provider": "OddsLink",
+          "X-Cache": "MISS",
         },
       });
+      try {
+        await caches.default.put(cacheKey, oddsResponse.clone());
+      } catch {
+        // A cache write failure must not prevent live odds from being returned.
+      }
+      return oddsResponse;
     } catch {
       return jsonError("OddsLink provider unavailable", 502);
     }
