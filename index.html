@@ -746,7 +746,7 @@ $("loadOdds").addEventListener("click", async () => {
     url.searchParams.set("sport", sportKey);
     url.searchParams.set(
       "markets",
-      selectedSport === "UFC" ? "h2h" : "h2h,spreads,totals"
+      selectedSport === "UFC" ? "h2h,totals" : "h2h,spreads,totals"
     );
 
     const response = await fetch(url.toString());
@@ -1045,13 +1045,18 @@ renderHistory();
         ? payload
         : payload.matches || payload.data || payload.results || [];
 
-      const valid = matches.filter(match =>
-        match &&
-        match.homeTeam && match.awayTeam &&
-        match.score && match.score.fullTime &&
-        Number.isFinite(Number(match.score.fullTime.home)) &&
-        Number.isFinite(Number(match.score.fullTime.away))
-      );
+      const valid = matches
+        .filter(match =>
+          match &&
+          match.homeTeam && match.awayTeam &&
+          match.score && match.score.fullTime &&
+          Number.isFinite(Number(match.score.fullTime.home)) &&
+          Number.isFinite(Number(match.score.fullTime.away))
+        )
+        .sort((a, b) =>
+          new Date(b.utcDate || b.date || 0) -
+          new Date(a.utcDate || a.date || 0)
+        );
 
      const normalize = value => String(value ?? "")
   .normalize("NFD")
@@ -1125,16 +1130,26 @@ renderHistory();
           .reduce((factor, value) => factor * value, 1);
 
       let homeWin = 0, draw = 0, awayWin = 0, over25 = 0, btts = 0;
+      let totalMass = 0;
 
       for (let h = 0; h <= 10; h++) {
         for (let a = 0; a <= 10; a++) {
           const probability = poisson(homeExpected, h) * poisson(awayExpected, a);
+          totalMass += probability;
           if (h > a) homeWin += probability;
           else if (h === a) draw += probability;
           else awayWin += probability;
           if (h + a >= 3) over25 += probability;
           if (h > 0 && a > 0) btts += probability;
         }
+      }
+
+      if (totalMass > 0) {
+        homeWin /= totalMass;
+        draw /= totalMass;
+        awayWin /= totalMass;
+        over25 /= totalMass;
+        btts /= totalMass;
       }
 
       const pct = value => (value * 100).toFixed(1) + "%";
@@ -1162,4 +1177,5 @@ renderHistory();
 })();
 </script>
 
+</body>
 </html>
