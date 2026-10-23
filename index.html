@@ -1094,8 +1094,20 @@ renderHistory();
       const awayStats = teamStats(awayName);
 
       if (!homeStats || !awayStats) {
+        const homeCount = valid.filter(match =>
+          normalize(match.homeTeam.name) === homeKey ||
+          normalize(match.awayTeam.name) === homeKey
+        ).length;
+        const awayCount = valid.filter(match =>
+          normalize(match.homeTeam.name) === awayKey ||
+          normalize(match.awayTeam.name) === awayKey
+        ).length;
+        const examples = [...new Set(valid.flatMap(match => [
+          match.homeTeam.name,
+          match.awayTeam.name
+        ]))].slice(0, 12).join(", ");
         status.textContent =
-          "No hay al menos 5 partidos históricos disponibles para ambos equipos en esta competición. No se generó una predicción.";
+          `Diagnóstico: ${valid.length} partidos con marcador válido; coincidencias para "${homeName}": ${homeCount}; para "${awayName}": ${awayCount}. Nombres recibidos: ${examples}. No se generó una predicción.`;
         return;
       }
 
