@@ -465,6 +465,11 @@ input:focus, select:focus {
 <p class="note">La disponibilidad depende de la API y del proveedor de cuotas. No se garantiza que las cuotas correspondan a Hard Rock Bet.</p>
 <button class="primary full" id="loadOdds" type="button">CARGAR CUOTAS REALES</button>
 <div id="oddsStatus" class="note" aria-live="polite"></div>
+<section id="bestOddsPanel" class="result" aria-live="polite" hidden>
+  <h3>Mejores cuotas encontradas</h3>
+  <p class="note">Compara el mejor precio devuelto entre las casas consultadas. Esto identifica mejor precio, no una probabilidad propia ni una recomendación automática de apostar.</p>
+  <div id="bestOddsResults"></div>
+</section>
 <div id="oddsResults"></div>
 </section>
 
@@ -811,8 +816,6 @@ document.addEventListener("click", (event) => {
   const oddsInput = $("odds");
   const marketInput = $("market");
   const probInput = $("prob");
-  const consensus = Number(button.dataset.consensus);
-
   if (!eventInput || !oddsInput) {
     alert("No se encontraron los campos del evento o la cuota.");
     return;
@@ -840,29 +843,15 @@ document.addEventListener("click", (event) => {
   
 
 if (probInput) {
-  const rawConsensus = button.dataset.consensus;
-
+  // No reutilizar el consenso de las mismas cuotas como si fuera una estimación independiente.
   probInput.value = "";
-
-  if (rawConsensus !== "" && rawConsensus !== undefined) {
-    const consensusValue = Number(rawConsensus);
-
-    if (
-      Number.isFinite(consensusValue) &&
-      consensusValue > 0 &&
-      consensusValue < 100
-    ) {
-      probInput.value = consensusValue.toFixed(2);
-    }
-  }
-
   probInput.focus();
 }
 
 
  
 alert(
-  "Cuota cargada. Si hay datos suficientes, se rellenó la probabilidad sin margen de la casa; revísala antes de calcular el EDGE."
+  "Cuota cargada. La probabilidad quedó vacía a propósito: debes introducir una estimación independiente y verificable. El consenso de las mismas casas no es una predicción independiente."
 );
 });
 
@@ -1192,6 +1181,64 @@ $("clear").addEventListener("click", () => {
   }
 });
 
+function renderBestOdds(events, selectedSport) {
+  const panel = $("bestOddsPanel");
+  const target = $("bestOddsResults");
+  if (!panel || !target) return;
+  const best = new Map();
+
+  for (const event of events) {
+    const eventName = [event.away_team, event.home_team].filter(Boolean).join(" vs ") || event.name || "Evento";
+    const books = Array.isArray(event.bookmakers) ? event.bookmakers : [];
+    for (const book of books) {
+      for (const market of (Array.isArray(book.markets) ? book.markets : [])) {
+        for (const outcome of (Array.isArray(market.outcomes) ? market.outcomes : [])) {
+          const price = Number(outcome.price);
+          if (!Number.isFinite(price) || price === 0 || Math.abs(price) < 100) continue;
+          const point = outcome.point === undefined || outcome.point === null ? "" : String(outcome.point);
+          const outcomeName = outcome.name || "Selección";
+          const key = [event.id || eventName, market.key || "market", outcomeName, point].join("|");
+          const candidate = {
+            eventName, sport: selectedSport, market: market.key || "Mercado",
+            outcomeName, point, price, book: book.title || book.key || "Casa no identificada",
+            commence: event.commence_time || ""
+          };
+          const current = best.get(key);
+          // En cuotas americanas, un valor numérico mayor paga mejor: -105 supera a -115.
+          if (!current || price > current.price) best.set(key, candidate);
+        }
+      }
+    }
+  }
+
+  const rows = [...best.values()].sort((a,b) => {
+    const eventCompare = a.eventName.localeCompare(b.eventName);
+    return eventCompare || a.market.localeCompare(b.market) || b.price - a.price;
+  });
+  if (!rows.length) {
+    panel.hidden = true;
+    target.textContent = "";
+    return;
+  }
+  panel.hidden = false;
+  target.innerHTML = rows.slice(0, 30).map(item => {
+    const priceText = item.price > 0 ? "+" + item.price : String(item.price);
+    const pointText = item.point ? " · Línea " + escapeHTML(item.point) : "";
+    const dateText = item.commence ? new Date(item.commence).toLocaleString() : "hora no informada";
+    const mappedMarket = ({h2h:"h2h",spreads:"spreads",totals:"totals"})[item.market] || item.market;
+    return `<article class="daily-game">
+      <div class="daily-game-title">${escapeHTML(item.eventName)}</div>
+      <p><b>${escapeHTML(item.market)}</b> · ${escapeHTML(item.outcomeName)}${pointText}</p>
+      <p>Mejor cuota recibida: <b class="green">${priceText}</b> · Casa: ${escapeHTML(item.book)}</p>
+      <p class="note">Inicio: ${escapeHTML(dateText)}. Precio tomado de la respuesta actual de la API.</p>
+      <button type="button" class="use-odds" data-event="${escapeHTML(item.eventName)}" data-market="${escapeHTML(mappedMarket)}" data-price="${item.price}" data-consensus="" data-outcome="${escapeHTML(item.outcomeName)}">USAR ESTA CUOTA</button>
+    </article>`;
+  }).join("");
+  if (rows.length > 30) {
+    target.insertAdjacentHTML("beforeend", `<p class="note">Se muestran los primeros 30 resultados de mejor precio de ${rows.length} combinaciones.</p>`);
+  }
+}
+
 function americanImpliedProbability(price) {
   const value = Number(price);
 
@@ -1362,12 +1409,14 @@ $("loadOdds").addEventListener("click", async () => {
       : [];
 
     if (!events.length) {
+      $("bestOddsPanel").hidden = true;
       status.textContent =
         `La API no devolvió eventos para ${selectedSport}. ` +
         "Puede que no haya cuotas disponibles o que el proveedor no admita ese deporte.";
       return;
     }
 
+    renderBestOdds(events, selectedSport);
     results.innerHTML = events.map(event => {
       const teams = [
         event.away_team,
