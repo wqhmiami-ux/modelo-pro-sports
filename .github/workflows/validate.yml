@@ -1,0 +1,77 @@
+name: Validar Modelo PRO Sports
+
+on:
+  push:
+    branches:
+      - mejoras-modelo-pro
+    paths:
+      - "index.html"
+      - ".github/workflows/validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar rama de pruebas
+        uses: actions/checkout@v4
+      - name: Preparar Node y Python
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Validar HTML, IDs y enlaces internos
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import re
+          class Check(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.ids = []
+                  self.anchors = []
+                  self.scripts = []
+                  self._script = None
+              def handle_starttag(self, tag, attrs):
+                  a = dict(attrs)
+                  if a.get("id"):
+                      self.ids.append(a["id"])
+                  if tag == "a" and a.get("href", "").startswith("#"):
+                      self.anchors.append(a["href"][1:])
+                  if tag == "script":
+                      self._script = []
+              def handle_data(self, data):
+                  if self._script is not None:
+                      self._script.append(data)
+              def handle_endtag(self, tag):
+                  if tag == "script" and self._script is not None:
+                      self.scripts.append("".join(self._script))
+                      self._script = None
+          source = Path("index.html").read_text(encoding="utf-8")
+          parser = Check()
+          parser.feed(source)
+          duplicates = sorted({value for value in parser.ids if parser.ids.count(value) > 1})
+          missing = sorted({anchor for anchor in parser.anchors if anchor and anchor not in parser.ids})
+          if duplicates:
+              raise SystemExit("IDs duplicados: " + ", ".join(duplicates))
+          if missing:
+              raise SystemExit("Enlaces internos sin destino: " + ", ".join(missing))
+          if not parser.scripts:
+              raise SystemExit("No se encontraron scripts para validar")
+          Path("/tmp/modelo-pro-scripts").mkdir(exist_ok=True)
+          for index, script in enumerate(parser.scripts):
+              Path(f"/tmp/modelo-pro-scripts/script-{index}.js").write_text(script, encoding="utf-8")
+          print(f"HTML revisado: {len(parser.ids)} IDs únicos, {len(parser.scripts)} bloques JavaScript.")
+          PY
+      - name: Validar sintaxis JavaScript
+        run: |
+          for file in /tmp/modelo-pro-scripts/*.js; do
+            echo "Revisando $file"
+            node --check "$file"
+          done
