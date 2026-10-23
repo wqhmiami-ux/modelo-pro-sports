@@ -10,6 +10,7 @@ const sportMap = {
   basketball_nba: { sport: "nba" },
   baseball_mlb: { sport: "mlb" },
   icehockey_nhl: { sport: "nhl" },
+  soccer: { sport: "soccer" },
   soccer_epl: { sport: "soccer", league: "epl" },
   mma_mixed_martial_arts: { sport: "mma" },
 };

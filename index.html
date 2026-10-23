@@ -1708,18 +1708,17 @@ $("loadDailyGames").addEventListener("click", async () => {
   target.innerHTML = "";
   status.textContent = "Consultando fuentes deportivas compatibles...";
   const failures = [];
-  const supportedFootballKeys = new Set(["soccer_epl"]);
-  let skippedFootballLeagues = [];
+  const selectedFootballLeagues = [...$("dailyFootballLeague").selectedOptions].map(option => ({
+    key: option.value,
+    label: option.textContent || option.value
+  }));
+  const requestedSports = [
+    // OddsLink admite el agregado soccer: devuelve las competiciones disponibles
+    // en una sola petición; el filtro se aplica usando la liga devuelta.
+    { name: "Fútbol", key: "soccer" },
+    ...DAILY_SPORTS.filter(sport => sport.name !== "Fútbol")
+  ];
   try {
-    const selectedFootballLeagues = [...$("dailyFootballLeague").selectedOptions].map(option => option.value);
-    const footballLeagues = selectedFootballLeagues.length
-      ? selectedFootballLeagues.filter(key => supportedFootballKeys.has(key))
-      : ["soccer_epl"];
-    skippedFootballLeagues = selectedFootballLeagues.filter(key => !supportedFootballKeys.has(key));
-    const requestedSports = [
-      ...footballLeagues.map(key => ({ name: "Fútbol", key })),
-      ...DAILY_SPORTS.filter(sport => sport.name !== "Fútbol")
-    ];
     const responses = await Promise.all(requestedSports.map(async sport => {
       try {
         const url = new URL(ODDS_API_URL);
@@ -1736,16 +1735,44 @@ $("loadDailyGames").addEventListener("click", async () => {
           ...event,
           sport: sport.name,
           sport_key: sport.key,
-          tournament: event.sport_title || event.league_name || event.league || "",
-          country: event.country || event.sport_region || (sport.name === "Fútbol" ? ((document.querySelector('#dailyFootballLeague option[value="' + sport.key + '"]')?.textContent || "").split(" · ")[0]) : "")
+          tournament: event.league?.title || event.sport_title || event.league_name || (typeof event.league === "string" ? event.league : ""),
+          league_key: event.league?.key || (typeof event.league === "string" ? event.league : ""),
+          country: event.country || event.league?.country || event.sport_region || ""
         }));
       } catch (error) {
         failures.push(`${sport.name}: ${error.message || "sin respuesta"}`);
         return [];
       }
     }));
+    const normalizeLeague = value => String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const allReceived = responses.flat();
+    const soccerReceived = allReceived.filter(game => game.sport === "Fútbol");
+    const matchesSelectedLeague = (game, option) => {
+      const optionParts = option.label.split(" · ");
+      const selectedTitle = normalizeLeague(optionParts.length > 1 ? optionParts.slice(1).join(" ") : option.label);
+      const key = normalizeLeague(option.key.replace(/^soccer_/, ""));
+      const returnedKey = normalizeLeague(game.league_key);
+      const returnedTitle = normalizeLeague(game.tournament);
+      const keyMatch = Boolean(key && returnedKey && (key === returnedKey || key.endsWith(returnedKey) || returnedKey.endsWith(key)));
+      const titleMatch = Boolean(selectedTitle && returnedTitle && (selectedTitle === returnedTitle || selectedTitle.includes(returnedTitle) || returnedTitle.includes(selectedTitle)));
+      return keyMatch || titleMatch;
+    };
+    const selectedSoccer = selectedFootballLeagues.length
+      ? soccerReceived.filter(game => selectedFootballLeagues.some(option => matchesSelectedLeague(game, option)))
+      : soccerReceived;
+    const missingSoccerSelections = selectedFootballLeagues.filter(option =>
+      !selectedSoccer.some(game => matchesSelectedLeague(game, option))
+    );
+    const selectedEvents = [
+      ...allReceived.filter(game => game.sport !== "Fútbol"),
+      ...selectedSoccer
+    ];
     const uniqueEvents = new Map();
-    responses.flat().filter(game => game.commence_time).forEach(game => {
+    selectedEvents.filter(game => game.commence_time).forEach(game => {
       const eventKey = game.sport_key + "|" + (game.id || (game.home_team || "") + "|" + (game.away_team || ""));
       if (!uniqueEvents.has(eventKey)) uniqueEvents.set(eventKey, game);
     });
@@ -1754,8 +1781,8 @@ $("loadDailyGames").addEventListener("click", async () => {
 
     const uniqueFailures = [...new Set(failures)];
     const messages = [`Eventos recibidos: ${dailyGamesCache.length}.`];
-    if (skippedFootballLeagues.length) {
-      messages.push(`Ligas de fútbol omitidas porque el servidor no las admite todavía: ${skippedFootballLeagues.length}. Se mantiene la consulta del resto de deportes.`);
+    if (missingSoccerSelections.length) {
+      messages.push(`Competiciones de fútbol seleccionadas sin eventos devueltos por la fuente: ${missingSoccerSelections.map(option => option.label).join(", ")}. Puede faltar cobertura o disponibilidad de partidos/cuotas; no se inventaron eventos.`);
     }
     if (uniqueFailures.length) {
       messages.push(`Fuentes con error: ${uniqueFailures.join("; ")}.`);
