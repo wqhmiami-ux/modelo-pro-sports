@@ -142,6 +142,219 @@ input, select {
   .quick-nav { margin-left: -2px; margin-right: -2px; }
   #sports button { min-width: 82px; padding: 10px 8px; font-size: 14px; }
 }
+
+/* Rediseño visual moderno Modelo PRO Sports */
+:root {
+  color-scheme: dark;
+  --bg: #080d18;
+  --panel: #111a2b;
+  --line: #27364d;
+  --text: #f3f7ff;
+  --muted: #9eacc2;
+  --green: #b7f34a;
+  --red: #ff6b7a;
+  --amber: #ffd166;
+  --accent-blue: #6dd6ff;
+}
+html { scroll-behavior: smooth; }
+body {
+  background:
+    radial-gradient(ellipse at 50% -18%, rgba(109,214,255,.12), transparent 42%),
+    radial-gradient(ellipse at 100% 25%, rgba(183,243,74,.055), transparent 35%),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+header {
+  position: relative;
+  overflow: hidden;
+  padding: 30px max(18px, calc((100vw - 1080px) / 2));
+  background: linear-gradient(120deg, #111d31 0%, #152944 55%, #10251f 100%);
+  border-bottom: 1px solid rgba(183,243,74,.5);
+  box-shadow: 0 12px 38px rgba(0,0,0,.22);
+}
+header::after {
+  content: "";
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  right: -70px;
+  top: -145px;
+  border: 1px solid rgba(183,243,74,.22);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgba(183,243,74,.025), 0 0 0 58px rgba(109,214,255,.025);
+  pointer-events: none;
+}
+h1 {
+  color: var(--green);
+  font-size: clamp(24px, 4vw, 34px);
+  letter-spacing: .07em;
+  font-weight: 850;
+  line-height: 1.15;
+}
+header p { margin: 9px 0 0; font-size: 14px; letter-spacing: .025em; }
+main { max-width: 1080px; padding: 24px 20px 42px; }
+nav#sports {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(17,26,43,.84);
+  box-shadow: 0 8px 28px rgba(0,0,0,.12);
+}
+#sports button {
+  flex: 1 1 100px;
+  min-width: 88px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #151f32;
+  border: 1px solid #2c3a51;
+  font-weight: 700;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+#sports button.active {
+  background: var(--green);
+  color: #10180a;
+  border-color: var(--green);
+  box-shadow: 0 4px 18px rgba(183,243,74,.15);
+}
+.quick-nav {
+  top: 8px;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(39,54,77,.8);
+  border-radius: 16px;
+  background: rgba(8,13,24,.92);
+  backdrop-filter: blur(16px);
+}
+.quick-nav a {
+  background: #121d30;
+  border-color: #293950;
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-weight: 650;
+  transition: all .16s ease;
+}
+.quick-nav a:hover, .quick-nav a:focus-visible {
+  background: rgba(183,243,74,.1);
+  border-color: var(--green);
+  color: var(--green);
+}
+.card {
+  position: relative;
+  background: linear-gradient(145deg, rgba(19,29,47,.98), rgba(14,22,37,.98));
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16);
+  scroll-margin-top: 88px;
+}
+.card h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(18px, 2vw, 21px);
+  font-weight: 780;
+  letter-spacing: -.025em;
+  margin-bottom: 14px;
+}
+.card h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 22px;
+  flex: 0 0 4px;
+  border-radius: 99px;
+  background: var(--green);
+  box-shadow: 0 0 14px rgba(183,243,74,.24);
+}
+button, input, select { font: inherit; }
+button {
+  border-radius: 12px;
+  padding: 12px 15px;
+  font-weight: 700;
+  transition: transform .16s ease, border-color .16s ease, filter .16s ease;
+}
+button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+button.primary, nav button.active {
+  background: linear-gradient(135deg, #c8ff63, #a8e83e);
+  color: #10190a;
+  border-color: #c8ff63;
+  font-weight: 850;
+}
+button.primary.full {
+  min-height: 48px;
+  letter-spacing: .025em;
+  box-shadow: 0 6px 18px rgba(183,243,74,.08);
+}
+button:not(.primary):not(.active) { background: #1b2940; }
+label { font-weight: 600; letter-spacing: .01em; }
+input, select {
+  border: 1px solid #30405a;
+  border-radius: 11px;
+  background: #0b1322;
+  min-height: 46px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(109,214,255,.09);
+  outline: none;
+}
+.metric {
+  background: linear-gradient(145deg, #0b1424, #101b2e);
+  border: 1px solid #263750;
+  border-radius: 15px;
+  padding: 16px;
+}
+.metric small { font-size: 12px; letter-spacing: .035em; text-transform: uppercase; }
+.metric strong { font-size: clamp(20px, 3vw, 26px); letter-spacing: -.035em; }
+#betCount { color: var(--green); font-size: 32px; }
+.result {
+  background: #0b1424;
+  border: 1px solid #2a3a52;
+  border-radius: 14px;
+  padding: 17px;
+}
+.entry {
+  border-top-color: #2b3a51;
+  padding: 16px 0;
+}
+.entry button { margin: 5px 4px 0 0; }
+.note { font-size: 12px; line-height: 1.65; }
+.green { color: var(--green); }
+.odds-list { padding-left: 20px; }
+#oddsResults > *, #footballResults > *, #football-model-results > * { margin-top: 12px; }
+@media (min-width: 760px) {
+  main { padding-top: 28px; }
+  #bet-summary .metrics { grid-template-columns: minmax(0, 1fr); }
+  .card { padding: 24px; }
+}
+@media (max-width: 600px) {
+  header { padding: 24px 16px; }
+  main { padding: 14px 12px 30px; }
+  nav#sports { padding: 9px; gap: 7px; border-radius: 15px; }
+  #sports button { flex: 1 1 calc(33.333% - 8px); min-width: 0; padding: 11px 7px; font-size: 13px; }
+  .card { padding: 16px; border-radius: 16px; }
+  .grid, .metrics { gap: 9px; }
+  .metric { padding: 12px; }
+  .quick-nav { top: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
 </style>
 </head>
 <body>
