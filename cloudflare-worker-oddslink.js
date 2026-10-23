@@ -74,6 +74,93 @@ export default {
         return jsonError("Invalid team ID", 400);
       }
 
+      const homeTeamQuery = (url.searchParams.get("homeTeam") || "").trim();
+      const awayTeamQuery = (url.searchParams.get("awayTeam") || "").trim();
+
+      // The prediction model needs each team's own recent match sample.
+      // Competition match lists may omit older matches, so resolve team IDs first
+      // and then request the recent results for each team separately.
+      if (homeTeamQuery || awayTeamQuery) {
+        if (!homeTeamQuery || !awayTeamQuery || homeTeamQuery.toLowerCase() === awayTeamQuery.toLowerCase()) {
+          return jsonError("Provide two different team names", 400);
+        }
+        if (status !== "FINISHED") {
+          return jsonError("Team-based prediction samples require FINISHED matches", 400);
+        }
+
+        const normalizeTeamName = (value) => String(value || "")
+          .normalize("NFD")
+          .replace(/[\\u0300-\\u036f]/g, "")
+          .toLowerCase()
+          .replace(/\\b(fc|afc|cf|sc)\\b/g, "")
+          .replace(/[^a-z0-9]/g, "");
+        const teamsUrl = `https://api.football-data.org/v4/competitions/${competition}/teams`;
+        try {
+          const teamsResponse = await fetch(teamsUrl, {
+            headers: { Accept: "application/json", "X-Auth-Token": env.FOOTBALL_DATA_TOKEN },
+          });
+          const teamsBody = await teamsResponse.text();
+          if (!teamsResponse.ok) {
+            return new Response(teamsBody, {
+              status: teamsResponse.status,
+              headers: { ...corsHeaders, "Cache-Control": "no-store" },
+            });
+          }
+          const teamsPayload = JSON.parse(teamsBody);
+          const teams = Array.isArray(teamsPayload.teams) ? teamsPayload.teams : [];
+          const resolveTeam = (query) => {
+            const key = normalizeTeamName(query);
+            const candidates = teams.filter((team) =>
+              [team.name, team.shortName, team.tla].some((name) => normalizeTeamName(name) === key)
+            );
+            return candidates.length === 1 ? candidates[0] : null;
+          };
+          const homeTeam = resolveTeam(homeTeamQuery);
+          const awayTeam = resolveTeam(awayTeamQuery);
+          if (!homeTeam || !awayTeam || homeTeam.id === awayTeam.id) {
+            return jsonError("Team name not matched exactly. Use the official team names returned by the selected competition.", 400, {
+              availableTeams: teams.map((team) => team.name).filter(Boolean),
+              unmatched: [!homeTeam ? homeTeamQuery : null, !awayTeam ? awayTeamQuery : null].filter(Boolean),
+            });
+          }
+
+          const fetchTeamMatches = async (teamId) => {
+            const teamUrl = new URL(`https://api.football-data.org/v4/teams/${teamId}/matches`);
+            teamUrl.searchParams.set("competitions", competition);
+            teamUrl.searchParams.set("status", "FINISHED");
+            teamUrl.searchParams.set("limit", "20");
+            const response = await fetch(teamUrl.toString(), {
+              headers: { Accept: "application/json", "X-Auth-Token": env.FOOTBALL_DATA_TOKEN },
+            });
+            const body = await response.text();
+            if (!response.ok) throw new Error(`Football data provider returned HTTP ${response.status}`);
+            const payload = JSON.parse(body);
+            return Array.isArray(payload.matches) ? payload.matches : [];
+          };
+
+          const [homeMatches, awayMatches] = await Promise.all([
+            fetchTeamMatches(homeTeam.id),
+            fetchTeamMatches(awayTeam.id),
+          ]);
+          const matchMap = new Map();
+          for (const match of [...homeMatches, ...awayMatches]) {
+            if (match && match.id !== undefined && match.id !== null) matchMap.set(String(match.id), match);
+          }
+          const matches = [...matchMap.values()].sort(
+            (a, b) => new Date(b.utcDate || b.date || 0).getTime() - new Date(a.utcDate || a.date || 0).getTime()
+          );
+          return Response.json({
+            matches,
+            sampleTeams: { home: homeTeam.name, away: awayTeam.name },
+            sampleCounts: { home: homeMatches.length, away: awayMatches.length },
+          }, {
+            headers: { ...corsHeaders, "Cache-Control": "public, max-age=120" },
+          });
+        } catch (error) {
+          return jsonError(error.message || "Could not load team match history", 502);
+        }
+      }
+
       const requestedLimit = Number(url.searchParams.get("limit") || "10");
       const competitionLimit = Number.isFinite(requestedLimit)
         ? Math.max(1, Math.min(200, Math.floor(requestedLimit)))
