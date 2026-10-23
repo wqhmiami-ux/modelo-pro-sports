@@ -492,17 +492,27 @@ input:focus, select:focus {
 </select>
 <label for="event">Partido o pelea</label>
 <input id="event" maxlength="160" placeholder="Equipo A vs Equipo B">
-<label for="market">Mercado</label>
-<select id="market">
-  <option>Ganador / Moneyline</option>
-  <option>Hándicap / Spread</option>
-  <option>Más / Menos puntos o goles</option>
-  <option>Ambos marcan</option><option>Córners</option>
-  <option>Tiros a puerta</option><option>Touchdowns</option>
-  <option>Props de jugador</option><option>UFC: método de victoria</option>
-  <option>UFC: total de asaltos</option><option>UFC: llega a decisión</option>
-  <option>Otro mercado</option>
-</select>
+<label for="market">Mercado específico</label>
+ <select id="market">
+   <option>Ganador / Moneyline</option><option>Hándicap / Spread</option><option>Más / Menos puntos o goles</option>
+   <option>Fútbol: ambos equipos marcan</option><option>Fútbol: doble oportunidad</option><option>Fútbol: total de córners</option>
+   <option>Fútbol: córners por equipo</option><option>Fútbol: hándicap de córners</option><option>Fútbol: tiros a puerta del partido</option>
+   <option>Fútbol: tiros a puerta por equipo</option><option>Fútbol: tiros a puerta de jugador</option><option>Fútbol: total de tarjetas</option>
+   <option>Fútbol: tarjetas por equipo</option><option>Fútbol: fuera de juego</option><option>Fútbol: goles por equipo</option>
+   <option>Fútbol: goles primera mitad</option><option>Fútbol: córners primera mitad</option>
+   <option>NFL: touchdown de jugador</option><option>NFL: yardas de pase</option><option>NFL: yardas terrestres</option>
+   <option>NFL: yardas recibidas</option><option>NFL: recepciones</option><option>NFL: intercepciones</option><option>NFL: puntos del equipo</option>
+   <option>NBA: puntos de jugador</option><option>NBA: rebotes de jugador</option><option>NBA: asistencias de jugador</option>
+   <option>NBA: triples de jugador</option><option>NBA: robos de jugador</option><option>NBA: tapones de jugador</option>
+   <option>NBA: puntos + rebotes + asistencias</option><option>NBA: puntos del equipo</option>
+   <option>MLB: hits de bateador</option><option>MLB: bases totales de bateador</option><option>MLB: home runs</option>
+   <option>MLB: carreras impulsadas</option><option>MLB: ponches del lanzador</option><option>MLB: outs del lanzador</option><option>MLB: carreras del equipo</option>
+   <option>NHL: tiros a puerta de jugador</option><option>NHL: goles de jugador</option><option>NHL: puntos de jugador</option>
+   <option>NHL: puntos en power play</option><option>NHL: goles del equipo</option>
+   <option>UFC: método de victoria</option><option>UFC: total de asaltos</option><option>UFC: llega a decisión</option>
+   <option>UFC: gana por KO/TKO</option><option>UFC: gana por sumisión</option><option>UFC: gana por decisión</option><option>Otro mercado</option>
+ </select>
+ <p id="marketAvailabilityNote" class="note">La lista incluye mercados para analizar y registrar. La cuota y los datos solo aparecerán si una fuente los ofrece; no se generan cuotas ni probabilidades automáticamente.</p>
 <div class="grid">
   <div><label for="odds">Cuota americana</label><input id="odds" type="number" step="1" placeholder="-110"></div>
   <div><label for="prob">Probabilidad estimada (%)</label><input id="prob" type="number" min="0.1" max="99.9" step="0.1" placeholder="58"></div>
@@ -553,6 +563,65 @@ const SPORT_KEYS = {
   "NHL": "icehockey_nhl",
   "UFC": "mma_mixed_martial_arts"
 };
+
+const MARKET_CATALOG = {
+  "Fútbol": [
+    ["Principales", ["Ganador / Moneyline", "Hándicap / Spread", "Más / Menos puntos o goles", "Fútbol: ambos equipos marcan", "Fútbol: doble oportunidad", "Fútbol: goles por equipo", "Fútbol: goles primera mitad"]],
+    ["Córners", ["Fútbol: total de córners", "Fútbol: córners por equipo", "Fútbol: hándicap de córners", "Fútbol: córners primera mitad"]],
+    ["Tiros", ["Fútbol: tiros a puerta del partido", "Fútbol: tiros a puerta por equipo", "Fútbol: tiros a puerta de jugador"]],
+    ["Disciplina y otros", ["Fútbol: total de tarjetas", "Fútbol: tarjetas por equipo", "Fútbol: fuera de juego", "Otro mercado"]]
+  ],
+  "NFL": [
+    ["Partido", ["Ganador / Moneyline", "Hándicap / Spread", "Más / Menos puntos o goles", "NFL: puntos del equipo"]],
+    ["Props de jugador", ["NFL: touchdown de jugador", "NFL: yardas de pase", "NFL: yardas terrestres", "NFL: yardas recibidas", "NFL: recepciones", "NFL: intercepciones"]],
+    ["Otros", ["Props de jugador", "Otro mercado"]]
+  ],
+  "NBA": [
+    ["Partido", ["Ganador / Moneyline", "Hándicap / Spread", "Más / Menos puntos o goles", "NBA: puntos del equipo"]],
+    ["Props de jugador", ["NBA: puntos de jugador", "NBA: rebotes de jugador", "NBA: asistencias de jugador", "NBA: triples de jugador", "NBA: robos de jugador", "NBA: tapones de jugador", "NBA: puntos + rebotes + asistencias"]],
+    ["Otros", ["Props de jugador", "Otro mercado"]]
+  ],
+  "MLB": [
+    ["Partido", ["Ganador / Moneyline", "Hándicap / Spread", "Más / Menos puntos o goles", "MLB: carreras del equipo"]],
+    ["Bateadores", ["MLB: hits de bateador", "MLB: bases totales de bateador", "MLB: home runs", "MLB: carreras impulsadas"]],
+    ["Lanzadores", ["MLB: ponches del lanzador", "MLB: outs del lanzador"]],
+    ["Otros", ["Props de jugador", "Otro mercado"]]
+  ],
+  "NHL": [
+    ["Partido", ["Ganador / Moneyline", "Hándicap / Spread", "Más / Menos puntos o goles", "NHL: goles del equipo"]],
+    ["Props de jugador", ["NHL: tiros a puerta de jugador", "NHL: goles de jugador", "NHL: puntos de jugador", "NHL: puntos en power play"]],
+    ["Otros", ["Props de jugador", "Otro mercado"]]
+  ],
+  "UFC": [
+    ["Combate", ["Ganador / Moneyline", "UFC: método de victoria", "UFC: total de asaltos", "UFC: llega a decisión", "UFC: gana por KO/TKO", "UFC: gana por sumisión", "UFC: gana por decisión"]],
+    ["Otros", ["Otro mercado"]]
+  ]
+};
+
+function refreshMarketCatalog() {
+  const select = $("market");
+  if (!select) return;
+  const sport = $("sport").value;
+  const previous = select.value;
+  const groups = MARKET_CATALOG[sport] || MARKET_CATALOG["Fútbol"];
+  select.replaceChildren();
+  groups.forEach(([label, options]) => {
+    const group = document.createElement("optgroup");
+    group.label = label;
+    options.forEach(value => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      group.appendChild(option);
+    });
+    select.appendChild(group);
+  });
+  if ([...select.options].some(option => option.value === previous)) select.value = previous;
+  const note = $("marketAvailabilityNote");
+  if (note) note.textContent = sport === "Fútbol"
+    ? "Córners, tiros a puerta, tarjetas y otros mercados dependen de la liga, la casa y el proveedor. Si no hay cuota verificable, no se debe recomendar."
+    : "La lista permite registrar y analizar mercados; no significa que la fuente conectada ofrezca cuotas para todos.";
+}
 
 const ODDS_API_URL =
   "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
@@ -680,6 +749,9 @@ function invalidateCalculation() {
 }
 
 
+$("sport").addEventListener("change", refreshMarketCatalog);
+refreshMarketCatalog();
+
 $("sports").addEventListener("click", event => {
   const button = event.target.closest("button[data-sport]");
   if (!button) return;
@@ -694,6 +766,7 @@ $("sports").addEventListener("click", event => {
   $("event").value = "";
   $("loadOdds").disabled = false;
 
+  refreshMarketCatalog();
   if (button.dataset.sport === "UFC") {
     $("market").value = "UFC: método de victoria";
   }
