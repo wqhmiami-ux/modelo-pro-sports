@@ -585,7 +585,13 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
         <option value="soccer_sweden_superettan">Suecia · Superettan</option>
         <option value="soccer_switzerland_superleague">Suiza · Super League</option>
       </select>
-      <p id="leagueSelectionHelp" class="note">En Mac: mantén ⌘ para elegir varios torneos. Cada torneo seleccionado genera una consulta; la cobertura depende del proveedor y del plan.</p>
+      <p id="leagueSelectionHelp" class="note">Usa los accesos rápidos para seleccionar una región. Cada torneo seleccionado genera una consulta; la cobertura depende del proveedor y del plan.</p>
+      <div class="grid league-presets">
+        <button type="button" id="selectColombiaLeague">SOLO COLOMBIA</button>
+        <button type="button" id="selectSouthAmerica">SUDAMÉRICA</button>
+        <button type="button" id="selectEurope">EUROPA</button>
+        <button type="button" id="selectAsia">ASIA</button>
+      </div>
     </div>
     <div>
       <label for="dailyEventWindow">Qué eventos mostrar</label>
@@ -1584,6 +1590,23 @@ $("dailyCountryFilter").addEventListener("input", renderDailyGames);
 $("dailyTournamentFilter").addEventListener("input", renderDailyGames);
 $("dailyEventWindow")?.addEventListener("change", renderDailyGames);
 $("dailyFootballLeague")?.addEventListener("change", renderDailyGames);
+
+function selectFootballKeys(predicate) {
+  const select = $("dailyFootballLeague");
+  [...select.options].forEach(option => { option.selected = predicate(option.value, option.textContent); });
+}
+$("selectColombiaLeague")?.addEventListener("click", () => {
+  selectFootballKeys((key) => key === "soccer_colombia_primera_a");
+});
+$("selectSouthAmerica")?.addEventListener("click", () => {
+  selectFootballKeys((key) => /colombia|brazil|argentina|chile|peru|uruguay|ecuador|paraguay|bolivia|venezuela|conmebol/.test(key));
+});
+$("selectEurope")?.addEventListener("click", () => {
+  selectFootballKeys((key) => /epl|england|spain|germany|italy|france|netherlands|portugal|uefa|spl|turkey|denmark|finland|greece|ireland|norway|poland|russia|sweden|switzerland/.test(key));
+});
+$("selectAsia")?.addEventListener("click", () => {
+  selectFootballKeys((key) => /saudi|australia|japan|korea|china/.test(key));
+});
 
 $("dailyGamesResults").addEventListener("click", async event => {
   const button = event.target.closest(".load-game-odds");
