@@ -39,3 +39,12 @@ El panel de resultados solicita 10 partidos por defecto. El modelo estadístico 
 ## Predicción con historial específico de los equipos
 
 El botón de predicción envía los nombres de los dos equipos al Worker. El Worker resuelve sus identificadores en la competición seleccionada y consulta los últimos partidos finalizados de cada equipo por separado (hasta 20 por equipo, sujeto a la cobertura y permisos del proveedor). Esto evita depender solo de la lista limitada de partidos de toda la competición. Los nombres deben coincidir con los nombres oficiales de la competición.
+
+
+## Reducir solicitudes repetidas de cuotas
+
+El Worker guarda en la caché de Cloudflare respuestas exitosas de cuotas durante 30 segundos por URL y mercado. La caché es una optimización, no una garantía de cobertura ni un sustituto de los límites de uso del proveedor. Para limitar el abuso de la API pública, configura además una regla de rate limiting en Cloudflare para `modelo-pro-api.wqhmiami.workers.dev/api/*`; el código del Worker no puede crear esa regla por sí solo.
+
+## Publicar cambios
+
+El último cambio del Worker requiere desplegar de nuevo el archivo completo `cloudflare-worker-oddslink.js` en Cloudflare. El código del repositorio y GitHub Pages no pueden modificar por sí solos el Worker que ya está ejecutándose.
