@@ -1419,7 +1419,8 @@ function renderDailyGames() {
       <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ANALIZAR ESTE PARTIDO</button>
     </article>`;
   }).join("");
-  $("dailyGamesStatus").textContent = `Eventos de hoy recibidos: ${filtered.length}. Fuentes consultadas: ${DAILY_SPORTS.length}. La lista refleja únicamente la cobertura devuelta por las APIs.`;
+  const selectedLeagueLabel = $("dailyFootballLeague")?.selectedOptions?.[0]?.textContent || "torneo seleccionado";
+  $("dailyGamesStatus").textContent = `Eventos de hoy recibidos: ${filtered.length}. Torneo de fútbol consultado: ${selectedLeagueLabel}. Fuentes consultadas: ${DAILY_SPORTS.length}. La lista refleja únicamente la cobertura devuelta por las APIs.`;
 }
 
 $("dailySportFilter").addEventListener("change", renderDailyGames);
@@ -1436,6 +1437,8 @@ $("dailyGamesResults").addEventListener("click", event => {
     item.classList.toggle("active", active);
     item.setAttribute("aria-pressed", String(active));
   });
+  refreshMarketCatalog();
+  invalidateCalculation();
   document.getElementById("calculator-section").scrollIntoView({behavior:"smooth", block:"start"});
 });
 
