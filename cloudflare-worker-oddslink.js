@@ -90,9 +90,9 @@ export default {
 
         const normalizeTeamName = (value) => String(value || "")
           .normalize("NFD")
-          .replace(/[\\u0300-\\u036f]/g, "")
+          .replace(/[\u0300-\u036f]/g, "")
           .toLowerCase()
-          .replace(/\\b(fc|afc|cf|sc)\\b/g, "")
+          .replace(/\b(fc|afc|cf|sc)\b/g, "")
           .replace(/[^a-z0-9]/g, "");
         const teamsUrl = `https://api.football-data.org/v4/competitions/${competition}/teams`;
         try {
