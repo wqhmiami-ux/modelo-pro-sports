@@ -173,7 +173,7 @@ export default {
       const response = await fetch(upstream.toString(), {
         headers: {
           Accept: "application/json",
-          "X-API-Key": env.ODDSLINK_API_KEY,
+          "X-API-Key": oddsApiKey,
         },
       });
       const body = await response.text();
