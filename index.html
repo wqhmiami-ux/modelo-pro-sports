@@ -625,7 +625,7 @@ input:focus, select:focus {
 <button class="primary full" id="calculate" type="button">CALCULAR</button>
 <div class="result" id="output" aria-live="polite">Introduce una cuota y una probabilidad estimada.</div>
 <button class="primary full" id="save" type="button" disabled>GUARDAR PRONÓSTICO</button>
-<p class="note">El motor evalúa la probabilidad que introduces; todavía no genera automáticamente una probabilidad estadística para todos los deportes. La verificación es una declaración manual y no comprueba las fuentes por sí sola. EDGE positivo no garantiza ganancias.</p>
+<p class="note">El partido y la cuota pueden cargarse automáticamente desde la fuente conectada. La probabilidad independiente no se inventa: si no hay un modelo estadístico verificado para ese mercado, la calculadora la dejará pendiente y no recomendará apostar por falta de datos.
 </section>
 
 <section id="history-section" class="card">
@@ -1428,7 +1428,10 @@ function renderDailyGames() {
       <div class="daily-game-title">${escapeHTML(game.away_team || "Por confirmar")} vs ${escapeHTML(game.home_team || "Por confirmar")}</div>
       <div class="daily-game-tags">${details.map(item => `<span>${escapeHTML(item)}</span>`).join("")}</div>
       <p class="daily-meta">Inicio: ${escapeHTML(dateLabel)}</p>
-      <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ANALIZAR ESTE PARTIDO</button>
+      <div class="grid">
+        <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ABRIR CALCULADORA</button>
+        <button type="button" class="load-game-odds" data-sport="${escapeHTML(game.sport)}" data-sport-key="${escapeHTML(game.sport_key || SPORT_KEYS[game.sport] || "")}" data-event-id="${escapeHTML(game.id || "")}" data-away="${escapeHTML(game.away_team || "")}" data-home="${escapeHTML(game.home_team || "")}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">CARGAR CUOTAS DE ESTE PARTIDO</button>
+      </div>
     </article>`;
   }).join("");
   const selectedLeagueLabel = $("dailyFootballLeague")?.selectedOptions?.[0]?.textContent || "torneo seleccionado";
@@ -1438,6 +1441,67 @@ function renderDailyGames() {
 $("dailySportFilter").addEventListener("change", renderDailyGames);
 $("dailyCountryFilter").addEventListener("input", renderDailyGames);
 $("dailyTournamentFilter").addEventListener("input", renderDailyGames);
+
+$("dailyGamesResults").addEventListener("click", async event => {
+  const button = event.target.closest(".load-game-odds");
+  if (!button) return;
+
+  const status = $("dailyGamesStatus");
+  const gameName = button.dataset.event || "partido seleccionado";
+  const sport = button.dataset.sport || "Fútbol";
+  const sportKey = button.dataset.sportKey || SPORT_KEYS[sport];
+  if (!sportKey) {
+    status.textContent = "No se pudo identificar el deporte para consultar las cuotas.";
+    return;
+  }
+
+  button.disabled = true;
+  status.textContent = "Consultando cuotas actuales para " + gameName + "...";
+  $("event").value = gameName;
+  $("sport").value = sport;
+  refreshMarketCatalog();
+  invalidateCalculation();
+
+  try {
+    const url = new URL(ODDS_API_URL);
+    url.searchParams.set("sport", sportKey);
+    url.searchParams.set("markets", sport === "UFC" ? "h2h" : "h2h,spreads,totals");
+    const response = await fetch(url.toString());
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
+    const events = Array.isArray(data) ? data :
+      Array.isArray(data.events) ? data.events :
+      Array.isArray(data.data) ? data.data : [];
+    const byId = button.dataset.eventId
+      ? events.find(item => String(item.id) === button.dataset.eventId)
+      : null;
+    const byTeams = events.find(item =>
+      (String(item.home_team || "").toLocaleLowerCase() === String(button.dataset.home || "").toLocaleLowerCase() &&
+       String(item.away_team || "").toLocaleLowerCase() === String(button.dataset.away || "").toLocaleLowerCase())
+    );
+    const match = byId || byTeams;
+    if (!match) {
+      status.textContent = "La fuente no devolvió cuotas actuales para este partido. Puede que el evento no esté cubierto o que las cuotas en vivo no estén disponibles. No se inventaron precios.";
+      $("oddsResults").innerHTML = "";
+      $("bestOddsResults").innerHTML = "";
+      $("bestOddsPanel").hidden = true;
+      return;
+    }
+
+    latestOddsEvents = [match];
+    latestOddsSport = sport;
+    renderBestOdds(latestOddsEvents, latestOddsSport);
+    $("oddsStatus").textContent = "Cuotas devueltas por la fuente para " + gameName + ". Elige la selección/mercado que quieres analizar.";
+    $("oddsResults").innerHTML = "";
+    $("bestOddsPanel").hidden = false;
+    $("odds-section").scrollIntoView({behavior:"smooth", block:"start"});
+    status.textContent = "Partido cargado. Se encontraron cuotas de la fuente; revisa la hora y el mercado antes de usar el precio.";
+  } catch (error) {
+    status.textContent = "No se pudieron cargar las cuotas: " + (error.message || "error de conexión") + ". Comprueba que el servicio de cuotas esté disponible.";
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("dailyGamesResults").addEventListener("click", event => {
   const button = event.target.closest(".use-daily-game");
@@ -1480,6 +1544,7 @@ $("loadDailyGames").addEventListener("click", async () => {
         return events.map(event => ({
           ...event,
           sport: sport.name,
+          sport_key: sport.name === "Fútbol" ? selectedFootballLeague : sport.key,
           tournament: event.sport_title || event.league_name || event.league || "",
           country: event.country || event.sport_region || ""
         }));
