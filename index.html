@@ -853,7 +853,7 @@ function refreshMarketCatalog() {
 }
 
 const ODDS_API_URL =
-  "https://d8a8acb3-modelo-pro-api.wqhmiami.workers.dev/api/odds";
+  "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
 
 const FOOTBALL_API_URL =
   "https://modelo-pro-api.wqhmiami.workers.dev/api/football";
@@ -870,7 +870,7 @@ function notifyBetOpportunity(record) {
       : "No se detectó una opción que cumpla todos los filtros.";
   }
 
-  if (!["APUESTA", "APUESTA CONDICIONAL"].includes(record.decision)) return;
+  if (!["APOSTAR", "APUESTA CONDICIONAL"].includes(record.decision)) return;
 
   if ("Notification" in window && Notification.permission === "granted") {
     try {
