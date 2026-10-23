@@ -517,9 +517,51 @@ input:focus, select:focus {
   <div><label for="odds">Cuota americana</label><input id="odds" type="number" step="1" placeholder="-110"></div>
   <div><label for="prob">Probabilidad estimada (%)</label><input id="prob" type="number" min="0.1" max="99.9" step="0.1" placeholder="58"></div>
   <div><label for="stake">Importe ($)</label><input id="stake" type="number" min="0.01" step="0.01" value="10"></div>
-  <div><label for="threshold">EDGE mínimo (puntos porcentuales)</label><input id="threshold" type="number" min="0"const SPORT_KEYS = {
-  "Fútbol": "soccer_epl", "NFL": "americanfootball_nfl", "NBA": "basketball_nba",
-  "MLB": "baseball_mlb", "NHL": "icehockey_nhl", "UFC": "mma_mixed_martial_arts"
+  <div><label for="threshold">EDGE mínimo (puntos porcentuales)</label><input id="threshold" type="number" min="0" max="99" step="0.5" value="3"></div>
+</div>
+<label for="notes">Fuente y notas de verificación</label>
+<input id="notes" maxlength="500" placeholder="Fuente, hora de cuota y estadísticas revisadas">
+<label class="check">
+  <input id="verified" type="checkbox">
+  <span>He verificado independientemente la cuota y la estimación con datos actuales.</span>
+</label>
+<button class="primary full" id="calculate" type="button">CALCULAR</button>
+<div class="result" id="output" aria-live="polite">Introduce una cuota y una probabilidad estimada.</div>
+<button class="primary full" id="save" type="button" disabled>GUARDAR PRONÓSTICO</button>
+<p class="note">El motor evalúa la probabilidad que introduces; todavía no genera automáticamente una probabilidad estadística para todos los deportes. La verificación es una declaración manual y no comprueba las fuentes por sí sola. EDGE positivo no garantiza ganancias.</p>
+</section>
+
+<section id="history-section" class="card">
+<h2>Registro y rendimiento</h2>
+<div class="metrics">
+  <div class="metric"><small>Pronósticos</small><strong id="count">0</strong></div>
+  <div class="metric"><small>Acierto de resueltos</small><strong id="hit">—</strong></div>
+  <div class="metric"><small>Beneficio neto</small><strong id="profit">$0.00</strong></div>
+  <div class="metric"><small>ROI</small><strong id="roi">—</strong></div>
+</div>
+<p class="note">El historial se guarda en este navegador y no se sincroniza automáticamente entre dispositivos.</p>
+<div id="history"></div>
+<button class="full" id="export" type="button">EXPORTAR HISTORIAL CSV</button>
+<button class="full" id="clear" type="button">BORRAR HISTORIAL</button>
+</section>
+
+<p class="note">Herramienta de análisis, no garantía de ganancias. Verifica las estadísticas, cuotas y reglas de cada mercado antes de apostar.</p>
+</main>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const HISTORY_KEY = "modeloProSportsHistoryV3";
+
+const SPORT_KEYS = {
+  "Fútbol": "soccer_epl",
+  "NFL": "americanfootball_nfl",
+  "NBA": "basketball_nba",
+  "MLB": "baseball_mlb",
+  "NHL": "icehockey_nhl",
+  "UFC": "mma_mixed_martial_arts"
 };
 
 const MARKET_CATALOG = {
@@ -579,49 +621,7 @@ function refreshMarketCatalog() {
   if (note) note.textContent = sport === "Fútbol"
     ? "Córners, tiros a puerta, tarjetas y otros mercados dependen de la liga, la casa y el proveedor. Si no hay cuota verificable, no se debe recomendar."
     : "La lista permite registrar y analizar mercados; no significa que la fuente conectada ofrezca cuotas para todos.";
-}as">
-<label class="check">
-  <input id="verified" type="checkbox">
-  <span>He verificado independientemente la cuota y la estimación con datos actuales.</span>
-</label>
-<button class="primary full" id="calculate" type="button">CALCULAR</button>
-<div class="result" id="output" aria-live="polite">Introduce una cuota y una probabilidad estimada.</div>
-<button class="primary full" id="save" type="button" disabled>GUARDAR PRONÓSTICO</button>
-<p class="note">El motor evalúa la probabilidad que introduces; todavía no genera automáticamente una probabilidad estadística para todos los deportes. La verificación es una declaración manual y no comprueba las fuentes por sí sola. EDGE positivo no garantiza ganancias.</p>
-</section>
-
-<section id="history-section" class="card">
-<h2>Registro y rendimiento</h2>
-<div class="metrics">
-  <div class="metric"><small>Pronósticos</small><strong id="count">0</strong></div>
-  <div class="metric"><small>Acierto de resueltos</small><strong id="hit">—</strong></div>
-  <div class="metric"><small>Beneficio neto</small><strong id="profit">$0.00</strong></div>
-  <div class="metric"><small>ROI</small><strong id="roi">—</strong></div>
-</div>
-<p class="note">El historial se guarda en este navegador y no se sincroniza automáticamente entre dispositivos.</p>
-<div id="history"></div>
-<button class="full" id="export" type="button">EXPORTAR HISTORIAL CSV</button>
-<button class="full" id="clear" type="button">BORRAR HISTORIAL</button>
-</section>
-
-<p class="note">Herramienta de análisis, no garantía de ganancias. Verifica las estadísticas, cuotas y reglas de cada mercado antes de apostar.</p>
-</main>
-
-<script>
-"use strict";
-
-const $ = id => document.getElementById(id);
-
-const HISTORY_KEY = "modeloProSportsHistoryV3";
-
-const SPORT_KEYS = {
-  "Fútbol": "soccer_epl",
-  "NFL": "americanfootball_nfl",
-  "NBA": "basketball_nba",
-  "MLB": "baseball_mlb",
-  "NHL": "icehockey_nhl",
-  "UFC": "mma_mixed_martial_arts"
-};
+}
 
 const ODDS_API_URL =
   "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
