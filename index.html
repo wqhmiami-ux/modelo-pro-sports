@@ -1053,12 +1053,12 @@ renderHistory();
         Number.isFinite(Number(match.score.fullTime.away))
       );
 
-      const normalize = value => String(value)
+     const normalize = value => String(value ?? "")
   .normalize("NFD")
   .replace(/[\u0300-\u036f]/g, "")
-  .replace(/\b(fc|afc|cf|sc)\b/gi, "")
-  .replace(/[^a-z0-9]/gi, "")
-  .toLowerCase();
+  .toLowerCase()
+  .replace(/\b(fc|afc|cf|sc)\b/g, "")
+  .replace(/[^a-z0-9]/g, "");
       const homeKey = normalize(homeName);
       const awayKey = normalize(awayName);
 
