@@ -127,6 +127,14 @@ input, select {
   <button type="button" data-sport="UFC">🥊 UFC</button>
 </nav>
 
+<section class="card" aria-labelledby="bet-summary-title">
+<h2 id="bet-summary-title">Resumen de apuestas</h2>
+<div class="metrics">
+  <div class="metric"><small>Partidos para apostar ahora</small><strong id="betCount">0</strong></div>
+</div>
+<p class="note">Cuenta los pronósticos guardados que tienen la decisión “APUESTA CONDICIONAL” y siguen pendientes. No incluye partidos que aún no hayas analizado y guardado.</p>
+</section>
+
 <section class="card">
 <h2>Calculadora Modelo PRO</h2>
 <label for="sport">Deporte</label>
@@ -562,6 +570,11 @@ function renderHistory() {
   const rows = readHistory();
 
   $("count").textContent = rows.length;
+  const recommendedPending = rows.filter(row =>
+    row.decision === "APUESTA CONDICIONAL" &&
+    row.status === "Pendiente"
+  ).length;
+  $("betCount").textContent = recommendedPending;
 
   const wins = rows.filter(r => r.status === "Ganada").length;
   const losses = rows.filter(r => r.status === "Perdida").length;
