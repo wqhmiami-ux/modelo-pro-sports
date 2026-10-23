@@ -135,6 +135,12 @@ jobs:
                   errors.append(f"Falta el endpoint {endpoint} en el Worker.")
           if "https://modelo-pro-api.wqhmiami.workers.dev/api/odds" not in app:
               errors.append("La aplicación no apunta al endpoint de cuotas configurado.")
+          if 'api.searchParams.set("limit", "100")' not in app:
+              errors.append("El modelo de fútbol no solicita la muestra histórica ampliada.")
+          if "Math.min(200, Math.floor(requestedLimit))" not in worker:
+              errors.append("El Worker no limita de forma segura el tamaño de muestra de resultados.")
+          if "data.matches.slice(0, competitionLimit)" not in worker:
+              errors.append("El Worker no aplica el límite solicitado al devolver partidos.")
           if errors:
               sys.exit("\\n".join(errors))
           print("OK: Worker y aplicación declaran los seis deportes y los endpoints esperados.")

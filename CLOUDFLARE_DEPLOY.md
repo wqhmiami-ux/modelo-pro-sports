@@ -29,3 +29,8 @@ El Worker solo solicita los deportes y mercados codificados en `cloudflare-worke
 ## Publicación de la interfaz
 
 GitHub Pages debe seguir publicando desde la rama `main`. No cambies Pages a una rama de pruebas para desplegar el Worker.
+
+
+## Muestra histórica para la predicción de fútbol
+
+El panel de resultados solicita 10 partidos por defecto. El modelo estadístico de fútbol solicita `limit=100` para tener una muestra más amplia por equipo; el Worker limita ese parámetro a un máximo de 200 partidos. Estos cambios deben desplegarse también en Cloudflare: actualizar GitHub no publica automáticamente el Worker.

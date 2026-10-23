@@ -2101,6 +2101,8 @@ renderHistory();
     try {
       const api = new URL(apiBase);
       api.searchParams.set("competition", document.getElementById("footballModelCompetition").value || "PL");
+      // The prediction model needs a wider sample than the results panel.
+      api.searchParams.set("limit", "100");
       const response = await fetch(api.toString());
       if (!response.ok) throw new Error("La API respondió con error.");
 

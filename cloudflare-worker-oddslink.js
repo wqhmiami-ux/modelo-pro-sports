@@ -74,6 +74,10 @@ export default {
         return jsonError("Invalid team ID", 400);
       }
 
+      const requestedLimit = Number(url.searchParams.get("limit") || "10");
+      const competitionLimit = Number.isFinite(requestedLimit)
+        ? Math.max(1, Math.min(200, Math.floor(requestedLimit)))
+        : 10;
       const endpoint = teamId
         ? `https://api.football-data.org/v4/teams/${teamId}/matches`
         : `https://api.football-data.org/v4/competitions/${competition}/matches`;
@@ -81,11 +85,8 @@ export default {
       upstream.searchParams.set("status", status);
 
       if (teamId) {
-        const requestedLimit = Number(url.searchParams.get("limit") || "10");
-        const limit = Number.isFinite(requestedLimit)
-          ? Math.max(1, Math.min(20, Math.floor(requestedLimit)))
-          : 10;
-        upstream.searchParams.set("limit", String(limit));
+        // Keep the per-team request within the provider's supported range.
+        upstream.searchParams.set("limit", String(Math.min(20, competitionLimit)));
       }
 
       const dateFrom = url.searchParams.get("dateFrom");
@@ -123,7 +124,7 @@ export default {
           data.matches.sort(
             (a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime()
           );
-          data.matches = data.matches.slice(0, 10);
+          data.matches = data.matches.slice(0, competitionLimit);
         }
 
         return Response.json(data, {
