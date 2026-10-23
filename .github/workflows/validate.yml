@@ -103,3 +103,38 @@ jobs:
 
           print(f"OK: {len(parser.ids)} IDs únicos, {len(parser.anchors)} enlaces internos válidos y {len(parser.scripts)} scripts JavaScript con sintaxis correcta.")
           PY
+
+      - name: Validate Cloudflare Worker JavaScript syntax
+        run: node --check cloudflare-worker-oddslink.js
+
+      - name: Verify live-data endpoint and sport contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          app = Path("index.html").read_text(encoding="utf-8")
+          worker = Path("cloudflare-worker-oddslink.js").read_text(encoding="utf-8")
+          expected = [
+              "americanfootball_nfl",
+              "basketball_nba",
+              "baseball_mlb",
+              "icehockey_nhl",
+              "soccer_epl",
+              "mma_mixed_martial_arts",
+          ]
+          errors = []
+          for sport in expected:
+              if sport not in worker:
+                  errors.append(f"El Worker no declara el deporte {sport}.")
+              if sport not in app:
+                  errors.append(f"La aplicación no comprueba el deporte {sport}.")
+          for endpoint in ("/api/odds", "/api/football"):
+              if endpoint not in worker:
+                  errors.append(f"Falta el endpoint {endpoint} en el Worker.")
+          if "https://modelo-pro-api.wqhmiami.workers.dev/api/odds" not in app:
+              errors.append("La aplicación no apunta al endpoint de cuotas configurado.")
+          if errors:
+              sys.exit("\\n".join(errors))
+          print("OK: Worker y aplicación declaran los seis deportes y los endpoints esperados.")
+          PY
