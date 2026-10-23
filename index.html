@@ -1306,7 +1306,7 @@ function renderBestOdds(events, selectedSport) {
     const books = Array.isArray(event.bookmakers) ? event.bookmakers : [];
     for (const book of books) {
       const bookIdentity = String(book.key || "") + " " + String(book.title || "");
-      if ($("bestOddsBookFilter")?.value === "hardrock" && !/hard\\s?rock/i.test(bookIdentity)) continue;
+      if ($("bestOddsBookFilter")?.value === "hardrock" && !/hard\s?rock/i.test(bookIdentity)) continue;
       for (const market of (Array.isArray(book.markets) ? book.markets : [])) {
         for (const outcome of (Array.isArray(market.outcomes) ? market.outcomes : [])) {
           const price = Number(outcome.price);
