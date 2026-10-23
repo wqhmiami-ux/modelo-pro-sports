@@ -505,8 +505,8 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
 </nav>
 
 <section id="daily-games" class="card" aria-labelledby="daily-games-title">
-  <h2 id="daily-games-title">Juegos de hoy · Todos los deportes</h2>
-  <p class="note">Consulta los eventos que las fuentes conectadas devuelven para hoy, en tu hora local. La cobertura depende del proveedor; no significa que estén incluidos todos los torneos del mundo.</p>
+  <h2 id="daily-games-title">Calendario global · Todos los deportes</h2>
+  <p class="note">Consulta partidos de hoy, próximos y posibles eventos en vivo de las ligas seleccionadas. La cobertura depende del proveedor; no significa que estén incluidos todos los torneos del mundo.</p>
   <div class="daily-controls">
     <div>
       <label for="dailySportFilter">Deporte</label>
@@ -518,9 +518,9 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
       </select>
     </div>
     <div>
-      <label for="dailyFootballLeague">Torneo de fútbol</label>
-      <select id="dailyFootballLeague">
-        <option value="soccer_epl">Inglaterra · Premier League</option>
+      <label for="dailyFootballLeague">Torneos de fútbol (puedes elegir varios)</label>
+      <select id="dailyFootballLeague" multiple size="7" aria-describedby="leagueSelectionHelp">
+        <option value="soccer_epl" selected>Inglaterra · Premier League</option>
         <option value="soccer_efl_champ">Inglaterra · Championship</option>
         <option value="soccer_england_efl_cup">Inglaterra · EFL Cup</option>
         <option value="soccer_england_league1">Inglaterra · League One</option>
@@ -543,6 +543,16 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
         <option value="soccer_usa_mls">Estados Unidos · MLS</option>
         <option value="soccer_mexico_ligamx">México · Liga MX</option>
         <option value="soccer_brazil_campeonato">Brasil · Serie A</option>
+        <option value="soccer_colombia_primera_a">Colombia · Primera A</option>
+        <option value="soccer_brazil_serie_b">Brasil · Serie B</option>
+        <option value="soccer_argentina_copa_de_la_liga">Argentina · Copa de la Liga</option>
+        <option value="soccer_argentina_copa_argentina">Argentina · Copa Argentina</option>
+        <option value="soccer_peru_primera_division">Perú · Liga 1</option>
+        <option value="soccer_uruguay_primera_division">Uruguay · Primera División</option>
+        <option value="soccer_ecuador_primera_a">Ecuador · Serie A</option>
+        <option value="soccer_paraguay_primera_division">Paraguay · Primera División</option>
+        <option value="soccer_bolivia_primera_division">Bolivia · División Profesional</option>
+        <option value="soccer_venezuela_primera_division">Venezuela · Primera División</option>
         <option value="soccer_argentina_primera_division">Argentina · Primera División</option>
         <option value="soccer_chile_campeonato">Chile · Primera División</option>
         <option value="soccer_conmebol_copa_libertadores">Sudamérica · Copa Libertadores</option>
@@ -575,7 +585,16 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
         <option value="soccer_sweden_superettan">Suecia · Superettan</option>
         <option value="soccer_switzerland_superleague">Suiza · Super League</option>
       </select>
-      <p class="note">Se consulta un torneo de fútbol por carga para controlar las llamadas a la API. La disponibilidad depende del proveedor y del plan.</p>
+      <p id="leagueSelectionHelp" class="note">En Mac: mantén ⌘ para elegir varios torneos. Cada torneo seleccionado genera una consulta; la cobertura depende del proveedor y del plan.</p>
+    </div>
+    <div>
+      <label for="dailyEventWindow">Qué eventos mostrar</label>
+      <select id="dailyEventWindow">
+        <option value="today">Hoy</option>
+        <option value="live">Posiblemente en vivo</option>
+        <option value="upcoming" selected>Próximos 7 días</option>
+        <option value="all">Todos los devueltos por la fuente</option>
+      </select>
     </div>
     <div>
       <label for="dailyCountryFilter">País (si la fuente lo informa)</label>
@@ -1506,11 +1525,22 @@ function renderDailyGames() {
   const sportFilter = $("dailySportFilter").value;
   const countryFilter = $("dailyCountryFilter").value.trim().toLocaleLowerCase();
   const tournamentFilter = $("dailyTournamentFilter").value.trim().toLocaleLowerCase();
+  const windowFilter = $("dailyEventWindow")?.value || "upcoming";
+  const now = Date.now();
+  const today = getLocalDateKey(new Date());
   const filtered = dailyGamesCache.filter(game => {
     const sportMatch = sportFilter === "Todos" || game.sport === sportFilter;
     const countryMatch = !countryFilter || (game.country || "").toLocaleLowerCase().includes(countryFilter);
     const tournamentMatch = !tournamentFilter || (game.tournament || "").toLocaleLowerCase().includes(tournamentFilter);
-    return sportMatch && countryMatch && tournamentMatch;
+    const start = new Date(game.commence_time).getTime();
+    const hoursFromKickoff = (now - start) / 3600000;
+    const possiblyLive = Number.isFinite(start) && hoursFromKickoff >= 0 && hoursFromKickoff <= 3;
+    const day = getLocalDateKey(game.commence_time);
+    const dateMatch = windowFilter === "all" ||
+      (windowFilter === "today" && day === today) ||
+      (windowFilter === "live" && possiblyLive) ||
+      (windowFilter === "upcoming" && start >= now && start <= now + 7 * 86400000);
+    return sportMatch && countryMatch && tournamentMatch && dateMatch;
   });
   const target = $("dailyGamesResults");
   if (!filtered.length) {
@@ -1544,6 +1574,8 @@ function renderDailyGames() {
 $("dailySportFilter").addEventListener("change", renderDailyGames);
 $("dailyCountryFilter").addEventListener("input", renderDailyGames);
 $("dailyTournamentFilter").addEventListener("input", renderDailyGames);
+$("dailyEventWindow")?.addEventListener("change", renderDailyGames);
+$("dailyFootballLeague")?.addEventListener("change", renderDailyGames);
 
 $("dailyGamesResults").addEventListener("click", async event => {
   const button = event.target.closest(".load-game-odds");
@@ -1631,11 +1663,16 @@ $("loadDailyGames").addEventListener("click", async () => {
   const today = getLocalDateKey(new Date());
   const failures = [];
   try {
-    const selectedFootballLeague = $("dailyFootballLeague").value || "soccer_epl";
-    const responses = await Promise.all(DAILY_SPORTS.map(async sport => {
+    const selectedFootballLeagues = [...$("dailyFootballLeague").selectedOptions].map(option => option.value);
+    const footballLeagues = selectedFootballLeagues.length ? selectedFootballLeagues : ["soccer_epl"];
+    const requestedSports = [
+      ...footballLeagues.map(key => ({ name: "Fútbol", key })),
+      ...DAILY_SPORTS.filter(sport => sport.name !== "Fútbol")
+    ];
+    const responses = await Promise.all(requestedSports.map(async sport => {
       try {
         const url = new URL(ODDS_API_URL);
-        url.searchParams.set("sport", sport.name === "Fútbol" ? selectedFootballLeague : sport.key);
+        url.searchParams.set("sport", sport.key);
         // Solo moneyline para reducir el consumo de cuota del proveedor.
         url.searchParams.set("markets", "h2h");
         const response = await fetch(url.toString());
@@ -1647,7 +1684,7 @@ $("loadDailyGames").addEventListener("click", async () => {
         return events.map(event => ({
           ...event,
           sport: sport.name,
-          sport_key: sport.name === "Fútbol" ? selectedFootballLeague : sport.key,
+          sport_key: sport.key,
           tournament: event.sport_title || event.league_name || event.league || "",
           country: event.country || event.sport_region || ""
         }));
@@ -1656,9 +1693,12 @@ $("loadDailyGames").addEventListener("click", async () => {
         return [];
       }
     }));
-    dailyGamesCache = responses.flat().filter(game =>
-      game.commence_time && getLocalDateKey(game.commence_time) === today
-    ).sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
+    const uniqueEvents = new Map();
+    responses.flat().filter(game => game.commence_time).forEach(game => {
+      const eventKey = game.sport_key + "|" + (game.id || (game.home_team || "") + "|" + (game.away_team || ""));
+      if (!uniqueEvents.has(eventKey)) uniqueEvents.set(eventKey, game);
+    });
+    dailyGamesCache = [...uniqueEvents.values()].sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
     renderDailyGames();
     const failureNote = failures.length
       ? ` No se pudieron consultar todas las fuentes: ${failures.join("; ")}.`
