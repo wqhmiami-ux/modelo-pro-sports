@@ -200,7 +200,10 @@ input, select {
 <section class="card">
 <h2 id="cuotas">Cuotas deportivas reales</h2>
 <p class="note">La disponibilidad depende de la API y del proveedor de cuotas. No se garantiza que las cuotas correspondan a Hard Rock Bet.</p>
-<button class="primary full" id="loadOdds" type="button">CARGAR CUOTAS REALES</button>
+<button class="primary full" id="autoAnalyze" type="button">ANALIZAR AUTOMÁTICAMENTE</button>
+<button class="full" id="loadOdds" type="button">CARGAR / ACTUALIZAR CUOTAS</button>
+<p class="note">El análisis compara las cuotas disponibles entre casas. El consenso del mercado no equivale a una probabilidad real ni a una ventaja demostrada; si faltan datos independientes, la app lo indicará.</p>
+<div id="autoAnalysis" aria-live="polite"></div>
 <div id="oddsStatus" class="note" aria-live="polite"></div>
 <div id="oddsResults"></div>
 </section>
@@ -764,6 +767,67 @@ function americanImpliedProbability(price) {
     : (100 / (value + 100)) * 100;
 }
 
+$("autoAnalyze").addEventListener("click", () => {
+  $("autoAnalysis").innerHTML = '<div class="result">Consultando eventos y comparando cuotas...</div>';
+  $("loadOdds").click();
+});
+
+function renderAutomaticAnalysis(events, selectedSport) {
+  const container = $("autoAnalysis");
+  const rows = [];
+  const decimal = price => {
+    const n = Number(price);
+    if (!Number.isFinite(n) || n === 0) return null;
+    return n > 0 ? 1 + n / 100 : 1 + 100 / Math.abs(n);
+  };
+  const implied = price => {
+    const d = decimal(price);
+    return d ? 100 / d : null;
+  };
+  for (const event of events) {
+    const eventName = [event.away_team, event.home_team].filter(Boolean).join(" vs ") || event.name || "Evento";
+    const grouped = new Map();
+    for (const book of (Array.isArray(event.bookmakers) ? event.bookmakers : [])) {
+      for (const market of (Array.isArray(book.markets) ? book.markets : [])) {
+        const outcomes = Array.isArray(market.outcomes) ? market.outcomes : [];
+        const probs = outcomes.map(o => implied(o.price));
+        const total = probs.reduce((sum,p)=>sum+(p || 0),0);
+        outcomes.forEach((outcome,index) => {
+          const key = [market.key || "h2h", outcome.name || "", outcome.point ?? ""].join("|");
+          if (!grouped.has(key)) grouped.set(key,{event:eventName,market:market.key||"h2h",name:outcome.name||"Selección",point:outcome.point,prices:[],fair:[],books:new Set()});
+          const row = grouped.get(key);
+          const d = decimal(outcome.price);
+          if (d) row.prices.push({price:Number(outcome.price),decimal:d,book:book.title||book.key||"Casa"});
+          if (probs[index] !== null && outcomes.length >= 2 && total > 0) row.fair.push(probs[index]/total*100);
+          if (probs[index] !== null) row.books.add(book.key||book.title||"casa");
+        });
+      }
+    }
+    rows.push(...grouped.values());
+  }
+  const top = rows.filter(r=>r.prices.length && r.fair.length && r.books.size>=2)
+    .map(r=>({...r,consensus:r.fair.reduce((a,b)=>a+b,0)/r.fair.length,best:r.prices.reduce((a,b)=>b.decimal>a.decimal?b:a)}))
+    .sort((a,b)=>b.books.size-a.books.size).slice(0,8);
+  if (!top.length) {
+    container.innerHTML = '<div class="result"><b>NO APOSTAR POR AHORA</b><p>No se recibieron suficientes cuotas comparables de varias casas. Intenta actualizar más tarde.</p></div>';
+    return;
+  }
+  container.innerHTML = '<h3>Informe automático · '+escapeHTML(selectedSport)+'</h3>' + top.map((r,i)=>`
+    <div class="entry result">
+      <p><b>${i+1}. ${escapeHTML(r.event)}</b></p>
+      <p>${escapeHTML(r.name)} · Mercado: ${escapeHTML(r.market)}${r.point!==undefined&&r.point!==null?' · Línea: '+escapeHTML(r.point):''}</p>
+      <div class="metrics">
+        <div class="metric"><small>Consenso sin margen</small><strong>${r.consensus.toFixed(1)}%</strong></div>
+        <div class="metric"><small>Mejor cuota encontrada</small><strong>${r.best.price>0?'+':''}${r.best.price}</strong></div>
+        <div class="metric"><small>Casas comparadas</small><strong>${r.books.size}</strong></div>
+        <div class="metric"><small>Cuota decimal</small><strong>${r.best.decimal.toFixed(3)}</strong></div>
+      </div>
+      <p class="amber"><b>APUESTA CONDICIONAL — no apostar solo con este informe.</b></p>
+      <p class="note">El consenso refleja el mercado, no una probabilidad independiente. Para calcular EDGE real falta un modelo validado con estadísticas recientes y contexto de equipos. Mejor precio observado: ${escapeHTML(r.best.book)}. No se confirma que sea Hard Rock Bet.</p>
+      <button type="button" class="use-odds" data-event="${escapeHTML(r.event)}" data-market="${escapeHTML(r.market)}" data-price="${r.best.price}" data-consensus="${r.consensus.toFixed(2)}" data-outcome="${escapeHTML(r.name)}">USAR ESTA CUOTA</button>
+    </div>`).join('') + '<p class="note">No es una lista de apuestas seguras ni una garantía de ganancias.</p>';
+}
+
 $("loadOdds").addEventListener("click", async () => {
   const status = $("oddsStatus");
   const results = $("oddsResults");
@@ -810,7 +874,7 @@ $("loadOdds").addEventListener("click", async () => {
       return;
     }
 
-    results.innerHTML = events.map(event => {
+    renderAutomaticAnalysis(events, selectedSport);\n\n    results.innerHTML = events.map(event => {
       const teams = [
         event.away_team,
         event.home_team
