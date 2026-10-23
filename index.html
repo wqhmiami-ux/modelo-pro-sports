@@ -1962,5 +1962,57 @@ renderHistory();
 })();
 </script>
 
+
+<script>
+/* Fallback independiente: garantiza que “ANALIZAR ESTE PARTIDO” responda
+   incluso si otro manejador anterior dejó de inicializarse. */
+(() => {
+  if (document.documentElement.dataset.dailyAnalyzeFallback === "1") return;
+  document.documentElement.dataset.dailyAnalyzeFallback = "1";
+
+  document.addEventListener("click", event => {
+    const button = event.target && event.target.closest
+      ? event.target.closest(".use-daily-game")
+      : null;
+    if (!button) return;
+
+    const sport = button.dataset.sport || "Fútbol";
+    const eventName = button.dataset.event || "";
+    const sportInput = document.getElementById("sport");
+    const eventInput = document.getElementById("event");
+    const status = document.getElementById("dailyGamesStatus");
+    const calculator = document.getElementById("calculator-section");
+
+    if (!sportInput || !eventInput || !calculator) {
+      if (status) status.textContent = "No se pudo abrir la calculadora: faltan campos en la página. Recarga la aplicación y vuelve a intentarlo.";
+      return;
+    }
+
+    sportInput.value = sport;
+    eventInput.value = eventName;
+    sportInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+    document.querySelectorAll("#sports button[data-sport]").forEach(item => {
+      const active = item.dataset.sport === sport;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-pressed", String(active));
+    });
+
+    if (typeof window.invalidateCalculation === "function") {
+      window.invalidateCalculation();
+    } else {
+      const saveButton = document.getElementById("save");
+      const output = document.getElementById("output");
+      if (saveButton) saveButton.disabled = true;
+      if (output) output.textContent = "Partido seleccionado. Introduce la cuota y una probabilidad independiente, y pulsa CALCULAR.";
+    }
+
+    if (status) status.textContent = "Partido seleccionado: " + eventName + ". Revisa la calculadora que aparece abajo e introduce la cuota y tu probabilidad estimada.";
+    calculator.scrollIntoView({ behavior: "smooth", block: "start" });
+    eventInput.focus({ preventScroll: true });
+  }, true);
+})();
+</script>
+
 </body>
 </html>
