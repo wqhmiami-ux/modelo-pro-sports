@@ -128,6 +128,16 @@ input, select {
 </nav>
 
 <section class="card">
+<section class="card" id="guia-rapida">
+  <h2>Cómo decidir en 3 pasos</h2>
+  <ol>
+    <li><b>Verifica la información:</b> cuota vigente, estadísticas recientes, lesiones/ausencias y alineaciones cuando corresponda.</li>
+    <li><b>Calcula:</b> introduce la cuota y una probabilidad estimada basada en datos; no uses una intuición como si fuera un dato confirmado.</li>
+    <li><b>Decide:</b> revisa probabilidad implícita, EDGE, valor esperado y riesgos. Si faltan datos fiables, el resultado debe ser “NO APOSTAR”.</li>
+  </ol>
+  <p class="note">La app calcula con los datos introducidos y los que consiga cargar de su proveedor. No confirma por sí sola lesiones, alineaciones, cuotas de Hard Rock Bet ni la exactitud de tu probabilidad estimada.</p>
+</section>
+
 <h2>Calculadora Modelo PRO</h2>
 <label for="sport">Deporte</label>
 <select id="sport">
@@ -153,6 +163,17 @@ input, select {
   <div><label for="stake">Importe ($)</label><input id="stake" type="number" min="0.01" step="0.01" value="10"></div>
   <div><label for="threshold">EDGE mínimo (puntos porcentuales)</label><input id="threshold" type="number" min="0" max="99" step="0.5" value="3"></div>
 </div>
+<div class="result">
+  <b>Antes de aceptar una recomendación, confirma:</b>
+  <ul>
+    <li>La cuota es actual y corresponde a la misma selección y mercado.</li>
+    <li>Revisaste forma reciente y estadísticas relevantes para ese mercado.</li>
+    <li>Revisaste lesiones, ausencias y alineaciones disponibles.</li>
+    <li>Consideraste descanso, viajes, localía y contexto del encuentro.</li>
+    <li>La probabilidad estimada tiene una fuente o justificación verificable.</li>
+  </ul>
+  <p class="note">Si no puedes confirmar puntos importantes, no trates el EDGE como una ventaja demostrada.</p>
+</div>
 <label for="notes">Fuente y notas de verificación</label>
 <input id="notes" maxlength="500" placeholder="Fuente, hora de cuota y estadísticas revisadas">
 <label class="check">
@@ -162,7 +183,7 @@ input, select {
 <button class="primary full" id="calculate" type="button">CALCULAR</button>
 <div class="result" id="output" aria-live="polite">Introduce una cuota y una probabilidad estimada.</div>
 <button class="primary full" id="save" type="button" disabled>GUARDAR PRONÓSTICO</button>
-<p class="note">La calculadora utiliza la probabilidad que introduces. La casilla de verificación es manual; no comprueba los datos automáticamente. EDGE positivo no garantiza ganancias.</p>
+<p class="note">Precisión matemática no significa predicción segura: el resultado depende de la calidad de tu probabilidad estimada y de la cuota introducida. La app no debe inventar datos faltantes. EDGE positivo no garantiza ganancias.</p>
 </section>
 
 <section class="card">
