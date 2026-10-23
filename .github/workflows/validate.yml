@@ -121,6 +121,7 @@ jobs:
               "baseball_mlb",
               "icehockey_nhl",
               "soccer_epl",
+              "soccer",
               "mma_mixed_martial_arts",
           ]
           errors = []
