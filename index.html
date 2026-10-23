@@ -540,6 +540,11 @@ input:focus, select:focus {
 <div id="oddsStatus" class="note" aria-live="polite"></div>
 <section id="bestOddsPanel" class="result" aria-live="polite" hidden>
   <h3>Mejores cuotas encontradas</h3>
+  <label for="bestOddsBookFilter">Casa para comparar</label>
+  <select id="bestOddsBookFilter">
+    <option value="best">Mejor precio entre casas devueltas</option>
+    <option value="hardrock">Solo Hard Rock Bet (si la fuente lo devuelve)</option>
+  </select>
   <p class="note">Compara el mejor precio devuelto entre las casas consultadas. Esto identifica mejor precio, no una probabilidad propia ni una recomendación automática de apostar.</p>
   <div id="bestOddsResults"></div>
 </section>
@@ -607,7 +612,8 @@ input:focus, select:focus {
 <div class="grid">
   <div><label for="odds">Cuota americana</label><input id="odds" type="number" step="1" placeholder="-110"></div>
   <div><label for="prob">Probabilidad estimada (%)</label><input id="prob" type="number" min="0.1" max="99.9" step="0.1" placeholder="58"></div>
-  <div><label for="stake">Importe ($)</label><input id="stake" type="number" min="0.01" step="0.01" value="10"></div>
+  <div><label for="stake">Importe de esta apuesta ($)</label><input id="stake" type="number" min="0.01" step="0.01" value="10"></div>
+  <div><label for="bankroll">Bankroll total ($, opcional)</label><input id="bankroll" type="number" min="0.01" step="0.01" placeholder="Solo si quieres estimar stake"></div>
   <div><label for="threshold">EDGE mínimo (puntos porcentuales)</label><input id="threshold" type="number" min="0" max="99" step="0.5" value="3"></div>
 </div>
 <label for="notes">Fuente y notas de verificación</label>
@@ -877,7 +883,7 @@ $("loadOdds").disabled = false;
 
  [
   "event", "market", "odds", "prob",
-  "stake", "threshold", "verified", "notes"
+  "stake", "bankroll", "threshold", "verified", "notes"
 ].forEach(id => {
   $(id).addEventListener(
     ["market", "verified"].includes(id) ? "change" : "input",
@@ -945,6 +951,8 @@ alert(
   const rawOdds = $("odds").value.trim();
   const rawProb = $("prob").value.trim();
   const rawStake = $("stake").value.trim();
+  const rawBankroll = $("bankroll").value.trim();
+  const bankroll = rawBankroll === "" ? null : Number(rawBankroll);
   const rawThreshold = $("threshold").value.trim();
 
   const eventName = $("event").value.trim();
@@ -964,6 +972,7 @@ alert(
     rawStake === "" ||
     !Number.isFinite(stake) ||
     stake <= 0 ||
+    (rawBankroll !== "" && (!Number.isFinite(bankroll) || bankroll <= 0)) ||
     rawThreshold === "" ||
     !Number.isFinite(threshold) ||
     threshold < 0 ||
@@ -1012,6 +1021,14 @@ alert(
     reason = "El valor esperado es positivo, pero el EDGE no alcanza el mínimo configurado.";
   }
 
+  const passesCoreFilters = evPerDollar > 0 && edge >= threshold && verified && Boolean(sourceNotes);
+  const fullKelly = (odds.decimal > 1 && p > 0 && p < 1)
+    ? Math.max(0, (odds.decimal * p - 1) / (odds.decimal - 1))
+    : 0;
+  const suggestedStake = bankroll !== null && passesCoreFilters
+    ? Math.min(bankroll * 0.01, bankroll * fullKelly * 0.25)
+    : null;
+
   lastCalculation = {
     sport: $("sport").value,
     event: eventName,
@@ -1019,6 +1036,8 @@ alert(
     odds: Number(rawOdds),
     prob: probability,
     stake,
+    bankroll,
+    suggestedStake,
     threshold,
     implied: odds.implied,
     fairOdds,
@@ -1052,6 +1071,10 @@ alert(
         <strong>${edge.toFixed(2)} pp</strong>
       </div>
       <div class="metric">
+        <small>Stake conservador sugerido (¼ Kelly, máx. 1% bankroll)</small>
+        <strong>${suggestedStake === null ? "—" : money(suggestedStake)}</strong>
+      </div>
+      <div class="metric">
         <small>Valor esperado sobre tu importe</small>
         <strong>${money(expectedValue)}</strong>
       </div>
@@ -1072,6 +1095,7 @@ alert(
     <p>${escapeHTML(reason)}</p>
     <p class="note">
       Deporte: ${escapeHTML(lastCalculation.sport)}.
+      ${bankroll === null ? "Introduce un bankroll para estimar stake; " : "Stake sugerido solo si pasa filtros y hay fuente/verificación declaradas; "}
       Cuota decimal: ${odds.decimal.toFixed(3)}.
       Retorno potencial total: ${money(stake * odds.decimal)}.
       Probabilidad estimada introducida manualmente; la cuota justa es un cálculo matemático, no una predicción independiente.
@@ -1161,6 +1185,7 @@ function renderHistory() {
       <p class="note">
         ${escapeHTML(row.date ? new Date(row.date).toLocaleString() : "")}
         ${row.verified ? " · Verificación declarada" : " · No verificado"}
+        ${row.suggestedStake !== null && row.suggestedStake !== undefined ? " · Stake sugerido " + money(row.suggestedStake) : ""}
         ${row.notes ? " · " + escapeHTML(row.notes) : ""}
       </p>
       ${row.status === "Pendiente" ? `
@@ -1224,7 +1249,7 @@ $("export").addEventListener("click", () => {
 
   const columns = [
     "date", "sport", "event", "market", "odds",
-    "prob", "implied", "edge", "ev", "stake",
+    "prob", "implied", "edge", "ev", "stake", "bankroll", "suggestedStake",
     "threshold", "decision", "verified",
     "status", "pnl", "notes"
   ];
@@ -1267,6 +1292,9 @@ $("clear").addEventListener("click", () => {
   }
 });
 
+let latestOddsEvents = [];
+let latestOddsSport = "";
+
 function renderBestOdds(events, selectedSport) {
   const panel = $("bestOddsPanel");
   const target = $("bestOddsResults");
@@ -1277,6 +1305,8 @@ function renderBestOdds(events, selectedSport) {
     const eventName = [event.away_team, event.home_team].filter(Boolean).join(" vs ") || event.name || "Evento";
     const books = Array.isArray(event.bookmakers) ? event.bookmakers : [];
     for (const book of books) {
+      const bookIdentity = String(book.key || "") + " " + String(book.title || "");
+      if ($("bestOddsBookFilter")?.value === "hardrock" && !/hard\s?rock/i.test(bookIdentity)) continue;
       for (const market of (Array.isArray(book.markets) ? book.markets : [])) {
         for (const outcome of (Array.isArray(market.outcomes) ? market.outcomes : [])) {
           const price = Number(outcome.price);
@@ -1302,8 +1332,10 @@ function renderBestOdds(events, selectedSport) {
     return eventCompare || a.market.localeCompare(b.market) || b.price - a.price;
   });
   if (!rows.length) {
-    panel.hidden = true;
-    target.textContent = "";
+    panel.hidden = $("bestOddsBookFilter")?.value !== "hardrock";
+    target.innerHTML = $("bestOddsBookFilter")?.value === "hardrock"
+      ? '<p class="note">La fuente actual no devolvió cuotas identificables de Hard Rock Bet para este deporte/mercado. No se sustituyeron por cuotas de otra casa.</p>'
+      : "";
     return;
   }
   panel.hidden = false;
@@ -1456,6 +1488,10 @@ $("loadDailyGames").addEventListener("click", async () => {
   }
 });
 
+$("bestOddsBookFilter")?.addEventListener("change", () => {
+  if (latestOddsEvents.length) renderBestOdds(latestOddsEvents, latestOddsSport);
+});
+
 $("loadOdds").addEventListener("click", async () => {
   const status = $("oddsStatus");
   const results = $("oddsResults");
@@ -1503,7 +1539,9 @@ $("loadOdds").addEventListener("click", async () => {
       return;
     }
 
-    renderBestOdds(events, selectedSport);
+    latestOddsEvents = events;
+    latestOddsSport = selectedSport;
+    renderBestOdds(latestOddsEvents, latestOddsSport);
     results.innerHTML = events.map(event => {
       const teams = [
         event.away_team,
