@@ -2096,7 +2096,13 @@ $("loadFootball").addEventListener("click", async () => {
   const status = $("footballStatus");
   const results = $("footballResults");
   const button = $("loadFootball");
+  const competition = $("footballCompetition").value || "PL";
+  const filter = $("footballTeam").value.trim().toLowerCase();
+  const limit = Number($("footballLimit").value) || 10;
+  const cacheKey = "modeloProFootballResultsCacheV1:" +
+    [competition, filter, limit].join("|");
 
+  results.classList.remove("stale-data");
   status.textContent =
     "Consultando resultados finalizados de la competición seleccionada...";
   results.textContent = "";
@@ -2104,7 +2110,7 @@ $("loadFootball").addEventListener("click", async () => {
 
   try {
     const url = new URL(FOOTBALL_API_URL);
-    url.searchParams.set("competition", $("footballCompetition").value || "PL");
+    url.searchParams.set("competition", competition);
 
     const response = await fetch(url.toString());
     const data = await response.json().catch(() => ({}));
@@ -2118,9 +2124,6 @@ $("loadFootball").addEventListener("click", async () => {
       : Array.isArray(data.matches)
       ? data.matches
       : [];
-
-    const filter = $("footballTeam").value.trim().toLowerCase();
-    const limit = Number($("footballLimit").value) || 10;
 
     const finished = matches
       .filter(match =>
@@ -2155,9 +2158,18 @@ $("loadFootball").addEventListener("click", async () => {
       .slice(0, limit);
 
     if (!filtered.length) {
-      status.textContent = filter
-        ? "No hay resultados coincidentes con ese equipo en los datos recibidos."
-        : "No hay resultados finalizados disponibles en la respuesta de la API.";
+      const cached = safeReadCache(cacheKey);
+      if (cached && cached.html) {
+        results.innerHTML = cached.html;
+        results.classList.add("stale-data");
+        status.textContent =
+          "SIN RESULTADOS ACTUALES PARA ESTOS FILTROS. Mostrando la copia guardada el " +
+          formatCacheTime(cached.savedAt) + ".";
+      } else {
+        status.textContent = filter
+          ? "No hay resultados coincidentes con ese equipo en los datos recibidos."
+          : "No hay resultados finalizados disponibles en la respuesta de la API.";
+      }
       return;
     }
 
@@ -2186,14 +2198,30 @@ $("loadFootball").addEventListener("click", async () => {
       </div>`;
     }).join("");
 
+    results.classList.remove("stale-data");
+    safeWriteCache(cacheKey, {
+      savedAt: new Date().toISOString(),
+      html: results.innerHTML,
+      count: filtered.length
+    });
     status.textContent =
-      `Resultados finalizados mostrados: ${filtered.length}. ` +
+      `Resultados actuales mostrados: ${filtered.length} · ${new Date().toLocaleString()}. ` +
       "Fuente solicitada: football-data.org mediante Cloudflare.";
   } catch (error) {
-    status.textContent =
-      `No se pudieron cargar los resultados. ${
-        error.message || "Comprueba el endpoint /api/football en Cloudflare."
-      }`;
+    const cached = safeReadCache(cacheKey);
+    if (cached && cached.html) {
+      results.innerHTML = cached.html;
+      results.classList.add("stale-data");
+      status.textContent =
+        "SIN RESULTADOS ACTUALES. Mostrando la copia guardada el " +
+        formatCacheTime(cached.savedAt) + ". " +
+        (error.message || "Comprueba la conexión con Cloudflare.");
+    } else {
+      status.textContent =
+        `No se pudieron cargar los resultados. ${
+          error.message || "Comprueba el endpoint /api/football en Cloudflare."
+        }`;
+    }
     console.error(error);
   } finally {
     button.disabled = false;
