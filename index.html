@@ -585,7 +585,7 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
         <option value="soccer_sweden_superettan">Suecia · Superettan</option>
         <option value="soccer_switzerland_superleague">Suiza · Super League</option>
       </select>
-      <p id="leagueSelectionHelp" class="note">Usa los accesos rápidos para seleccionar una región. Cada torneo seleccionado genera una consulta; la cobertura depende del proveedor y del plan.</p>
+      <p id="leagueSelectionHelp" class="note">Importante: el servidor de cuotas conectado solo admite actualmente Premier League para fútbol. Colombia y las demás ligas aparecen en el selector, pero se omiten hasta habilitar esas competiciones en el servidor. Los otros deportes se consultan por separado.</p>
       <div class="grid league-presets">
         <button type="button" id="selectColombiaLeague">SOLO COLOMBIA</button>
         <button type="button" id="selectSouthAmerica">SUDAMÉRICA</button>
@@ -1695,12 +1695,16 @@ $("loadDailyGames").addEventListener("click", async () => {
   const target = $("dailyGamesResults");
   button.disabled = true;
   target.innerHTML = "";
-  status.textContent = "Consultando eventos disponibles de los seis deportes...";
-  const today = getLocalDateKey(new Date());
+  status.textContent = "Consultando fuentes deportivas compatibles...";
   const failures = [];
+  const supportedFootballKeys = new Set(["soccer_epl"]);
+  let skippedFootballLeagues = [];
   try {
     const selectedFootballLeagues = [...$("dailyFootballLeague").selectedOptions].map(option => option.value);
-    const footballLeagues = selectedFootballLeagues.length ? selectedFootballLeagues : ["soccer_epl"];
+    const footballLeagues = selectedFootballLeagues.length
+      ? selectedFootballLeagues.filter(key => supportedFootballKeys.has(key))
+      : ["soccer_epl"];
+    skippedFootballLeagues = selectedFootballLeagues.filter(key => !supportedFootballKeys.has(key));
     const requestedSports = [
       ...footballLeagues.map(key => ({ name: "Fútbol", key })),
       ...DAILY_SPORTS.filter(sport => sport.name !== "Fútbol")
@@ -1736,10 +1740,19 @@ $("loadDailyGames").addEventListener("click", async () => {
     });
     dailyGamesCache = [...uniqueEvents.values()].sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
     renderDailyGames();
-    const failureNote = failures.length
-      ? ` No se pudieron consultar todas las fuentes: ${failures.join("; ")}.`
-      : "";
-    status.textContent += failureNote;
+
+    const uniqueFailures = [...new Set(failures)];
+    const messages = [`Eventos recibidos: ${dailyGamesCache.length}.`];
+    if (skippedFootballLeagues.length) {
+      messages.push(`Ligas de fútbol omitidas porque el servidor no las admite todavía: ${skippedFootballLeagues.length}. Se mantiene la consulta del resto de deportes.`);
+    }
+    if (uniqueFailures.length) {
+      messages.push(`Fuentes con error: ${uniqueFailures.join("; ")}.`);
+    }
+    if (!dailyGamesCache.length) {
+      messages.push("La fuente no devolvió eventos para estas consultas. Esto no confirma que no haya partidos; puede faltar cobertura o cuotas disponibles.");
+    }
+    status.textContent = messages.join(" ");
   } catch (error) {
     status.textContent = `No se pudo cargar el calendario: ${error.message || "error de conexión"}.`;
   } finally {
