@@ -746,7 +746,7 @@ $("loadOdds").addEventListener("click", async () => {
     url.searchParams.set("sport", sportKey);
     url.searchParams.set(
       "markets",
-      selectedSport === "UFC" ? "h2h,totals" : "h2h,spreads,totals"
+      selectedSport === "UFC" ? "h2h" : "h2h,spreads,totals"
     );
 
     const response = await fetch(url.toString());
@@ -892,7 +892,6 @@ $("loadFootball").addEventListener("click", async () => {
   try {
     const url = new URL(FOOTBALL_API_URL);
     url.searchParams.set("competition", "PL");
-    url.searchParams.set("status", "FINISHED");
 
     const response = await fetch(url.toString());
     const data = await response.json();
@@ -1170,8 +1169,8 @@ renderHistory();
         "Estimación estadística inicial calculada con resultados históricos; no utiliza cuotas como entrada.";
 
       results.innerHTML = `
-        <p><b>Goles esperados — ${homeName}:</b> ${homeExpected.toFixed(2)}</p>
-        <p><b>Goles esperados — ${awayName}:</b> ${awayExpected.toFixed(2)}</p>
+        <p><b>Goles esperados — ${escapeHTML(homeName)}:</b> ${homeExpected.toFixed(2)}</p>
+        <p><b>Goles esperados — ${escapeHTML(awayName)}:</b> ${awayExpected.toFixed(2)}</p>
         <p><b>Victoria local:</b> ${pct(homeWin)}</p>
         <p><b>Empate:</b> ${pct(draw)}</p>
         <p><b>Victoria visitante:</b> ${pct(awayWin)}</p>
