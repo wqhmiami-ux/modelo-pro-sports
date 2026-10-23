@@ -415,6 +415,66 @@ input:focus, select:focus {
       </select>
     </div>
     <div>
+      <label for="dailyFootballLeague">Torneo de fútbol</label>
+      <select id="dailyFootballLeague">
+        <option value="soccer_epl">Inglaterra · Premier League</option>
+        <option value="soccer_efl_champ">Inglaterra · Championship</option>
+        <option value="soccer_england_efl_cup">Inglaterra · EFL Cup</option>
+        <option value="soccer_england_league1">Inglaterra · League One</option>
+        <option value="soccer_england_league2">Inglaterra · League Two</option>
+        <option value="soccer_fa_cup">Inglaterra · FA Cup</option>
+        <option value="soccer_spain_la_liga">España · La Liga</option>
+        <option value="soccer_spain_copa_del_rey">España · Copa del Rey</option>
+        <option value="soccer_spain_segunda_division">España · Segunda División</option>
+        <option value="soccer_germany_bundesliga">Alemania · Bundesliga</option>
+        <option value="soccer_germany_bundesliga2">Alemania · Bundesliga 2</option>
+        <option value="soccer_germany_dfb_pokal">Alemania · DFB-Pokal</option>
+        <option value="soccer_germany_liga3">Alemania · 3. Liga</option>
+        <option value="soccer_italy_serie_a">Italia · Serie A</option>
+        <option value="soccer_italy_serie_b">Italia · Serie B</option>
+        <option value="soccer_italy_coppa_italia">Italia · Coppa Italia</option>
+        <option value="soccer_france_ligue_one">Francia · Ligue 1</option>
+        <option value="soccer_france_ligue_two">Francia · Ligue 2</option>
+        <option value="soccer_netherlands_eredivisie">Países Bajos · Eredivisie</option>
+        <option value="soccer_portugal_primeira_liga">Portugal · Primeira Liga</option>
+        <option value="soccer_usa_mls">Estados Unidos · MLS</option>
+        <option value="soccer_mexico_ligamx">México · Liga MX</option>
+        <option value="soccer_brazil_campeonato">Brasil · Serie A</option>
+        <option value="soccer_argentina_primera_division">Argentina · Primera División</option>
+        <option value="soccer_chile_campeonato">Chile · Primera División</option>
+        <option value="soccer_conmebol_copa_libertadores">Sudamérica · Copa Libertadores</option>
+        <option value="soccer_conmebol_copa_sudamericana">Sudamérica · Copa Sudamericana</option>
+        <option value="soccer_concacaf_leagues_cup">CONCACAF · Leagues Cup</option>
+        <option value="soccer_uefa_champs_league">Europa · Champions League</option>
+        <option value="soccer_uefa_europa_league">Europa · Europa League</option>
+        <option value="soccer_uefa_europa_conference_league">Europa · Conference League</option>
+        <option value="soccer_uefa_nations_league">Europa · Nations League</option>
+        <option value="soccer_uefa_champs_league_women">Europa · Champions League femenina</option>
+        <option value="soccer_fifa_world_cup">FIFA · Mundial masculino</option>
+        <option value="soccer_fifa_world_cup_womens">FIFA · Mundial femenino</option>
+        <option value="soccer_fifa_world_cup_qualifiers_europe">FIFA · Eliminatorias Europa</option>
+        <option value="soccer_fifa_world_cup_qualifiers_south_america">FIFA · Eliminatorias Sudamérica</option>
+        <option value="soccer_spl">Escocia · Premiership</option>
+        <option value="soccer_turkey_super_league">Turquía · Süper Lig</option>
+        <option value="soccer_saudi_arabia_pro_league">Arabia Saudita · Pro League</option>
+        <option value="soccer_australia_aleague">Australia · A-League</option>
+        <option value="soccer_japan_j_league">Japón · J League</option>
+        <option value="soccer_korea_kleague1">Corea del Sur · K League 1</option>
+        <option value="soccer_china_superleague">China · Super League</option>
+        <option value="soccer_denmark_superliga">Dinamarca · Superliga</option>
+        <option value="soccer_finland_veikkausliiga">Finlandia · Veikkausliiga</option>
+        <option value="soccer_greece_super_league">Grecia · Super League</option>
+        <option value="soccer_league_of_ireland">Irlanda · League of Ireland</option>
+        <option value="soccer_norway_eliteserien">Noruega · Eliteserien</option>
+        <option value="soccer_poland_ekstraklasa">Polonia · Ekstraklasa</option>
+        <option value="soccer_russia_premier_league">Rusia · Premier League</option>
+        <option value="soccer_sweden_allsvenskan">Suecia · Allsvenskan</option>
+        <option value="soccer_sweden_superettan">Suecia · Superettan</option>
+        <option value="soccer_switzerland_superleague">Suiza · Super League</option>
+      </select>
+      <p class="note">Se consulta un torneo de fútbol por carga para controlar las llamadas a la API. La disponibilidad depende del proveedor y del plan.</p>
+    </div>
+    <div>
       <label for="dailyCountryFilter">País (si la fuente lo informa)</label>
       <input id="dailyCountryFilter" maxlength="80" placeholder="Ej.: España, México">
     </div>
@@ -444,6 +504,19 @@ input:focus, select:focus {
   <h2>Predicción estadística de fútbol</h2>
   <p>Modelo independiente de las cuotas. Utiliza resultados históricos disponibles en la API.</p>
 
+  <label for="footballModelCompetition">Competición</label>
+  <select id="footballModelCompetition">
+    <option value="PL">Inglaterra · Premier League</option>
+    <option value="PD">España · La Liga</option>
+    <option value="BL1">Alemania · Bundesliga</option>
+    <option value="SA">Italia · Serie A</option>
+    <option value="FL1">Francia · Ligue 1</option>
+    <option value="DED">Países Bajos · Eredivisie</option>
+    <option value="PPL">Portugal · Primeira Liga</option>
+    <option value="BSA">Brasil · Serie A</option>
+    <option value="CL">UEFA · Champions League</option>
+    <option value="ELC">Inglaterra · Championship</option>
+  </select>
   <label for="football-home">Equipo local</label>
   <input id="football-home" type="text" placeholder="Ej. Arsenal">
 
@@ -475,7 +548,20 @@ input:focus, select:focus {
 
 <section id="results-section" class="card">
 <h2>Resultados reales de fútbol</h2>
-<p class="note">Resultados finalizados de la Premier League consultados mediante Cloudflare. Son marcadores, no predicciones.</p>
+<p class="note">Resultados finalizados de la competición seleccionada consultados mediante Cloudflare. La cobertura depende del proveedor; son marcadores, no predicciones.</p>
+<label for="footballCompetition">Competición para resultados</label>
+<select id="footballCompetition">
+  <option value="PL">Inglaterra · Premier League</option>
+  <option value="PD">España · La Liga</option>
+  <option value="BL1">Alemania · Bundesliga</option>
+  <option value="SA">Italia · Serie A</option>
+  <option value="FL1">Francia · Ligue 1</option>
+  <option value="DED">Países Bajos · Eredivisie</option>
+  <option value="PPL">Portugal · Primeira Liga</option>
+  <option value="BSA">Brasil · Serie A</option>
+  <option value="CL">UEFA · Champions League</option>
+  <option value="ELC">Inglaterra · Championship</option>
+</select>
 <label for="footballLimit">Partidos a mostrar</label>
 <select id="footballLimit">
   <option value="5">Últimos 5</option>
@@ -1331,10 +1417,11 @@ $("loadDailyGames").addEventListener("click", async () => {
   const today = getLocalDateKey(new Date());
   const failures = [];
   try {
+    const selectedFootballLeague = $("dailyFootballLeague").value || "soccer_epl";
     const responses = await Promise.all(DAILY_SPORTS.map(async sport => {
       try {
         const url = new URL(ODDS_API_URL);
-        url.searchParams.set("sport", sport.key);
+        url.searchParams.set("sport", sport.name === "Fútbol" ? selectedFootballLeague : sport.key);
         // Solo moneyline para reducir el consumo de cuota del proveedor.
         url.searchParams.set("markets", "h2h");
         const response = await fetch(url.toString());
@@ -1531,13 +1618,13 @@ $("loadFootball").addEventListener("click", async () => {
   const button = $("loadFootball");
 
   status.textContent =
-    "Consultando resultados finalizados de la Premier League...";
+    "Consultando resultados finalizados de la competición seleccionada...";
   results.textContent = "";
   button.disabled = true;
 
   try {
     const url = new URL(FOOTBALL_API_URL);
-    url.searchParams.set("competition", "PL");
+    url.searchParams.set("competition", $("footballCompetition").value || "PL");
 
     const response = await fetch(url.toString());
     const data = await response.json().catch(() => ({}));
@@ -1641,7 +1728,7 @@ renderHistory();
 
 <script>
 (() => {
-  const api = "https://modelo-pro-api.wqhmiami.workers.dev/api/football?competition=PL";
+  const apiBase = "https://modelo-pro-api.wqhmiami.workers.dev/api/football";
   const button = document.getElementById("football-predict");
   const status = document.getElementById("football-model-status");
   const results = document.getElementById("football-model-results");
@@ -1664,7 +1751,9 @@ renderHistory();
     status.textContent = "Consultando resultados históricos reales…";
 
     try {
-      const response = await fetch(api);
+      const api = new URL(apiBase);
+      api.searchParams.set("competition", document.getElementById("footballModelCompetition").value || "PL");
+      const response = await fetch(api.toString());
       if (!response.ok) throw new Error("La API respondió con error.");
 
       const payload = await response.json().catch(() => ({}));
