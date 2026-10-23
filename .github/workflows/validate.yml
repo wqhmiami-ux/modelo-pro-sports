@@ -1,0 +1,97 @@
+name: Validate Modelo PRO Sports
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate HTML structure and inline JavaScript
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import sys
+
+          source = Path("index.html")
+          if not source.is_file():
+              sys.exit("ERROR: index.html no existe en la raíz del repositorio.")
+
+          class AppParser(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=False)
+                  self.ids = []
+                  self.anchors = []
+                  self.scripts = []
+                  self.current_script = None
+                  self.html_lang = None
+                  self.title_seen = False
+
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "html":
+                      self.html_lang = attrs.get("lang")
+                  if "id" in attrs:
+                      self.ids.append(attrs["id"])
+                  if tag == "a" and attrs.get("href", "").startswith("#"):
+                      self.anchors.append(attrs["href"][1:])
+                  if tag == "script":
+                      self.current_script = []
+                      self.scripts.append(self.current_script)
+
+              def handle_endtag(self, tag):
+                  if tag == "script":
+                      self.current_script = None
+
+              def handle_data(self, data):
+                  if self.current_script is not None:
+                      self.current_script.append(data)
+
+          parser = AppParser()
+          parser.feed(source.read_text(encoding="utf-8"))
+          parser.close()
+
+          duplicates = sorted({item for item in parser.ids if parser.ids.count(item) > 1})
+          if duplicates:
+              sys.exit("ERROR: IDs HTML duplicados: " + ", ".join(duplicates))
+
+          id_set = set(parser.ids)
+          missing = sorted({anchor for anchor in parser.anchors if anchor and anchor not in id_set})
+          if missing:
+              sys.exit("ERROR: enlaces internos sin destino: " + ", ".join(missing))
+
+          if parser.html_lang != "es":
+              sys.exit("ERROR: el documento debe declarar lang=\"es\".")
+
+          if not parser.scripts:
+              sys.exit("ERROR: no se encontraron scripts para validar.")
+
+          import subprocess
+          import tempfile
+          for index, chunks in enumerate(parser.scripts):
+              script = "".join(chunks)
+              with tempfile.NamedTemporaryFile(mode="w", suffix=".js", encoding="utf-8") as handle:
+                  handle.write(script)
+                  handle.flush()
+                  result = subprocess.run(["node", "--check", handle.name], capture_output=True, text=True)
+                  if result.returncode:
+                      print(result.stderr)
+                      sys.exit(f"ERROR: sintaxis JavaScript inválida en el script inline #{index + 1}.")
+
+          print(f"OK: {len(parser.ids)} IDs únicos, {len(parser.anchors)} enlaces internos válidos y {len(parser.scripts)} scripts JavaScript con sintaxis correcta.")
+          PY
