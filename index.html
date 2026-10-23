@@ -874,7 +874,9 @@ $("loadOdds").addEventListener("click", async () => {
       return;
     }
 
-    renderAutomaticAnalysis(events, selectedSport);\n\n    results.innerHTML = events.map(event => {
+    renderAutomaticAnalysis(events, selectedSport);
+
+    results.innerHTML = events.map(event => {
       const teams = [
         event.away_team,
         event.home_team
