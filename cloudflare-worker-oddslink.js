@@ -234,8 +234,11 @@ export default {
       return jsonError("OddsLink API key not configured", 500);
     }
 
-    const requestedSport = url.searchParams.get("sport") || "basketball_nba";
-    const mapped = sportMap[requestedSport];
+    const requestedSport = String(url.searchParams.get("sport") || "basketball_nba").trim().toLowerCase();
+    const mapped = sportMap[requestedSport] ||
+      (["football", "fútbol", "soccer_premier_league"].includes(requestedSport)
+        ? { sport: "soccer", ...(requestedSport === "soccer_premier_league" ? { league: "epl" } : {}) }
+        : null);
     if (!mapped) {
       return jsonError("Unsupported sport", 400, {
         sport: requestedSport,
@@ -288,7 +291,11 @@ export default {
         } catch {
           providerError = { message: body || "OddsLink request failed" };
         }
-        return Response.json(
+        const isRateLimit = response.status === 429 ||
+          providerError?.error?.code === "SPEED_LIMIT" ||
+          /speed limit|rate limit/i.test(providerError?.error?.message || providerError?.message || "");
+        const retryAfter = response.headers.get("Retry-After") || "15";
+        const errorResponse = Response.json(
           {
             error:
               providerError?.error?.message ||
@@ -298,9 +305,22 @@ export default {
             provider: "OddsLink",
             status: response.status,
             code: providerError?.error?.code || providerError?.error_code,
+            ...(isRateLimit ? { retryAfterSeconds: Number(retryAfter) || 15 } : {}),
           },
-          { status: response.status, headers: { ...corsHeaders, "Cache-Control": "no-store" } }
+          {
+            status: response.status,
+            headers: {
+              ...corsHeaders,
+              "Cache-Control": isRateLimit ? "public, max-age=15" : "no-store",
+              ...(isRateLimit ? { "Retry-After": retryAfter } : {}),
+            },
+          }
         );
+        // Briefly cache provider throttling responses to avoid retry storms.
+        if (isRateLimit) {
+          try { await caches.default.put(cacheKey, errorResponse.clone()); } catch {}
+        }
+        return errorResponse;
       }
 
       let data;
