@@ -356,6 +356,8 @@ $("sports").addEventListener("click", event => {
   $("footballResults").innerHTML = "";
   $("event").value = "";
   $("loadOdds").disabled = false;
+  $("autoAnalysis").innerHTML = "";
+  $("loadOdds").click();
 
   if (button.dataset.sport === "UFC") {
     $("market").value = "UFC: método de victoria";
@@ -972,12 +974,35 @@ return `<li>
     }).join("");
 
     status.textContent =
-      `Deporte solicitado: ${selectedSport}. Eventos recibidos: ${events.length}.`;
+      `Datos actuales recibidos: ${events.length} eventos para ${selectedSport}. Hora de consulta: ${new Date().toLocaleString()}.`;
+    try {
+      localStorage.setItem("modeloProOddsCache:" + sportKey, JSON.stringify({
+        savedAt: new Date().toISOString(),
+        sport: selectedSport,
+        oddsHTML: results.innerHTML,
+        analysisHTML: $("autoAnalysis").innerHTML
+      }));
+    } catch (cacheError) {
+      console.warn("No se pudo guardar la copia local de cuotas.", cacheError);
+    }
   } catch (error) {
-    status.textContent =
-      `No se pudieron cargar las cuotas. ${
-        error.message || "Comprueba la conexión con Cloudflare."
-      }`;
+    let restored = false;
+    try {
+      const cached = JSON.parse(localStorage.getItem("modeloProOddsCache:" + sportKey) || "null");
+      if (cached && cached.oddsHTML) {
+        results.innerHTML = cached.oddsHTML;
+        $("autoAnalysis").innerHTML = cached.analysisHTML || "";
+        const stamp = cached.savedAt ? new Date(cached.savedAt).toLocaleString() : "fecha desconocida";
+        status.textContent = `SIN DATOS ACTUALES. Mostrando la última copia guardada de ${selectedSport}: ${stamp}. Las cuotas pueden haber cambiado; verifícalas antes de apostar.`;
+        restored = true;
+      }
+    } catch (cacheError) {
+      console.warn("No se pudo recuperar la copia local.", cacheError);
+    }
+    if (!restored) {
+      status.textContent = `No se pudieron cargar cuotas actuales para ${selectedSport} y no hay una copia previa guardada. ${error.message || "Comprueba la conexión."}`;
+      $("autoAnalysis").innerHTML = '<div class="result"><b>DATOS NO DISPONIBLES</b><p>No se inventarán partidos ni cuotas. Intenta de nuevo cuando el proveedor esté disponible.</p></div>';
+    }
     console.error(error);
   } finally {
     $("loadOdds").disabled = false;
@@ -1094,6 +1119,17 @@ $("loadFootball").addEventListener("click", async () => {
 
 syncSportButtons();
 renderHistory();
+
+// Carga inicial y actualización periódica de cuotas del deporte seleccionado.
+window.addEventListener("load", () => {
+  if ($("sport") && $("loadOdds")) $("loadOdds").click();
+});
+setInterval(() => {
+  if (document.visibilityState === "visible" && $("loadOdds") && !$("loadOdds").disabled) {
+    $("loadOdds").click();
+  }
+}, 15 * 60 * 1000);
+
 </script>
 
 <section id="football-model" class="entry">
