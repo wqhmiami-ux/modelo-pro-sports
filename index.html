@@ -531,7 +531,7 @@ function notifyBetOpportunity(record) {
   const status = $("notificationStatus");
 
   if (status) {
-    status.textContent = record.decision === "APUESTA CONDICIONAL"
+    status.textContent = ["APOSTAR", "APUESTA CONDICIONAL"].includes(record.decision)
       ? "Opción detectada: " + record.decision + ". " + message
       : "No se detectó una opción que cumpla todos los filtros.";
   }
