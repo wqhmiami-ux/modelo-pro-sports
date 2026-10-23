@@ -147,6 +147,10 @@ jobs:
               errors.append("El Worker no aplica el límite solicitado al devolver partidos.")
           if 'Cache-Control": "public, max-age=30"' not in worker or 'caches.default.put(cacheKey' not in worker:
               errors.append("El Worker no cachea temporalmente las cuotas para reducir llamadas repetidas.")
+          if r".replace(/[\u0300-\u036f]/g, \"\")" not in worker:
+              errors.append("La normalización de nombres debe eliminar correctamente los acentos Unicode.")
+          if r".replace(/\b(fc|afc|cf|sc)\b/g, \"\")" not in worker:
+              errors.append("La normalización de nombres debe quitar sufijos de clubes usando límites de palabra.")
           if errors:
               sys.exit("\\n".join(errors))
           print("OK: Worker y aplicación declaran los seis deportes y los endpoints esperados.")
