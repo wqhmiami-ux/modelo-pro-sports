@@ -482,7 +482,7 @@ input:focus, select:focus {
 <button class="primary full" id="calculate" type="button">CALCULAR</button>
 <div class="result" id="output" aria-live="polite">Introduce una cuota y una probabilidad estimada.</div>
 <button class="primary full" id="save" type="button" disabled>GUARDAR PRONÓSTICO</button>
-<p class="note">La calculadora utiliza la probabilidad que introduces. La casilla de verificación es manual; no comprueba los datos automáticamente. EDGE positivo no garantiza ganancias.</p>
+<p class="note">El motor evalúa la probabilidad que introduces; todavía no genera automáticamente una probabilidad estadística para todos los deportes. La verificación es una declaración manual y no comprueba las fuentes por sí sola. EDGE positivo no garantiza ganancias.</p>
 </section>
 
 <section id="history-section" class="card">
@@ -532,11 +532,11 @@ function notifyBetOpportunity(record) {
 
   if (status) {
     status.textContent = record.decision === "APUESTA CONDICIONAL"
-      ? "Opción detectada: APUESTA CONDICIONAL. " + message
+      ? "Opción detectada: " + record.decision + ". " + message
       : "No se detectó una opción que cumpla todos los filtros.";
   }
 
-  if (record.decision !== "APUESTA CONDICIONAL") return;
+  if (!["APUESTA", "APUESTA CONDICIONAL"].includes(record.decision)) return;
 
   if ("Notification" in window && Notification.permission === "granted") {
     try {
@@ -599,7 +599,9 @@ function money(value) {
 function oddsInfo(value) {
   const n = Number(value);
 
-  if (!Number.isFinite(n) || n === 0) {
+  // La entrada de esta calculadora es cuota americana, no decimal.
+  // En formato americano válido, la cuota debe ser un entero >= +100 o <= -100.
+  if (!Number.isFinite(n) || !Number.isInteger(n) || Math.abs(n) < 100) {
     return null;
   }
 
@@ -792,29 +794,38 @@ alert(
 
   const edge = probability - odds.implied;
   const p = probability / 100;
-
-  const evPerDollar =
-    p * (odds.decimal - 1) - (1 - p);
-
+  const evPerDollar = p * (odds.decimal - 1) - (1 - p);
   const expectedValue = stake * evPerDollar;
+  const verified = $("verified").checked;
+  const sourceNotes = $("notes").value.trim();
+  const strongEdgeThreshold = threshold + 2;
+
+  // Cuota americana justa correspondiente a la probabilidad estimada.
+  const fairDecimal = 1 / p;
+  const fairOdds = fairDecimal >= 2
+    ? Math.round((fairDecimal - 1) * 100)
+    : -Math.round(100 / (fairDecimal - 1));
 
   let decision = "NO APOSTAR";
-  let reason = "El valor esperado calculado no es positivo.";
+  let reason = "El valor esperado es cero o negativo con la probabilidad introducida.";
 
   if (evPerDollar > 0 && edge >= threshold) {
-    if ($("verified").checked) {
-      decision = "APUESTA CONDICIONAL";
-      reason =
-        "Cumple los filtros matemáticos con los valores introducidos. Verifica la calidad de los datos.";
-    } else {
+    if (!verified) {
       decision = "NO APOSTAR: FALTA VERIFICAR";
-      reason =
-        "Los números cumplen el filtro, pero falta marcar la verificación independiente.";
+      reason = "Los números pasan el filtro, pero debes verificar independientemente la cuota y la estimación.";
+    } else if (!sourceNotes) {
+      decision = "NO APOSTAR: FALTA FUENTE";
+      reason = "Añade la fuente, la hora de la cuota y las estadísticas revisadas antes de considerar una apuesta.";
+    } else if (edge >= strongEdgeThreshold) {
+      decision = "APOSTAR";
+      reason = "Pasa el filtro matemático reforzado: valor esperado positivo, EDGE al menos 2 puntos por encima del mínimo, verificación declarada y notas de fuente. No garantiza ganancias.";
+    } else {
+      decision = "APUESTA CONDICIONAL";
+      reason = "Pasa el filtro mínimo y tiene valor esperado positivo, pero el EDGE no alcanza el margen reforzado de APOSTAR. Revisa la calidad y actualidad de los datos.";
     }
   } else if (evPerDollar > 0) {
     decision = "ESPERAR PRECIO";
-    reason =
-      "El valor esperado es positivo, pero el EDGE no alcanza el mínimo configurado.";
+    reason = "El valor esperado es positivo, pero el EDGE no alcanza el mínimo configurado.";
   }
 
   lastCalculation = {
@@ -826,8 +837,10 @@ alert(
     stake,
     threshold,
     implied: odds.implied,
+    fairOdds,
     edge,
     ev: evPerDollar,
+    evPct: evPerDollar * 100,
     decision,
     notes: $("notes").value.trim(),
     verified: $("verified").checked,
@@ -837,8 +850,8 @@ alert(
   };
 
   const decisionClass =
-    decision === "APUESTA CONDICIONAL" ? "green" :
-    decision === "ESPERAR PRECIO" ? "amber" : "red";
+    decision === "APOSTAR" ? "green" :
+    decision === "APUESTA CONDICIONAL" || decision === "ESPERAR PRECIO" ? "amber" : "red";
 
   $("output").innerHTML = `
     <div class="metrics">
@@ -855,8 +868,16 @@ alert(
         <strong>${edge.toFixed(2)} pp</strong>
       </div>
       <div class="metric">
-        <small>Valor esperado</small>
+        <small>Valor esperado sobre tu importe</small>
         <strong>${money(expectedValue)}</strong>
+      </div>
+      <div class="metric">
+        <small>Rendimiento esperado (%)</small>
+        <strong>${(evPerDollar * 100).toFixed(2)}%</strong>
+      </div>
+      <div class="metric">
+        <small>Cuota americana justa según tu prob.</small>
+        <strong>${fairOdds > 0 ? "+" : ""}${fairOdds}</strong>
       </div>
     </div>
     <p><b>Decisión:
@@ -869,7 +890,7 @@ alert(
       Deporte: ${escapeHTML(lastCalculation.sport)}.
       Cuota decimal: ${odds.decimal.toFixed(3)}.
       Retorno potencial total: ${money(stake * odds.decimal)}.
-      No es una predicción automática.
+      Probabilidad estimada introducida manualmente; la cuota justa es un cálculo matemático, no una predicción independiente.
     </p>
   `;
 
@@ -905,7 +926,7 @@ function renderHistory() {
 
   $("count").textContent = rows.length;
   const recommendedPending = rows.filter(row =>
-    row.decision === "APUESTA CONDICIONAL" &&
+    ["APUESTA", "APUESTA CONDICIONAL"].includes(row.decision) &&
     row.status === "Pendiente"
   ).length;
   $("betCount").textContent = recommendedPending;
