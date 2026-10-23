@@ -140,7 +140,8 @@ export default {
       });
     }
 
-    if (!env.ODDSLINK_API_KEY) {
+    const oddsApiKey = env.ODDSLINK_API_KEY || env.ODDS_API_KEY;
+    if (!oddsApiKey) {
       return jsonError("OddsLink API key not configured", 500);
     }
 
