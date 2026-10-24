@@ -154,4 +154,23 @@ jobs:
           if errors:
               sys.exit("\\n".join(errors))
           print("OK: Worker y aplicación declaran los seis deportes y los endpoints esperados.")
+
+      - name: Verify market-reference safety guard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          app = Path("index.html").read_text(encoding="utf-8")
+          required = {
+              "dedicated market-reference state": "let marketProbabilityReferenceLoaded = false;",
+              "guard blocks imported market probabilities": "marketProbabilityReferenceLoaded || /^Referencia de mercado sin margen/i.test(sourceNotes)",
+              "user must clear imported probability first": 'if (marketProbabilityReferenceLoaded && $("prob").value.trim() === "")',
+              "market reference is explicitly labeled": "No es una estimación independiente",
+          }
+          missing = [label for label, snippet in required.items() if snippet not in app]
+          if missing:
+              sys.exit("ERROR: falta la protección de transparencia: " + ", ".join(missing))
+          print("OK: una probabilidad importada del mercado no puede generar recomendación hasta borrarla y reemplazarla.")
+          PY
           PY
