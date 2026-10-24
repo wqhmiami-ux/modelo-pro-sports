@@ -1984,15 +1984,30 @@ $("loadDailyGames").addEventListener("click", async () => {
     // Consultar cada deporte de forma secuencial evita ráfagas contra el proveedor.
     for (const sport of requestedSports) {
       try {
-        const url = new URL(ODDS_API_URL);
-        url.searchParams.set("sport", sport.key);
-        url.searchParams.set("markets", "h2h");
-        const response = await fetch(url.toString());
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
-        const events = Array.isArray(data) ? data :
-          Array.isArray(data.events) ? data.events :
-          Array.isArray(data.data) ? data.data : [];
+        // Reutiliza cuotas/eventos recientes del panel principal antes de gastar otra petición.
+        const sportCacheKey = `modeloProOddsCache:${sport.key}`;
+        let events = null;
+        try {
+          const savedSport = JSON.parse(sessionStorage.getItem(sportCacheKey) || "null");
+          if (savedSport && Array.isArray(savedSport.events) && savedSport.events.length &&
+              Date.now() - savedSport.savedAt < 120000) {
+            events = savedSport.events;
+          }
+        } catch {}
+        if (!events) {
+          const url = new URL(ODDS_API_URL);
+          url.searchParams.set("sport", sport.key);
+          url.searchParams.set("markets", "h2h");
+          const response = await fetch(url.toString());
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+          events = Array.isArray(data) ? data :
+            Array.isArray(data.events) ? data.events :
+            Array.isArray(data.data) ? data.data : [];
+          if (events.length) {
+            try { sessionStorage.setItem(sportCacheKey, JSON.stringify({ events, savedAt: Date.now() })); } catch {}
+          }
+        }
         responses.push(events.map(event => ({
           ...event,
           sport: sport.name,
