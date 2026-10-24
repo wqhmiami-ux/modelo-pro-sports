@@ -662,8 +662,8 @@ a { -webkit-tap-highlight-color: transparent; }
 
 <section id="data-health" class="card" aria-labelledby="data-health-title">
   <h2 id="data-health-title">Estado de datos en vivo</h2>
-  <p class="note">Comprueba la conexión con Cloudflare y consulta cada deporte directamente al proveedor. Una conexión correcta no garantiza que haya eventos disponibles en ese momento.</p>
-  <button id="check-data-health" class="primary full" type="button">COMPROBAR CONEXIÓN Y LOS 6 DEPORTES</button>
+  <p class="note">Comprueba Cloudflare y una fuente de cuotas con una sola consulta al proveedor. Los demás deportes se verifican al cargar sus propios eventos; una conexión correcta no garantiza que haya partidos disponibles.</p>
+  <button id="check-data-health" class="primary full" type="button">COMPROBAR CONEXIÓN Y UNA FUENTE</button>
   <p id="data-health-status" class="daily-meta" role="status" aria-live="polite">Sin comprobar todavía.</p>
   <div id="data-health-results" aria-live="polite"></div>
 </section>
@@ -2660,14 +2660,9 @@ renderHistory();
   "use strict";
   const apiRoot = "https://modelo-pro-api.wqhmiami.workers.dev/";
   const apiOdds = "https://modelo-pro-api.wqhmiami.workers.dev/api/odds";
-  const sports = [
-    ["Fútbol (Premier League)", "soccer_epl"],
-    ["NFL", "americanfootball_nfl"],
-    ["NBA", "basketball_nba"],
-    ["MLB", "baseball_mlb"],
-    ["NHL", "icehockey_nhl"],
-    ["UFC", "mma_mixed_martial_arts"]
-  ];
+  const testSport = ["Fútbol (Premier League)", "soccer_epl"];
+  const cacheKey = "modeloProHealthCheckV1";
+  const cacheMs = 5 * 60 * 1000;
   const button = document.getElementById("check-data-health");
   const status = document.getElementById("data-health-status");
   const results = document.getElementById("data-health-results");
@@ -2679,10 +2674,35 @@ renderHistory();
     })[char]);
   }
 
+  function readCache() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+      if (cached && Date.now() - cached.time < cacheMs && Array.isArray(cached.rows)) return cached;
+    } catch (_) {}
+    return null;
+  }
+
+  function saveCache(rows, message) {
+    try { sessionStorage.setItem(cacheKey, JSON.stringify({ time: Date.now(), rows, message })); } catch (_) {}
+  }
+
+  function render(rows, message, cached) {
+    results.innerHTML = rows.map(row =>
+      '<div class="daily-game"><b class="' + (row.good ? (row.empty ? 'amber' : 'green') : 'red') + '">' +
+      safeText(row.name) + '</b><p class="daily-meta">' + safeText(row.message) + '</p></div>'
+    ).join("");
+    status.textContent = message + (cached ? " (resultado guardado; no se hicieron nuevas consultas)." : "");
+  }
+
   button.addEventListener("click", async () => {
+    const cached = readCache();
+    if (cached) {
+      render(cached.rows, cached.message, true);
+      return;
+    }
     button.disabled = true;
     results.innerHTML = "";
-    status.textContent = "Comprobando API y fuentes de cuotas…";
+    status.textContent = "Comprobando la API y una sola fuente de cuotas…";
     const rows = [];
     try {
       const rootResponse = await fetch(apiRoot, { cache: "no-store" });
@@ -2692,58 +2712,41 @@ renderHistory();
       }
       rows.push({ name: "API Cloudflare", message: "Conectada", good: true });
     } catch (error) {
-      status.textContent = "No se pudo confirmar la conexión con Cloudflare.";
-      results.innerHTML = '<p class="red">' + safeText(error.message || "Error de conexión") + '</p>';
+      rows.push({ name: "API Cloudflare", message: error.message || "Error de conexión", good: false });
+      const message = "No se pudo confirmar la conexión con Cloudflare. Revisa el detalle.";
+      render(rows, message, false);
+      saveCache(rows, message);
       button.disabled = false;
       return;
     }
 
-    for (let index = 0; index < sports.length; index++) {
-      const [name, sport] = sports[index];
-      try {
-        const url = new URL(apiOdds);
-        url.searchParams.set("sport", sport);
-        url.searchParams.set("markets", "h2h");
-        const response = await fetch(url.toString(), { cache: "no-store" });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          const message = data.error || ("HTTP " + response.status);
-          rows.push({ name, message, good: false });
-          if (response.status === 429 || /speed limit|rate limit|SPEED_LIMIT/i.test(message)) {
-            for (const [remainingName] of sports.slice(index + 1)) {
-              rows.push({ name: remainingName, message: "No consultado para evitar más solicitudes tras el límite del proveedor", good: false, skipped: true });
-            }
-            break;
-          }
-          continue;
-        }
+    const [name, sport] = testSport;
+    try {
+      const url = new URL(apiOdds);
+      url.searchParams.set("sport", sport);
+      url.searchParams.set("markets", "h2h");
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        rows.push({ name, message: data.error || ("HTTP " + response.status), good: false });
+      } else {
         const events = Array.isArray(data) ? data :
           (Array.isArray(data.events) ? data.events :
           (Array.isArray(data.data) ? data.data : null));
-        if (!events) {
-          rows.push({ name, message: "Formato de respuesta inesperado", good: false });
-        } else if (!events.length) {
-          rows.push({ name, message: "Conexión correcta; no hay eventos devueltos ahora", good: true, empty: true });
-        } else {
-          rows.push({ name, message: events.length + " eventos recibidos", good: true });
-        }
-      } catch (error) {
-        rows.push({ name, message: error.message || "Error de conexión", good: false });
+        if (!events) rows.push({ name, message: "Formato de respuesta inesperado", good: false });
+        else if (!events.length) rows.push({ name, message: "Fuente accesible, pero no devolvió eventos ahora", good: true, empty: true });
+        else rows.push({ name, message: events.length + " eventos recibidos", good: true });
       }
+    } catch (error) {
+      rows.push({ name, message: error.message || "Error de conexión", good: false });
     }
 
-    results.innerHTML = rows.map(row =>
-      '<div class="daily-game"><b class="' + (row.good ? (row.empty ? 'amber' : 'green') : 'red') + '">' +
-      safeText(row.name) + '</b><p class="daily-meta">' + safeText(row.message) + '</p></div>'
-    ).join("");
-    const failures = rows.filter(row => !row.good && !row.skipped).length;
-    const skipped = rows.filter(row => row.skipped).length;
-    const withEvents = rows.filter(row => row.good && !row.empty && row.name !== "API Cloudflare").length;
-    status.textContent = skipped
-      ? "El proveedor activó un límite. Se detuvieron las consultas para proteger la cuota; deportes con eventos confirmados: " + withEvents + " de 6. Reintenta más tarde."
-      : failures === 0
-      ? "Comprobación terminada. Deportes con eventos recibidos: " + withEvents + " de 6."
-      : "Comprobación terminada con " + failures + " fuente(s) con error. Revisa el detalle antes de usar cuotas.";
+    const source = rows.find(row => row.name === name);
+    const message = source && source.good
+      ? "Prueba básica completada. Solo se consultó una fuente; los otros cinco deportes no se probaron en este chequeo."
+      : "La API responde, pero la prueba de cuotas no se confirmó. Revisa el detalle y evita repetir consultas seguidas.";
+    render(rows, message, false);
+    saveCache(rows, message);
     button.disabled = false;
   });
 })();
