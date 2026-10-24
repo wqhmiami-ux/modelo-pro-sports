@@ -499,6 +499,118 @@ button { touch-action: manipulation; }
   .daily-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+
+/* MODELO PRO SPORTS · VIP ELITE visual layer */
+:root {
+  --bg: #060912;
+  --panel: #0e1524;
+  --line: #29344a;
+  --text: #f4f6fb;
+  --muted: #9ba8bd;
+  --green: #d7b56d;
+  --red: #ff7185;
+  --amber: #f4d28a;
+  --accent-blue: #8edcff;
+  --vip-gold: #e4c47a;
+  --vip-gold-soft: rgba(228,196,122,.13);
+}
+body {
+  background:
+    radial-gradient(ellipse at 12% -10%, rgba(228,196,122,.12), transparent 35%),
+    radial-gradient(ellipse at 90% 8%, rgba(77,123,181,.12), transparent 32%),
+    linear-gradient(180deg, #070b14 0%, #060912 60%, #080d17 100%);
+}
+header {
+  background: linear-gradient(112deg, #0b1220 0%, #172238 56%, #211d18 100%);
+  border-bottom: 1px solid rgba(228,196,122,.62);
+  box-shadow: 0 18px 48px rgba(0,0,0,.32);
+}
+h1 { color: var(--vip-gold); letter-spacing: .11em; }
+.brand-subtitle { color: #f4f6fb; }
+header p { color: #bdc7d7; }
+.premium-hero {
+  border: 1px solid rgba(228,196,122,.36) !important;
+  background:
+    radial-gradient(circle at 82% 24%, rgba(228,196,122,.13), transparent 27%),
+    linear-gradient(135deg, #121b2b 0%, #0b1220 56%, #161a21 100%) !important;
+  box-shadow: 0 22px 60px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+.hero-kicker { color: var(--vip-gold) !important; letter-spacing: .16em !important; }
+.live-pulse { background: var(--vip-gold) !important; box-shadow: 0 0 0 5px rgba(228,196,122,.12) !important; }
+.hero-copy h2 span { color: var(--vip-gold) !important; }
+.hero-cta {
+  background: linear-gradient(135deg, #f0d99f, #c9a85c) !important;
+  color: #16130c !important;
+  box-shadow: 0 9px 25px rgba(201,168,92,.16) !important;
+}
+.hero-link { border-color: rgba(228,196,122,.38) !important; }
+.hero-orbit .orbit-ball {
+  background: linear-gradient(135deg, #f0d99f, #a77e35) !important;
+  color: #17130a !important;
+  box-shadow: 0 0 45px rgba(228,196,122,.22) !important;
+}
+.hero-bottom { border-top-color: rgba(228,196,122,.18) !important; }
+.hero-bottom b { color: var(--vip-gold) !important; }
+nav#sports {
+  background: rgba(13,20,34,.88);
+  border-color: rgba(228,196,122,.2);
+}
+#sports button.active, button.primary, nav button.active {
+  background: linear-gradient(135deg, #f0d99f, #c9a85c) !important;
+  color: #17130a !important;
+  border-color: #e4c47a !important;
+  box-shadow: 0 5px 20px rgba(201,168,92,.12);
+}
+.quick-nav {
+  border-color: rgba(228,196,122,.17);
+  box-shadow: 0 12px 28px rgba(0,0,0,.2);
+}
+.quick-nav a { background: #101827; }
+.quick-nav a:hover, .quick-nav a:focus-visible {
+  background: var(--vip-gold-soft);
+  border-color: var(--vip-gold);
+  color: var(--vip-gold);
+}
+.card {
+  background: linear-gradient(145deg, rgba(16,24,39,.98), rgba(10,16,28,.99));
+  border-color: #29364b;
+  box-shadow: 0 15px 38px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.018);
+}
+.card h2::before {
+  background: linear-gradient(180deg, #f0d99f, #b38b43);
+  box-shadow: 0 0 14px rgba(228,196,122,.18);
+}
+.metric {
+  background: linear-gradient(145deg, #0a1220, #111b2c);
+  border-color: rgba(228,196,122,.15);
+}
+.metric strong { color: #f8f5ed; }
+.green { color: #8ce4bd; }
+.amber { color: #f0cf7e; }
+.result { border: 1px solid rgba(228,196,122,.14); }
+.daily-game, .entry { border-color: rgba(151,169,196,.15); }
+input, select {
+  background: #080f1c;
+  border-color: #334057;
+}
+button:not(.primary):not(.active) { background: linear-gradient(145deg, #1b2940, #121d30); }
+button.primary.full { letter-spacing: .045em; }
+a { -webkit-tap-highlight-color: transparent; }
+::selection { background: rgba(228,196,122,.28); color: #fff; }
+@media (min-width: 900px) {
+  main { max-width: 1180px; padding-top: 30px; }
+  .premium-hero { margin-bottom: 24px; }
+  .card { padding: 25px; }
+}
+@media (max-width: 600px) {
+  header { padding: 23px 15px; }
+  main { padding: 14px 12px 32px; }
+  .premium-hero { border-radius: 22px !important; }
+  .hero-bottom { gap: 12px !important; flex-wrap: wrap; }
+  .quick-nav { top: 4px; }
+  .card { border-radius: 17px; padding: 16px; }
+}
+
 </style>
 </head>
 <body>
