@@ -1741,8 +1741,19 @@ $("loadDailyGames").addEventListener("click", async () => {
           country: event.country || event.league?.country || event.sport_region || ""
         })));
       } catch (error) {
-        failures.push(`${sport.name}: ${error.message || "sin respuesta"}`);
+        const errorMessage = error.message || "sin respuesta";
+        failures.push(`${sport.name}: ${errorMessage}`);
         responses.push([]);
+        // Si el proveedor aplica un límite, no seguir gastando solicitudes
+        // en los demás deportes durante esta misma consulta.
+        if (/speed limit|rate limit|SPEED_LIMIT|HTTP 429|too many requests/i.test(errorMessage)) {
+          const currentIndex = requestedSports.findIndex(item => item.key === sport.key);
+          requestedSports.slice(currentIndex + 1).forEach(remainingSport => {
+            failures.push(`${remainingSport.name}: consulta omitida para proteger la cuota tras el límite del proveedor`);
+            responses.push([]);
+          });
+          break;
+        }
       }
     }
     const normalizeLeague = value => String(value || "")
