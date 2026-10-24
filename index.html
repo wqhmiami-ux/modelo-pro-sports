@@ -1935,10 +1935,10 @@ $("loadDailyGames").addEventListener("click", async () => {
     key: option.value,
     label: option.textContent || option.value
   }));
+  // El deporte y la ventana de fechas solo cambian la vista, no los datos descargados.
+  // La caché depende de las ligas de fútbol, que sí alteran qué eventos se recuperan.
   const cacheSignature = JSON.stringify({
-    sport: $("dailySportFilter").value,
-    leagues: selectedFootballLeagues.map(option => option.key).sort(),
-    window: $("dailyEventWindow").value
+    leagues: selectedFootballLeagues.map(option => option.key).sort()
   });
   const now = Date.now();
   let savedCalendar = null;
