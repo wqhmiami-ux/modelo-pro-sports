@@ -2006,10 +2006,10 @@ $("loadDailyGames").addEventListener("click", async () => {
         failures.push(`${sport.name}: ${errorMessage}`);
         responses.push([]);
         // Si el proveedor aplica un límite, no seguir gastando solicitudes
-        // en los demás deportes durante esta misma consulta.
+        // y recuperar el último calendario válido en vez de reemplazarlo por una lista vacía.
         if (/speed limit|rate limit|SPEED_LIMIT|HTTP 429|too many requests/i.test(errorMessage)) {
-          // El cooldown también protege de repetir el calendario tras un 429.
           try { sessionStorage.setItem(dailyCooldownKey, String(Date.now() + 300000)); } catch {}
+          if (showSavedCalendar(true, "El proveedor limitó las solicitudes. Se conservan los últimos datos guardados.")) return;
           const currentIndex = requestedSports.findIndex(item => item.key === sport.key);
           requestedSports.slice(currentIndex + 1).forEach(remainingSport => {
             failures.push(`${remainingSport.name}: consulta omitida para proteger la cuota tras el límite del proveedor`);
@@ -2055,11 +2055,13 @@ $("loadDailyGames").addEventListener("click", async () => {
     renderDailyGames();
     // Guarda los eventos recibidos para que el calendario siga siendo útil durante límites temporales.
     try {
-      sessionStorage.setItem(dailyCacheKey, JSON.stringify({
-        events: dailyGamesCache,
-        savedAt: Date.now(),
-        signature: cacheSignature
-      }));
+      if (dailyGamesCache.length) {
+        sessionStorage.setItem(dailyCacheKey, JSON.stringify({
+          events: dailyGamesCache,
+          savedAt: Date.now(),
+          signature: cacheSignature
+        }));
+      }
     } catch {}
 
     const uniqueFailures = [...new Set(failures)];
