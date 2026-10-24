@@ -458,6 +458,47 @@ nav#sports { background:rgba(14,23,38,.72);border-color:rgba(145,169,205,.16);ba
   .hero-bottom { gap:10px 16px; }
 }
 
+
+/* Navegación simplificada y controles cómodos en móvil */
+:root { --tap-size: 48px; }
+html { scroll-padding-top: 90px; scroll-padding-bottom: 90px; }
+button, input, select { min-height: var(--tap-size); }
+button { touch-action: manipulation; }
+.card { scroll-margin-top: 86px; }
+#dailyFootballLeague { height: 132px; max-height: 132px; }
+.league-presets { margin-top: 8px; }
+.league-presets button { min-height: 42px; padding: 9px 10px; font-size: 12px; }
+.daily-controls { align-items: start; }
+.daily-controls > div { min-width: 0; }
+#loadDailyGames, #loadLiveGames, #check-data-health { min-height: 52px; }
+.quick-nav a { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width: 600px) {
+  main { padding-bottom: 92px; }
+  .quick-nav {
+    position: fixed; top: auto; bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px; right: 8px; z-index: 50; display: flex; flex-wrap: nowrap;
+    gap: 6px; overflow-x: auto; margin: 0; padding: 8px; border-radius: 16px;
+    background: rgba(7,11,19,.96); box-shadow: 0 12px 38px rgba(0,0,0,.45);
+    backdrop-filter: blur(18px); scrollbar-width: none;
+  }
+  .quick-nav::-webkit-scrollbar { display: none; }
+  .quick-nav a { flex: 0 0 auto; padding: 9px 12px; font-size: 12px; white-space: nowrap; }
+  nav#sports { position: sticky; top: 8px; z-index: 20; }
+  .premium-hero { margin-bottom: 16px; }
+  .hero-actions { gap: 12px; }
+  .hero-cta { min-height: 48px; }
+  .daily-controls { grid-template-columns: 1fr; gap: 8px; }
+  #dailyFootballLeague { height: 112px; max-height: 112px; }
+  .grid.league-presets { grid-template-columns: 1fr 1fr; }
+  .card { margin-bottom: 13px; }
+  .card h2 { font-size: 18px; }
+  input, select { font-size: 16px; }
+}
+@media (min-width: 900px) {
+  .quick-nav { justify-content: center; }
+  .daily-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 </style>
 </head>
 <body>
