@@ -2398,7 +2398,8 @@ renderHistory();
       return;
     }
 
-    for (const [name, sport] of sports) {
+    for (let index = 0; index < sports.length; index++) {
+      const [name, sport] = sports[index];
       try {
         const url = new URL(apiOdds);
         url.searchParams.set("sport", sport);
@@ -2406,7 +2407,14 @@ renderHistory();
         const response = await fetch(url.toString(), { cache: "no-store" });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-          rows.push({ name, message: data.error || ("HTTP " + response.status), good: false });
+          const message = data.error || ("HTTP " + response.status);
+          rows.push({ name, message, good: false });
+          if (response.status === 429 || /speed limit|rate limit|SPEED_LIMIT/i.test(message)) {
+            for (const [remainingName] of sports.slice(index + 1)) {
+              rows.push({ name: remainingName, message: "No consultado para evitar más solicitudes tras el límite del proveedor", good: false, skipped: true });
+            }
+            break;
+          }
           continue;
         }
         const events = Array.isArray(data) ? data :
@@ -2428,9 +2436,12 @@ renderHistory();
       '<div class="daily-game"><b class="' + (row.good ? (row.empty ? 'amber' : 'green') : 'red') + '">' +
       safeText(row.name) + '</b><p class="daily-meta">' + safeText(row.message) + '</p></div>'
     ).join("");
-    const failures = rows.filter(row => !row.good).length;
+    const failures = rows.filter(row => !row.good && !row.skipped).length;
+    const skipped = rows.filter(row => row.skipped).length;
     const withEvents = rows.filter(row => row.good && !row.empty && row.name !== "API Cloudflare").length;
-    status.textContent = failures === 0
+    status.textContent = skipped
+      ? "El proveedor activó un límite. Se detuvieron las consultas para proteger la cuota; deportes con eventos confirmados: " + withEvents + " de 6. Reintenta más tarde."
+      : failures === 0
       ? "Comprobación terminada. Deportes con eventos recibidos: " + withEvents + " de 6."
       : "Comprobación terminada con " + failures + " fuente(s) con error. Revisa el detalle antes de usar cuotas.";
     button.disabled = false;
