@@ -1855,8 +1855,9 @@ $("loadOdds").addEventListener("click", async () => {
       if (!response.ok) {
         const message = data.error || `Error HTTP ${response.status}`;
         if (response.status === 429 || /speed limit|rate limit|SPEED_LIMIT/i.test(message)) {
-          try { sessionStorage.setItem(cooldownKey, String(Date.now() + 60000)); } catch {}
-          throw new Error(`La fuente de cuotas limitó las solicitudes. Espera 60 segundos y vuelve a intentar. Detalle: ${message}`);
+          const retrySeconds = Math.max(60, Math.min(1800, Number(data.retryAfterSeconds) || (selectedSport === "UFC" ? 300 : 60)));
+          try { sessionStorage.setItem(cooldownKey, String(Date.now() + retrySeconds * 1000)); } catch {}
+          throw new Error(`La fuente de cuotas limitó las solicitudes. Espera ${retrySeconds} segundos antes de reintentar. No se mostrarán cuotas inventadas. Detalle: ${message}`);
         }
         throw new Error(message);
       }
