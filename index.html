@@ -1684,12 +1684,48 @@ $("dailyGamesResults").addEventListener("click", async event => {
     const url = new URL(ODDS_API_URL);
     url.searchParams.set("sport", sportKey);
     url.searchParams.set("markets", sport === "UFC" ? "h2h" : "h2h,spreads,totals");
-    const response = await fetch(url.toString());
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || ("HTTP " + response.status));
-    const events = Array.isArray(data) ? data :
-      Array.isArray(data.events) ? data.events :
-      Array.isArray(data.data) ? data.data : [];
+
+    // Reutiliza la caché de cuotas compartida con el panel principal para
+    // reducir consultas duplicadas al proveedor y evitar límites innecesarios.
+    const cacheKey = `modeloProOddsCache:${sportKey}`;
+    const cooldownKey = `modeloProOddsCooldown:${sportKey}`;
+    const now = Date.now();
+    let events = [];
+    let cached = null;
+    try {
+      const until = Number(sessionStorage.getItem(cooldownKey) || 0);
+      if (until > now) {
+        throw new Error(`La fuente limitó las consultas de ${sport}. Espera ${Math.ceil((until - now) / 1000)} segundos antes de reintentar.`);
+      }
+      const saved = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+      if (saved && Array.isArray(saved.events) && saved.events.length && now - saved.savedAt < 60000) {
+        cached = saved.events;
+      }
+    } catch (error) {
+      if (error instanceof Error && /fuente limitó las consultas/.test(error.message)) throw error;
+    }
+
+    if (cached) {
+      events = cached;
+    } else {
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const message = data.error || ("HTTP " + response.status);
+        if (response.status === 429 || /speed limit|rate limit|SPEED_LIMIT/i.test(message)) {
+          const retrySeconds = Math.max(60, Math.min(1800, Number(data.retryAfterSeconds) || (sport === "UFC" ? 300 : 60)));
+          try { sessionStorage.setItem(cooldownKey, String(Date.now() + retrySeconds * 1000)); } catch {}
+          throw new Error(`La fuente limitó las consultas. Espera ${retrySeconds} segundos antes de reintentar. No se inventaron cuotas.`);
+        }
+        throw new Error(message);
+      }
+      events = Array.isArray(data) ? data :
+        Array.isArray(data.events) ? data.events :
+        Array.isArray(data.data) ? data.data : [];
+      if (events.length) {
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ events, savedAt: Date.now() })); } catch {}
+      }
+    }
     const byId = button.dataset.eventId
       ? events.find(item => String(item.id) === button.dataset.eventId)
       : null;
