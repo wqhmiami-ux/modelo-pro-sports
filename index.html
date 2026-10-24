@@ -1930,21 +1930,49 @@ $("loadDailyGames").addEventListener("click", async () => {
   const status = $("dailyGamesStatus");
   const target = $("dailyGamesResults");
   const dailyCooldownKey = "modeloProDailyGamesCooldown";
-  try {
-    const cooldownUntil = Number(sessionStorage.getItem(dailyCooldownKey) || 0);
-    if (cooldownUntil > Date.now()) {
-      status.textContent = "El proveedor limitó las solicitudes recientemente. Para proteger la cuota, espera " + Math.ceil((cooldownUntil - Date.now()) / 1000) + " segundos antes de volver a cargar el calendario.";
-      return;
-    }
-  } catch {}
-  button.disabled = true;
-  target.innerHTML = "";
-  status.textContent = "Consultando fuentes deportivas compatibles...";
-  const failures = [];
+  const dailyCacheKey = "modeloProDailyGamesCache";
   const selectedFootballLeagues = [...$("dailyFootballLeague").selectedOptions].map(option => ({
     key: option.value,
     label: option.textContent || option.value
   }));
+  const cacheSignature = JSON.stringify({
+    sport: $("dailySportFilter").value,
+    leagues: selectedFootballLeagues.map(option => option.key).sort(),
+    window: $("dailyEventWindow").value
+  });
+  const now = Date.now();
+  let savedCalendar = null;
+  let cooldownUntil = 0;
+  try {
+    cooldownUntil = Number(sessionStorage.getItem(dailyCooldownKey) || 0);
+    const parsed = JSON.parse(sessionStorage.getItem(dailyCacheKey) || "null");
+    if (parsed && Array.isArray(parsed.events) && parsed.signature === cacheSignature) savedCalendar = parsed;
+  } catch {}
+  const showSavedCalendar = (stale, reason) => {
+    if (!savedCalendar || !savedCalendar.events.length) return false;
+    dailyGamesCache = savedCalendar.events;
+    renderDailyGames();
+    const ageSeconds = Math.max(0, Math.floor((Date.now() - savedCalendar.savedAt) / 1000));
+    const ageLabel = ageSeconds < 60 ? ageSeconds + " s" : Math.floor(ageSeconds / 60) + " min";
+    status.textContent = (stale ? "Mostrando calendario guardado (" + ageLabel + " de antigüedad). " + reason + " " : "Calendario recuperado de la caché (" + ageLabel + "). ") +
+      "Los horarios y eventos guardados pueden haber cambiado; las cuotas y el estado en vivo no se consideran confirmados.";
+    return true;
+  };
+  // Reutiliza el calendario reciente antes de consultar de nuevo al proveedor.
+  if (savedCalendar && now - savedCalendar.savedAt < 120000) {
+    showSavedCalendar(false, "");
+    return;
+  }
+  // Si el proveedor está en cooldown, muestra datos guardados si existen y no hace otra petición.
+  if (cooldownUntil > now) {
+    const remaining = Math.ceil((cooldownUntil - now) / 1000);
+    if (showSavedCalendar(true, "El proveedor limitó las solicitudes; quedan " + remaining + " segundos de espera.")) return;
+    status.textContent = "El proveedor limitó las solicitudes recientemente. Espera " + remaining + " segundos antes de volver a consultar. No hay calendario guardado para mostrar.";
+    return;
+  }
+  button.disabled = true;
+  status.textContent = "Consultando fuentes deportivas compatibles...";
+  const failures = [];
   const requestedSports = [
     // OddsLink admite el agregado soccer: devuelve las competiciones disponibles
     // en una sola petición; el filtro se aplica usando la liga devuelta.
@@ -2025,6 +2053,14 @@ $("loadDailyGames").addEventListener("click", async () => {
     });
     dailyGamesCache = [...uniqueEvents.values()].sort((a,b) => new Date(a.commence_time) - new Date(b.commence_time));
     renderDailyGames();
+    // Guarda los eventos recibidos para que el calendario siga siendo útil durante límites temporales.
+    try {
+      sessionStorage.setItem(dailyCacheKey, JSON.stringify({
+        events: dailyGamesCache,
+        savedAt: Date.now(),
+        signature: cacheSignature
+      }));
+    } catch {}
 
     const uniqueFailures = [...new Set(failures)];
     const messages = [`Eventos recibidos: ${dailyGamesCache.length}.`];
