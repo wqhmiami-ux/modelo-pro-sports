@@ -1291,6 +1291,7 @@ alert(
   const expectedValue = stake * evPerDollar;
   const verified = $("verified").checked;
   const sourceNotes = $("notes").value.trim();
+  const marketReferenceOnly = /^Referencia de mercado sin margen/i.test(sourceNotes);
   const strongEdgeThreshold = threshold + 2;
 
   // Cuota americana justa correspondiente a la probabilidad estimada.
@@ -1302,7 +1303,10 @@ alert(
   let decision = "NO APOSTAR";
   let reason = "El valor esperado es cero o negativo con la probabilidad introducida.";
 
-  if (evPerDollar > 0 && edge >= threshold) {
+  if (marketReferenceOnly) {
+    decision = "NO APOSTAR: FALTA ESTIMACIÓN INDEPENDIENTE";
+    reason = "La probabilidad cargada es solo una referencia de mercado sin margen, no una predicción independiente. Sustitúyela por una estimación propia basada en datos verificados y actualiza las notas de fuente antes de evaluar una apuesta.";
+  } else if (evPerDollar > 0 && edge >= threshold) {
     if (!verified) {
       decision = "NO APOSTAR: FALTA VERIFICAR";
       reason = "Los números pasan el filtro, pero debes verificar independientemente la cuota y la estimación.";
@@ -1321,7 +1325,7 @@ alert(
     reason = "El valor esperado es positivo, pero el EDGE no alcanza el mínimo configurado.";
   }
 
-  const passesCoreFilters = evPerDollar > 0 && edge >= threshold && verified && Boolean(sourceNotes);
+  const passesCoreFilters = !marketReferenceOnly && evPerDollar > 0 && edge >= threshold && verified && Boolean(sourceNotes);
   const fullKelly = (odds.decimal > 1 && p > 0 && p < 1)
     ? Math.max(0, (odds.decimal * p - 1) / (odds.decimal - 1))
     : 0;
