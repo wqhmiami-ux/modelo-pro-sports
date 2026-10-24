@@ -1704,6 +1704,14 @@ $("loadDailyGames").addEventListener("click", async () => {
   const button = $("loadDailyGames");
   const status = $("dailyGamesStatus");
   const target = $("dailyGamesResults");
+  const dailyCooldownKey = "modeloProDailyGamesCooldown";
+  try {
+    const cooldownUntil = Number(sessionStorage.getItem(dailyCooldownKey) || 0);
+    if (cooldownUntil > Date.now()) {
+      status.textContent = "El proveedor limitó las solicitudes recientemente. Para proteger la cuota, espera " + Math.ceil((cooldownUntil - Date.now()) / 1000) + " segundos antes de volver a cargar el calendario.";
+      return;
+    }
+  } catch {}
   button.disabled = true;
   target.innerHTML = "";
   status.textContent = "Consultando fuentes deportivas compatibles...";
@@ -1747,6 +1755,8 @@ $("loadDailyGames").addEventListener("click", async () => {
         // Si el proveedor aplica un límite, no seguir gastando solicitudes
         // en los demás deportes durante esta misma consulta.
         if (/speed limit|rate limit|SPEED_LIMIT|HTTP 429|too many requests/i.test(errorMessage)) {
+          // El cooldown también protege de repetir el calendario tras un 429.
+          try { sessionStorage.setItem(dailyCooldownKey, String(Date.now() + 300000)); } catch {}
           const currentIndex = requestedSports.findIndex(item => item.key === sport.key);
           requestedSports.slice(currentIndex + 1).forEach(remainingSport => {
             failures.push(`${remainingSport.name}: consulta omitida para proteger la cuota tras el límite del proveedor`);
