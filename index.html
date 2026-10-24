@@ -1814,6 +1814,17 @@ $("loadOdds").addEventListener("click", async () => {
     return;
   }
 
+  const cooldownKey = `modeloProOddsCooldown:${sportKey}`;
+  const cacheKey = `modeloProOddsCache:${sportKey}`;
+  const now = Date.now();
+  try {
+    const until = Number(sessionStorage.getItem(cooldownKey) || 0);
+    if (until > now) {
+      status.textContent = `La fuente limitó las solicitudes para ${selectedSport}. Espera ${Math.ceil((until - now) / 1000)} segundos antes de volver a intentar.`;
+      return;
+    }
+  } catch {}
+
   status.textContent = `Consultando cuotas para ${selectedSport}...`;
   results.textContent = "";
   $("loadOdds").disabled = true;
@@ -1827,11 +1838,39 @@ $("loadOdds").addEventListener("click", async () => {
       selectedSport === "UFC" ? "h2h" : "h2h,spreads,totals"
     );
 
-    const response = await fetch(url.toString());
-    const data = await response.json().catch(() => ({}));
+    let data = null;
+    let fromCache = false;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+      if (saved && Array.isArray(saved.events) && saved.events.length && now - saved.savedAt < 60000) {
+        data = saved.events;
+        fromCache = true;
+      }
+    } catch {}
 
-    if (!response.ok) {
-      throw new Error(data.error || `Error HTTP ${response.status}`);
+    if (!data) {
+      const response = await fetch(url.toString(), { cache: "no-store" });
+      data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        const message = data.error || `Error HTTP ${response.status}`;
+        if (response.status === 429 || /speed limit|rate limit|SPEED_LIMIT/i.test(message)) {
+          try { sessionStorage.setItem(cooldownKey, String(Date.now() + 60000)); } catch {}
+          throw new Error(`La fuente de cuotas limitó las solicitudes. Espera 60 segundos y vuelve a intentar. Detalle: ${message}`);
+        }
+        throw new Error(message);
+      }
+
+      const fetchedEvents = Array.isArray(data)
+        ? data
+        : Array.isArray(data.events)
+        ? data.events
+        : Array.isArray(data.data)
+        ? data.data
+        : [];
+      if (fetchedEvents.length) {
+        try { sessionStorage.setItem(cacheKey, JSON.stringify({ events: fetchedEvents, savedAt: Date.now() })); } catch {}
+      }
     }
 
     const events = Array.isArray(data)
@@ -1949,7 +1988,7 @@ return `<li>
     }).join("");
 
     status.textContent =
-      `Deporte solicitado: ${selectedSport}. Eventos recibidos: ${events.length}.`;
+      `Deporte solicitado: ${selectedSport}. Eventos recibidos: ${events.length}.${fromCache ? " Datos recientes reutilizados para evitar otra solicitud al proveedor." : ""}`;
   } catch (error) {
     status.textContent =
       `No se pudieron cargar las cuotas. ${
