@@ -611,6 +611,38 @@ a { -webkit-tap-highlight-color: transparent; }
   .card { border-radius: 17px; padding: 16px; }
 }
 
+
+
+/* Modelo PRO Sports VIP: jerarquía visual y acceso rápido sin simular datos */
+.vip-edition {
+  display: inline-flex; align-items: center; gap: 7px; margin: 0 0 14px;
+  padding: 7px 11px; border: 1px solid rgba(197,251,98,.45); border-radius: 999px;
+  color: var(--green, #c5fb62); background: rgba(197,251,98,.08);
+  font-size: .75rem; font-weight: 850; letter-spacing: .13em;
+}
+.vip-edition .vip-star { font-size: 1rem; }
+.vip-command-center {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;
+  margin: 0 0 20px;
+}
+.vip-command-card {
+  display: block; min-width: 0; padding: 16px; border: 1px solid var(--line);
+  border-radius: 16px; background: linear-gradient(145deg, rgba(22,35,54,.96), rgba(12,19,31,.96));
+  color: var(--text); text-decoration: none; transition: border-color .18s ease, transform .18s ease;
+}
+.vip-command-card:hover, .vip-command-card:focus-visible { border-color: var(--green, #c5fb62); transform: translateY(-2px); outline: none; }
+.vip-command-icon { display: block; margin-bottom: 10px; font-size: 1.3rem; }
+.vip-command-card strong { display: block; margin-bottom: 6px; font-size: .96rem; }
+.vip-command-card span:last-child { display: block; color: var(--muted); font-size: .82rem; line-height: 1.45; }
+.vip-transparency {
+  margin: 0 0 18px; padding: 12px 15px; border-left: 3px solid var(--green, #c5fb62);
+  border-radius: 0 10px 10px 0; background: rgba(197,251,98,.055); color: var(--muted);
+  font-size: .88rem; line-height: 1.55;
+}
+.vip-transparency strong { color: var(--text); }
+@media (max-width: 760px) { .vip-command-center { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .vip-command-card { padding: 13px; } }
+@media (max-width: 360px) { .vip-command-center { grid-template-columns: 1fr; } }
+
 </style>
 </head>
 <body>
@@ -623,7 +655,8 @@ a { -webkit-tap-highlight-color: transparent; }
 
 <section class="premium-hero" aria-label="Panel principal">
   <div class="hero-copy">
-    <div class="hero-kicker"><span class="live-pulse"></span> CENTRO DE ANÁLISIS DEPORTIVO</div>
+    <div class="vip-edition"><span class="vip-star" aria-hidden="true">✦</span> MODELO PRO SPORTS · EDICIÓN VIP</div>
+  <div class="hero-kicker"><span class="live-pulse"></span> CENTRO DE ANÁLISIS DEPORTIVO</div>
     <h2>Decide con datos.<br><span>No con corazonadas.</span></h2>
     <p>Partidos, cuotas y seguimiento de tus picks en un solo lugar.</p>
     <div class="hero-actions">
@@ -639,6 +672,14 @@ a { -webkit-tap-highlight-color: transparent; }
     <span><b>06</b> deportes</span><span><b>01</b> panel central</span><span><b>0</b> cuotas inventadas</span>
   </div>
 </section>
+
+<section class="vip-command-center" aria-label="Centro de control VIP">
+  <a class="vip-command-card" href="#data-health"><span class="vip-command-icon" aria-hidden="true">🛡️</span><strong>Datos verificables</strong><span>Comprueba la conexión y revisa qué fuentes respondieron.</span></a>
+  <a class="vip-command-card" href="#daily-games"><span class="vip-command-icon" aria-hidden="true">📊</span><strong>Radar deportivo</strong><span>Explora eventos disponibles en los seis deportes.</span></a>
+  <a class="vip-command-card" href="#odds-section"><span class="vip-command-icon" aria-hidden="true">🎯</span><strong>Cuotas y EDGE</strong><span>Compara precios sin confundirlos con una predicción.</span></a>
+  <a class="vip-command-card" href="#history-section"><span class="vip-command-icon" aria-hidden="true">📈</span><strong>Rendimiento y ROI</strong><span>Consulta tus picks guardados y sus resultados registrados.</span></a>
+</section>
+<p class="vip-transparency"><strong>Protocolo VIP de transparencia:</strong> las cuotas de mercado no son predicciones independientes. Si faltan datos, no se confirma la fuente o no existe una estimación sustentada, la decisión debe ser <strong>NO APOSTAR</strong>. Hard Rock Bet solo se identifica cuando la fuente lo confirma.</p>
 
 <nav id="sports" aria-label="Seleccionar deporte">
   <button type="button" class="active" data-sport="Fútbol">⚽ Fútbol</button>
