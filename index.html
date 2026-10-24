@@ -1023,6 +1023,8 @@ const FOOTBALL_API_URL =
   "https://modelo-pro-api.wqhmiami.workers.dev/api/football";
 
 let lastCalculation = null;
+// Bloquea recomendaciones cuando el campo prob viene precargado desde el mercado.
+let marketProbabilityReferenceLoaded = false;
 
 function notifyBetOpportunity(record) {
   const message = `${record.sport}: ${record.event}. EDGE ${Number(record.edge).toFixed(2)} pp. Revisa la cuota y los datos antes de apostar.`;
@@ -1186,6 +1188,19 @@ $("loadOdds").disabled = false;
     invalidateCalculation
   );
 });
+
+// Para reemplazar una probabilidad de mercado, el usuario debe borrarla primero y luego introducir una estimación independiente.
+$("prob").addEventListener("input", () => {
+  if (marketProbabilityReferenceLoaded && $("prob").value.trim() === "") {
+    marketProbabilityReferenceLoaded = false;
+    if (/^Referencia de mercado sin margen/i.test($("notes").value.trim())) {
+      $("notes").value = "";
+    }
+    $("output").textContent = "Referencia de mercado eliminada. Introduce una estimación independiente basada en datos verificables; si no la tienes, NO APOSTAR.";
+    lastCalculation = null;
+    $("save").disabled = true;
+  }
+});
  
 document.addEventListener("click", (event) => {
   const button = event.target.closest(".use-odds");
@@ -1231,14 +1246,17 @@ document.addEventListener("click", (event) => {
   
 
 const marketProbability = Number(button.dataset.consensus);
+marketProbabilityReferenceLoaded = Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100;
 if (probInput) {
   // Prefill only as a clearly labelled market reference, never as independent model output.
   probInput.value = Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100 ? marketProbability.toFixed(2) : "";
   probInput.focus();
 }
 const notesInput = $("notes");
-if (notesInput && Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100) {
+if (notesInput && marketProbabilityReferenceLoaded) {
   notesInput.value = `Referencia de mercado sin margen (${marketProbability.toFixed(2)}%), derivada de al menos dos casas. No es una estimación independiente; verifica estadísticas y modelo antes de decidir.`;
+} else if (notesInput && /^Referencia de mercado sin margen/i.test(notesInput.value.trim())) {
+  notesInput.value = "";
 }
 alert(
   Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100
@@ -1291,7 +1309,7 @@ alert(
   const expectedValue = stake * evPerDollar;
   const verified = $("verified").checked;
   const sourceNotes = $("notes").value.trim();
-  const marketReferenceOnly = /^Referencia de mercado sin margen/i.test(sourceNotes);
+  const marketReferenceOnly = marketProbabilityReferenceLoaded || /^Referencia de mercado sin margen/i.test(sourceNotes);
   const strongEdgeThreshold = threshold + 2;
 
   // Cuota americana justa correspondiente a la probabilidad estimada.
