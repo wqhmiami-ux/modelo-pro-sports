@@ -1118,16 +1118,20 @@ document.addEventListener("click", (event) => {
 
   
 
+const marketProbability = Number(button.dataset.consensus);
 if (probInput) {
-  // No reutilizar el consenso de las mismas cuotas como si fuera una estimación independiente.
-  probInput.value = "";
+  // Prefill only as a clearly labelled market reference, never as independent model output.
+  probInput.value = Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100 ? marketProbability.toFixed(2) : "";
   probInput.focus();
 }
-
-
- 
+const notesInput = $("notes");
+if (notesInput && Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100) {
+  notesInput.value = `Referencia de mercado sin margen (${marketProbability.toFixed(2)}%), derivada de al menos dos casas. No es una estimación independiente; verifica estadísticas y modelo antes de decidir.`;
+}
 alert(
-  "Cuota cargada. La probabilidad quedó vacía a propósito: debes introducir una estimación independiente y verificable. El consenso de las mismas casas no es una predicción independiente."
+  Number.isFinite(marketProbability) && marketProbability > 0 && marketProbability < 100
+    ? "Cuota y referencia de probabilidad de mercado cargadas. Esta probabilidad elimina aproximadamente el margen de las casas y NO es una predicción independiente. La casilla de verificación sigue desmarcada; no se recomendará apostar sin verificar los datos."
+    : "Cuota cargada. No hay suficientes cuotas comparables para calcular una probabilidad de mercado fiable. La probabilidad quedó vacía; no se inventaron datos."
 );
 });
 
@@ -1501,7 +1505,8 @@ function renderBestOdds(events, selectedSport) {
           const candidate = {
             eventName, sport: selectedSport, market: market.key || "Mercado",
             outcomeName, point, price, book: book.title || book.key || "Casa no identificada",
-            commence: event.commence_time || ""
+            commence: event.commence_time || "",
+            marketProbability: calculateNoVigMarketProbability(event, market.key || "Mercado", outcomeName, point)
           };
           const current = best.get(key);
           // En cuotas americanas, un valor numérico mayor paga mejor: -105 supera a -115.
@@ -1532,8 +1537,9 @@ function renderBestOdds(events, selectedSport) {
       <div class="daily-game-title">${escapeHTML(item.eventName)}</div>
       <p><b>${escapeHTML(item.market)}</b> · ${escapeHTML(item.outcomeName)}${pointText}</p>
       <p>Mejor cuota recibida: <b class="green">${priceText}</b> · Casa: ${escapeHTML(item.book)}</p>
+      <p class="note">Probabilidad de mercado sin margen: <b>${item.marketProbability === null ? "No disponible" : item.marketProbability.toFixed(1) + "%"}</b>. ${item.marketProbability === null ? "Faltan cuotas comparables para calcular un consenso fiable." : "Referencia calculada a partir de las cuotas recibidas de varias casas; no es una predicción independiente."}</p>
       <p class="note">Inicio: ${escapeHTML(dateText)}. Precio tomado de la respuesta actual de la API.</p>
-      <button type="button" class="use-odds" data-event="${escapeHTML(item.eventName)}" data-market="${escapeHTML(mappedMarket)}" data-price="${item.price}" data-consensus="" data-outcome="${escapeHTML(item.outcomeName)}">USAR ESTA CUOTA</button>
+      <button type="button" class="use-odds" data-event="${escapeHTML(item.eventName)}" data-market="${escapeHTML(mappedMarket)}" data-price="${item.price}" data-consensus="${item.marketProbability === null ? "" : item.marketProbability.toFixed(2)}" data-outcome="${escapeHTML(item.outcomeName)}">USAR CUOTA Y PROB. DE MERCADO</button>
     </article>`;
   }).join("");
   if (rows.length > 30) {
@@ -1541,6 +1547,36 @@ function renderBestOdds(events, selectedSport) {
   }
 }
 
+function calculateNoVigMarketProbability(event, marketKey, outcomeName, point) {
+  const bookmakers = Array.isArray(event.bookmakers) ? event.bookmakers : [];
+  const targetPoint = point === "" || point === null || point === undefined ? null : Math.abs(Number(point));
+  const probabilities = [];
+  for (const book of bookmakers) {
+    const markets = Array.isArray(book.markets) ? book.markets : [];
+    const market = markets.find(item => {
+      if (item.key !== marketKey) return false;
+      const outcomes = Array.isArray(item.outcomes) ? item.outcomes : [];
+      if (marketKey === "h2h") return true;
+      return outcomes.some(outcome => {
+        const candidatePoint = outcome.point === undefined || outcome.point === null ? null : Math.abs(Number(outcome.point));
+        return candidatePoint === targetPoint && String(outcome.name || "") === String(outcomeName);
+      });
+    });
+    if (!market) continue;
+    const outcomes = (Array.isArray(market.outcomes) ? market.outcomes : []).filter(outcome => {
+      if (marketKey === "h2h") return true;
+      const candidatePoint = outcome.point === undefined || outcome.point === null ? null : Math.abs(Number(outcome.point));
+      return candidatePoint === targetPoint;
+    });
+    const implied = outcomes.map(outcome => ({ name: String(outcome.name || ""), probability: americanImpliedProbability(outcome.price) })).filter(outcome => outcome.probability !== null);
+    const total = implied.reduce((sum, outcome) => sum + outcome.probability, 0);
+    if (total <= 0) continue;
+    const target = implied.find(outcome => outcome.name === String(outcomeName));
+    if (target) probabilities.push(target.probability / total * 100);
+  }
+  if (probabilities.length < 2) return null;
+  return probabilities.reduce((sum, probability) => sum + probability, 0) / probabilities.length;
+}
 function toAmericanOdds(price) {
   const value = Number(price);
   if (!Number.isFinite(value) || value === 0) return null;
