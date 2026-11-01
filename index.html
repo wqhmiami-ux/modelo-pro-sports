@@ -643,7 +643,7 @@ a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 760px) { .vip-command-center { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; } .vip-command-card { padding: 13px; } }
 @media (max-width: 360px) { .vip-command-center { grid-template-columns: 1fr; } }
 
-</style>
+</style>\n<link rel="stylesheet" href="./vip-hof.css">\n
 </head>
 <body>
 <header>
@@ -676,7 +676,7 @@ a { -webkit-tap-highlight-color: transparent; }
 <section class="vip-command-center" aria-label="Centro de control VIP">
   <a class="vip-command-card" href="#data-health"><span class="vip-command-icon" aria-hidden="true">🛡️</span><strong>Datos verificables</strong><span>Comprueba la conexión y revisa qué fuentes respondieron.</span></a>
   <a class="vip-command-card" href="#daily-games"><span class="vip-command-icon" aria-hidden="true">📊</span><strong>Radar deportivo</strong><span>Explora eventos disponibles en los seis deportes.</span></a>
-  <a class="vip-command-card" href="#odds-section"><span class="vip-command-icon" aria-hidden="true">🎯</span><strong>Cuotas y EDGE</strong><span>Compara precios sin confundirlos con una predicción.</span></a>
+  <a class="vip-command-card" href="#hof-intelligence"><span class="vip-command-icon" aria-hidden="true">🎯</span><strong>Cuotas y EDGE</strong><span>Compara precios sin confundirlos con una predicción.</span></a>
   <a class="vip-command-card" href="#history-section"><span class="vip-command-icon" aria-hidden="true">📈</span><strong>Rendimiento y ROI</strong><span>Consulta tus picks guardados y sus resultados registrados.</span></a>
 </section>
 <p class="vip-transparency"><strong>Protocolo VIP de transparencia:</strong> las cuotas de mercado no son predicciones independientes. Si faltan datos, no se confirma la fuente o no existe una estimación sustentada, la decisión debe ser <strong>NO APOSTAR</strong>. Hard Rock Bet solo se identifica cuando la fuente lo confirma.</p>
@@ -693,7 +693,7 @@ a { -webkit-tap-highlight-color: transparent; }
 <nav class="quick-nav" aria-label="Secciones de la aplicación">
   <a href="#bet-summary">Resumen</a>
   <a href="#football-model">Predicción</a>
-  <a href="#odds-section">Cuotas</a>
+  <a href="#hof-intelligence">HOF VIP</a>\n  <a href="#odds-section">Cuotas</a>
   <a href="#data-health">Estado de datos</a>
   <a href="#results-section">Resultados</a>
   <a href="#calculator-section">Calculadora</a>
@@ -870,7 +870,46 @@ a { -webkit-tap-highlight-color: transparent; }
   <div id="football-model-results"></div>
 </section>
 
-<section id="odds-section" class="card">
+
+<section id="hof-intelligence" class="card hof-shell" aria-labelledby="hof-title">
+  <h2 id="hof-title">HOF Intelligence Lab · VIP</h2>
+  <p class="hof-intro">Centro de tendencias, estadísticas avanzadas, props y combinadas. Cada módulo muestra si la fuente realmente entrega los datos; una cuota de mercado no se presenta como estadística ni como predicción.</p>
+  <div class="hof-grid">
+    <article class="hof-tile"><span aria-hidden="true">📈</span><b>Tendencias</b><small>Rachas y cumplimiento histórico. Requiere estadísticas de resultados por equipo/jugador.</small></article>
+    <article class="hof-tile"><span aria-hidden="true">🏆</span><b>Líderes</b><small>Rankings por categoría. Requiere feed estadístico de jugadores actualizado.</small></article>
+    <article class="hof-tile"><span aria-hidden="true">🧠</span><b>Deep Stats</b><small>Splits, minutos, rival, local/visitante, lesiones y enfrentamientos.</small></article>
+    <article class="hof-tile"><span aria-hidden="true">🎯</span><b>Parlay Optimizer</b><small>Calculadora de combinadas con advertencia explícita sobre correlación.</small></article>
+  </div>
+  <div class="hof-tabs" role="group" aria-label="Módulos de análisis HOF">
+    <button type="button" data-hof-tab="overview" aria-pressed="true">Estado de datos</button>
+    <button type="button" data-hof-tab="trends" aria-pressed="false">Trends / Leaders</button>
+    <button type="button" data-hof-tab="props" aria-pressed="false">Player Props</button>
+    <button type="button" data-hof-tab="parlay" aria-pressed="false">Parlay Optimizer</button>
+  </div>
+  <div class="hof-panel" data-hof-panel="overview">
+    <div class="hof-status"><strong>Estado actual de integración:</strong> la aplicación ya consulta calendario y cuotas mediante Cloudflare/OddsLink. La API que está conectada actualmente no confirma un feed de estadísticas de jugadores, lesiones, minutos ni tendencias históricas para los seis deportes. Por eso estos datos no se mostrarán como disponibles hasta conectar y verificar una fuente compatible.</div>
+    <p class="hof-small">Cobertura que debe validarse por deporte: Fútbol (resultados, alineaciones, lesiones, tiros y córners); NFL (snap counts, rutas, targets, yardas y touchdowns); NBA (minutos, puntos, rebotes, asistencias y lesiones); MLB (pitchers, splits, lineup y bullpen); NHL (líneas, tiros, minutos y porteros); UFC (récord, métricas de golpeo, derribos y alcance).</p>
+  </div>
+  <div class="hof-panel" data-hof-panel="trends" hidden>
+    <div class="hof-status"><strong>Trends y Leaders:</strong> pendiente de conectar un proveedor estadístico que devuelva registros históricos y rankings con fecha/fuente. No se fabrican porcentajes de últimos 5/10/20 juegos ni líderes.</div>
+    <p class="hof-small">Cuando la fuente esté conectada, este panel podrá mostrar hit rate por línea, media/mediana, distribución, local/visitante, rival y tamaño de muestra; cada dato incluirá período y fuente.</p>
+  </div>
+  <div class="hof-panel" data-hof-panel="props" hidden>
+    <div class="hof-status"><strong>Player Props:</strong> la ruta de cuotas actual está limitada a mercados de partido (h2h, spreads y totals). No confirma mercados de jugador. La lista de props existente en la calculadora sirve para registrar mercados, no demuestra que haya cuotas disponibles.</div>
+    <p class="hof-small">No se activará un pick de jugador hasta verificar simultáneamente evento, jugador, mercado, línea, cuota, casa y hora de actualización.</p>
+  </div>
+  <div class="hof-panel" data-hof-panel="parlay" hidden>
+    <p class="hof-small">Introduce probabilidades independientes sustentadas por ti. El cálculo combina cuotas y probabilidades; no selecciona picks ni inventa una probabilidad propia.</p>
+    <div id="hof-legs" class="hof-legs"></div>
+    <div class="grid">
+      <button type="button" id="hof-add-leg">AÑADIR SELECCIÓN</button>
+      <button type="button" class="primary" id="hof-calc-parlay">CALCULAR COMBINADA</button>
+    </div>
+    <p id="hof-parlay-status" class="hof-small" role="status" aria-live="polite">Entre 2 y 8 selecciones.</p>
+    <div id="hof-parlay-result" class="hof-results" aria-live="polite">Completa las selecciones para calcular la combinada.</div>
+  </div>
+</section>
+\n<section id="odds-section" class="card">
 <h2>Cuotas deportivas reales</h2>
 <p class="note">La disponibilidad depende de la API y del proveedor de cuotas. No se garantiza que las cuotas correspondan a Hard Rock Bet.</p>
 <button class="primary full" id="loadOdds" type="button">CARGAR CUOTAS REALES</button>
@@ -2815,5 +2854,5 @@ renderHistory();
 })();
 </script>
 
-</body>
+\n<script src="./vip-hof.js" defer></script>\n\n</body>
 </html>
