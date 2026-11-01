@@ -1,0 +1,20 @@
+
+/* HOF-inspired VIP intelligence layer; no synthetic stats */
+.hof-shell{margin:18px 0 22px}
+.hof-intro{color:var(--muted);line-height:1.65}
+.hof-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.hof-tile{border:1px solid rgba(228,196,122,.2);border-radius:15px;padding:15px;background:linear-gradient(145deg,#131e30,#0b1220);min-width:0}
+.hof-tile b{display:block;margin:6px 0;color:var(--vip-gold);font-size:1.05rem}
+.hof-tile small{color:var(--muted);line-height:1.45}
+.hof-status{padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#0a1220;color:var(--muted);font-size:.88rem;line-height:1.55}
+.hof-status strong{color:var(--text)}
+.hof-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.hof-tabs button[aria-pressed=true]{border-color:var(--vip-gold);color:var(--vip-gold);background:var(--vip-gold-soft)}
+.hof-panel[hidden]{display:none}
+.hof-legs{display:grid;gap:10px;margin:14px 0}
+.hof-leg{display:grid;grid-template-columns:1.3fr .8fr .8fr auto;gap:8px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:12px;background:#0a1220}
+.hof-leg label{margin:0;font-size:11px}
+.hof-leg input{min-width:0}
+.hof-results{margin-top:14px;padding:15px;border:1px solid rgba(228,196,122,.2);border-radius:13px;background:#0a1220;line-height:1.65}
+.hof-small{font-size:12px;color:var(--muted);line-height:1.55}
+@media(max-width:760px){.hof-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hof-leg{grid-template-columns:1fr 1fr}.hof-leg .hof-leg-name{grid-column:1/-1}.hof-leg button{grid-column:1/-1}}
