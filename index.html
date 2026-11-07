@@ -2749,43 +2749,47 @@ renderHistory();
         Array.from({ length: goals }, (_, i) => i + 1)
           .reduce((factor, value) => factor * value, 1);
 
-      let homeWin = 0, draw = 0, awayWin = 0, over25 = 0, btts = 0;
-      let totalMass = 0;
-
-      for (let h = 0; h <= 10; h++) {
-        for (let a = 0; a <= 10; a++) {
-          const probability = poisson(homeExpected, h) * poisson(awayExpected, a);
-          totalMass += probability;
-          if (h > a) homeWin += probability;
-          else if (h === a) draw += probability;
-          else awayWin += probability;
-          if (h + a >= 3) over25 += probability;
-          if (h > 0 && a > 0) btts += probability;
+      let homeWin=0, draw=0, awayWin=0, btts=0, totalMass=0;
+      const overs={0.5:0,1.5:0,2.5:0,3.5:0,4.5:0};
+      const scores=[];
+      for (let h=0;h<=12;h++){
+        for(let a=0;a<=12;a++){
+          const probability=poisson(homeExpected,h)*poisson(awayExpected,a);
+          totalMass+=probability;
+          if(h>a)homeWin+=probability;
+          else if(h===a)draw+=probability;
+          else awayWin+=probability;
+          if(h>0&&a>0)btts+=probability;
+          for(const line of Object.keys(overs))if(h+a>Number(line))overs[line]+=probability;
+          scores.push({h,a,probability});
         }
       }
-
-      if (totalMass > 0) {
-        homeWin /= totalMass;
-        draw /= totalMass;
-        awayWin /= totalMass;
-        over25 /= totalMass;
-        btts /= totalMass;
-      }
-
-      const pct = value => (value * 100).toFixed(1) + "%";
-
-      status.textContent =
-        "Estimación estadística inicial calculada con resultados históricos; no utiliza cuotas como entrada.";
-
-      results.innerHTML = `
-        <p><b>Goles esperados — ${escapeHTML(canonicalHomeName)}:</b> ${homeExpected.toFixed(2)}</p>
-        <p><b>Goles esperados — ${escapeHTML(canonicalAwayName)}:</b> ${awayExpected.toFixed(2)}</p>
-        <p><b>Victoria local:</b> ${pct(homeWin)}</p>
-        <p><b>Empate:</b> ${pct(draw)}</p>
-        <p><b>Victoria visitante:</b> ${pct(awayWin)}</p>
-        <p><b>Más de 2.5 goles:</b> ${pct(over25)}</p>
-        <p><b>Ambos marcan:</b> ${pct(btts)}</p>
-        <p><small>Modelo Poisson básico basado en promedios recientes; estimación preliminar, no validada. La disponibilidad de datos depende de la competición de la API.</small></p>
+      if(!(totalMass>0))throw new Error("Distribución incompleta");
+      homeWin/=totalMass;draw/=totalMass;awayWin/=totalMass;btts/=totalMass;
+      for(const line of Object.keys(overs))overs[line]/=totalMass;
+      const pct=value=>(value*100).toFixed(1)+"%";
+      const mostLikely=scores.sort((a,b)=>b.probability-a.probability)[0];
+      const independentRows=[
+        ["Gana "+canonicalHomeName,homeWin],
+        ["Empate",draw],
+        ["Gana "+canonicalAwayName,awayWin],
+        ["Ambos marcan — Sí",btts],
+        ["Ambos marcan — No",1-btts],
+        ...Object.entries(overs).flatMap(([line,p])=>[
+          ["Más de "+line+" goles",p],
+          ["Menos de "+line+" goles",1-p]
+        ])
+      ];
+      const ordered=[...independentRows].sort((a,b)=>b[1]-a[1]);
+      status.textContent="Estimación propia basada en historial. No depende de que una casa ofrezca este mercado.";
+      results.innerHTML=`
+        <div class="mp-independent-header"><strong>MODELO PRO · PROBABILIDADES PROPIAS</strong><small>Fuente: resultados históricos recuperados mediante Cloudflare</small></div>
+        <div class="mp-independent-meta">Goles esperados: <b>${escapeHTML(canonicalHomeName)} ${homeExpected.toFixed(2)}</b> · <b>${escapeHTML(canonicalAwayName)} ${awayExpected.toFixed(2)}</b></div>
+        <div class="mp-independent-meta">Muestra: ${homeMatches.length} partidos recientes del local en casa y ${awayMatches.length} del visitante fuera. Modelo Poisson preliminar.</div>
+        <div class="mp-independent-best"><small>Resultado exacto más probable</small><strong>${mostLikely.h}–${mostLikely.a} · ${pct(mostLikely.probability/totalMass)}</strong></div>
+        <div class="mp-independent-grid">${independentRows.map(([title,value])=>'<div class="mp-independent-row"><span>'+escapeHTML(title)+'</span><b>'+pct(value)+'</b></div>').join("")}</div>
+        <div class="mp-independent-best"><small>Escenario de mayor probabilidad de esta lista (no equivale a mejor apuesta)</small><strong>${escapeHTML(ordered[0][0])} · ${pct(ordered[0][1])}</strong></div>
+        <p class="note">Estas probabilidades proceden del modelo, no de las cuotas. Para córners, tarjetas, tiros a puerta, jugadores y lesiones aún se requieren estadísticas verificables adicionales. No se calcula EDGE ni se recomienda apostar si no existe cuota real comparable. El modelo no tiene calibración ni validación retrospectiva demostrada.</p>
       `;
     } catch (error) {
       status.textContent =
@@ -3280,5 +3284,16 @@ main{max-width:1240px!important}
  // Carga alternativa manual para no multiplicar solicitudes automáticamente.
 })();
 </script>
+<style id="mp-independent-goals-style">
+.mp-independent-header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:15px;border-radius:12px;background:#17283b;color:#c5fb62;margin:12px 0}
+.mp-independent-header small{font-size:11px;color:#b0bfd3}
+.mp-independent-meta{margin:10px 0;font-size:12px;color:#c5d3e4}
+.mp-independent-best{border:1px solid #506940;background:#1b2a1c;border-radius:11px;padding:12px;margin:12px 0}
+.mp-independent-best small{display:block;color:#b9ccad}.mp-independent-best strong{font-size:20px;color:#e5ffbb}
+.mp-independent-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:14px 0}
+.mp-independent-row{border:1px solid #304158;background:#101e30;border-radius:9px;padding:10px;display:flex;gap:8px;justify-content:space-between;align-items:center}
+.mp-independent-row span{font-size:12px}.mp-independent-row b{color:#c5fb62;white-space:nowrap}
+@media(max-width:540px){.mp-independent-grid{grid-template-columns:1fr}}
+</style>
 </body>
 </html>
