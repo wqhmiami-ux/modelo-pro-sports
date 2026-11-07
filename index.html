@@ -1799,55 +1799,43 @@ function renderDailyGames() {
   const countryFilter = $("dailyCountryFilter").value.trim().toLocaleLowerCase();
   const tournamentFilter = $("dailyTournamentFilter").value.trim().toLocaleLowerCase();
   const windowFilter = $("dailyEventWindow")?.value || "upcoming";
-  const now = Date.now();
-  const today = getLocalDateKey(new Date());
+  const now = Date.now(), today = getLocalDateKey(new Date());
   const filtered = dailyGamesCache.filter(game => {
-    const sportMatch = sportFilter === "Todos" || game.sport === sportFilter;
-    const countryMatch = !countryFilter || (game.country || "").toLocaleLowerCase().includes(countryFilter);
-    const tournamentMatch = !tournamentFilter || (game.tournament || "").toLocaleLowerCase().includes(tournamentFilter);
-    const start = new Date(game.commence_time).getTime();
-    const hoursFromKickoff = (now - start) / 3600000;
-    const possiblyLive = Number.isFinite(start) && hoursFromKickoff >= 0 && hoursFromKickoff <= 3;
-    const day = getLocalDateKey(game.commence_time);
-    const dateMatch = windowFilter === "all" ||
-      (windowFilter === "today" && day === today) ||
-      (windowFilter === "live" && possiblyLive) ||
-      (windowFilter === "upcoming" && start >= now && start <= now + 7 * 86400000);
-    return sportMatch && countryMatch && tournamentMatch && dateMatch;
+    const start = new Date(game.commence_time).getTime(), day = getLocalDateKey(game.commence_time);
+    return (sportFilter === "Todos" || game.sport === sportFilter) &&
+      (!countryFilter || (game.country || "").toLocaleLowerCase().includes(countryFilter)) &&
+      (!tournamentFilter || (game.tournament || "").toLocaleLowerCase().includes(tournamentFilter)) &&
+      (windowFilter === "all" || (windowFilter === "today" && day === today) ||
+       (windowFilter === "live" && start <= now && start >= now - 10800000) ||
+       (windowFilter === "upcoming" && start >= now && start <= now + 604800000));
   });
   const target = $("dailyGamesResults");
-  if (!filtered.length) {
-    target.innerHTML = '<p class="note">No hay eventos que coincidan con estos filtros entre los datos recibidos. Puede faltar cobertura del proveedor; no se han inventado partidos.</p>';
-    return;
-  }
+  if (!filtered.length) { target.innerHTML = '<div class="mp-empty-state">No hay partidos devueltos para estos filtros. Actualiza o cambia la fecha/deporte.</div>'; return; }
   target.innerHTML = filtered.map(game => {
-    const kickoff = new Date(game.commence_time);
-    const dateLabel = Number.isFinite(kickoff.getTime())
-      ? kickoff.toLocaleString(undefined, { dateStyle:"medium", timeStyle:"short" })
-      : "Hora no informada";
-    const kickoffMs = new Date(game.commence_time).getTime();
-    const hoursFromKickoff = (Date.now() - kickoffMs) / 3600000;
-    const possiblyLive = Number.isFinite(kickoffMs) && hoursFromKickoff >= 0 && hoursFromKickoff <= 3;
-    const details = [
-      game.sport,
-      game.country || "País no informado",
-      game.tournament || "Torneo no informado",
-      possiblyLive ? "POSIBLE EN VIVO · confirmar estado" : ""
-    ].filter(Boolean);
-    return `<article class="daily-game">
-      <div class="daily-game-title">${escapeHTML(game.away_team || "Por confirmar")} vs ${escapeHTML(game.home_team || "Por confirmar")}</div>
-      <div class="daily-game-tags">${details.map(item => `<span>${escapeHTML(item)}</span>`).join("")}</div>
-      <p class="daily-meta">Inicio: ${escapeHTML(dateLabel)}</p>
-      <div class="grid">
-        <button type="button" class="use-daily-game" data-sport="${escapeHTML(game.sport)}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">ABRIR CALCULADORA</button>
-        <button type="button" class="load-game-odds" data-sport="${escapeHTML(game.sport)}" data-sport-key="${escapeHTML(game.sport_key || SPORT_KEYS[game.sport] || "")}" data-event-id="${escapeHTML(game.id || "")}" data-away="${escapeHTML(game.away_team || "")}" data-home="${escapeHTML(game.home_team || "")}" data-event="${escapeHTML((game.away_team || "") + " vs " + (game.home_team || ""))}">CARGAR CUOTAS DE ESTE PARTIDO</button>
-      </div>
-    </article>`;
+    const kickoff = new Date(game.commence_time), valid = Number.isFinite(kickoff.getTime());
+    const date = valid ? kickoff.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:"numeric"}) : "Fecha no informada";
+    const time = valid ? kickoff.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}) : "Hora no informada";
+    const start = kickoff.getTime(), liveWindow = valid && start <= Date.now() && start >= Date.now()-10800000;
+    const eventName = (game.away_team || "Por confirmar") + " vs " + (game.home_team || "Por confirmar");
+    const entries = (Array.isArray(game.bookmakers)?game.bookmakers:[]).map(book=>({book,market:(book.markets||[]).find(m=>m.key==="h2h")})).filter(x=>x.market);
+    let favorite = null;
+    if(entries.length>=2){
+      const names=[...new Set(entries.flatMap(x=>(x.market.outcomes||[]).map(o=>o.name)))];
+      favorite=names.map(name=>{
+        const prices=[];
+        entries.forEach(x=>{const o=(x.market.outcomes||[]).find(y=>y.name===name);const p=o?toAmericanOdds(o.price):null;if(p!==null)prices.push({price:p,book:x.book.title||x.book.key||"Casa no identificada"});});
+        const probability=calculateNoVigMarketProbability(game,"h2h",name,"");
+        if(probability===null||prices.length<2)return null;
+        prices.sort((x,y)=>y.price-x.price);return {name,probability,price:prices[0].price,book:prices[0].book,count:prices.length};
+      }).filter(Boolean).sort((x,y)=>y.probability-x.probability)[0]||null;
+    }
+    const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
+    const price=favorite?(favorite.price>0?"+":"")+favorite.price:"";
+    const prediction=favorite ? '<strong>'+escapeHTML(favorite.name)+'</strong><div class="mp-prediction-stats"><span>Consenso <b>'+favorite.probability.toFixed(1)+'%</b></span><span>Mejor cuota <b>'+price+'</b></span><span>Casa <b>'+escapeHTML(favorite.book)+'</b></span></div><p>Favorito del mercado según '+favorite.count+' casas. No es una predicción independiente ni confirma valor.</p>' : '<strong>Pronóstico no disponible</strong><p>Faltan al menos dos cuotas comparables. No se inventa una selección ni una probabilidad.</p>';
+    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>MEJOR LECTURA DISPONIBLE</small>'+prediction+'</div><div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">ANALIZAR</button></div></article>';
   }).join("");
-  const selectedLeagues = [...($("dailyFootballLeague")?.selectedOptions || [])].map(option => option.textContent);
-  $("dailyGamesStatus").textContent = `Eventos mostrados: ${filtered.length} · Torneos de fútbol seleccionados: ${selectedLeagues.length || 1}. “Posiblemente en vivo” se calcula por horario de inicio y no confirma el estado oficial ni el marcador. Solo se muestran datos devueltos por la fuente.`;
+  $("dailyGamesStatus").textContent = "Mostrando "+filtered.length+" partidos · Fechas en tu hora local. El consenso de mercado no equivale a una predicción independiente.";
 }
-
 $("dailySportFilter").addEventListener("change", renderDailyGames);
 $("dailyCountryFilter").addEventListener("input", renderDailyGames);
 $("dailyTournamentFilter").addEventListener("input", renderDailyGames);
@@ -2994,5 +2982,27 @@ main{max-width:1240px!important}
 </script>
 <!-- END MODELO PRO SPORTS VIP WORKSPACE v2 -->
 
+<!-- Simple advanced layout override -->
+<style id="modelo-pro-simple-advanced">
+#mp-vip-nav{display:none!important}#app-pages{display:contents!important}.mp-vip-page{display:contents!important}.mp-page-heading,.mp-kpi-grid,.mp-tool-card{display:none!important}#app-pages>.mp-app-footer{display:none!important}
+.quick-nav{display:flex!important;flex-wrap:wrap;gap:7px;position:sticky;top:0;z-index:25;background:rgba(7,12,22,.96);padding:9px;border:1px solid #263952;border-radius:13px;backdrop-filter:blur(14px)}.quick-nav a{font-size:12px;padding:8px 10px;border-radius:9px;background:#142238;color:#dce7f5;text-decoration:none}
+.daily-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#dailyGamesResults{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mp-match-card{padding:16px!important;border:1px solid #30435d!important;border-radius:16px!important;background:linear-gradient(145deg,#14243a,#0b1525)!important}.mp-match-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.mp-match-date{display:flex;align-items:center;gap:12px}.mp-match-date strong{font-size:15px;color:#c7f36b}.mp-match-date span{font-size:13px;color:#e5edf7}.mp-match-status{font-size:9px;letter-spacing:.08em;color:#a9bacd;border:1px solid #344a66;padding:5px 8px;border-radius:20px}
+.mp-prediction-box{margin:14px 0 10px;padding:13px;border-radius:12px;border:1px solid rgba(199,243,107,.23);background:rgba(199,243,107,.055)}.mp-prediction-box>small{display:block;color:#c7f36b;font-size:10px;letter-spacing:.1em;font-weight:800;margin-bottom:7px}.mp-prediction-box>strong{display:block;font-size:18px;color:#f4f8fc}.mp-prediction-box p{font-size:11px;color:#9eafc4;line-height:1.45;margin:8px 0 0}.mp-prediction-stats{display:flex;gap:8px 18px;flex-wrap:wrap;margin-top:9px}.mp-prediction-stats span{font-size:11px;color:#a8b8ca}.mp-prediction-stats b{color:#fff;margin-left:4px}.mp-match-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.mp-match-actions button{flex:1;min-width:150px}
+@media(max-width:720px){.daily-controls{grid-template-columns:1fr 1fr}#dailyGamesResults{grid-template-columns:1fr}}@media(max-width:480px){.daily-controls{grid-template-columns:1fr}.mp-match-top{align-items:flex-start}.mp-match-date{align-items:flex-start;flex-direction:column;gap:3px}}
+</style>
+<script id="modelo-pro-simple-layout">
+(()=>{
+ const main=document.querySelector("main"),pages=document.getElementById("app-pages");if(!main||!pages)return;
+ const order=["data-health","daily-games","bet-summary","football-model","odds-section","results-section","calculator-section","history-section"];
+ order.forEach(id=>{const node=document.getElementById(id);if(node){node.querySelectorAll(".mp-page-heading,.mp-kpi-grid").forEach(x=>x.remove());main.insertBefore(node,pages);}});
+ pages.remove();
+ const nav=document.createElement("nav");nav.className="quick-nav";nav.setAttribute("aria-label","Accesos rápidos");
+ [["daily-games","Partidos"],["odds-section","Cuotas"],["football-model","Predicción"],["calculator-section","Analizador"],["history-section","Historial"],["data-health","Fuentes"]].forEach(([id,label])=>{const a=document.createElement("a");a.href="#"+id;a.textContent=label;nav.appendChild(a);});
+ const sports=document.getElementById("sports");if(sports)sports.insertAdjacentElement("afterend",nav);
+ const title=document.getElementById("daily-games-title");if(title)title.textContent="Partidos y mejor lectura";
+ const intro=document.querySelector("#daily-games > p.note");if(intro)intro.textContent="Fecha, hora y mejor lectura disponible dentro de cada partido. Filtra por deporte y jornada.";
+})();
+</script>
 </body>
 </html>
