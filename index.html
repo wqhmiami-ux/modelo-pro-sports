@@ -824,6 +824,7 @@ a { -webkit-tap-highlight-color: transparent; }
   <p class="note">El filtro “posiblemente en vivo” usa la hora programada. El estado real y las cuotas en directo solo se confirman si el proveedor los devuelve.</p>
   <p class="note"><strong>Pronósticos estadísticos:</strong> en partidos de fútbol cubiertos, pulsa «MODELO DE GOLES Y GANADOR» para obtener la estimación histórica independiente. En otros mercados, los porcentajes procedentes de cuotas son solo referencias de mercado.</p>
   <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
+  <p class="note">Carga inicial optimizada: fútbol. Para consultar NBA, NFL, MLB, NHL o UFC selecciona el deporte. «Todos» puede utilizar más consultas y alcanzar el límite del proveedor.</p>
   <p class="note"><strong>Datos disponibles:</strong> el calendario y las cuotas se obtienen de OddsLink. Goles y totales aparecen si la fuente entrega las líneas; córners, tarjetas, tiros y estadísticas avanzadas pueden requerir otro proveedor. Una lista de mercados en pantalla no significa que existan datos para todos.</p>
   <div id="mpCalendarDays" class="mp-calendar-days" role="group" aria-label="Seleccionar día de partidos"></div>
   <div class="mp-fast-filters" aria-label="Búsqueda rápida">
@@ -1953,7 +1954,11 @@ function renderDailyGames() {
 }
 $("mpQuickFind")?.addEventListener("input",renderDailyGames);
 $("mpQuickOrder")?.addEventListener("change",renderDailyGames);
-$("dailySportFilter").addEventListener("change", renderDailyGames);
+$("dailySportFilter").addEventListener("change",()=>{
+  dailyGamesCache=[];
+  $("dailyGamesResults").innerHTML='<div class="mp-empty-state">Cargando el deporte seleccionado…</div>';
+  $("loadDailyGames").click();
+});
 $("dailyCountryFilter").addEventListener("input", renderDailyGames);
 $("dailyTournamentFilter").addEventListener("input", renderDailyGames);
 $("dailyEventWindow")?.addEventListener("change",()=>{
@@ -2138,14 +2143,15 @@ $("loadDailyGames").addEventListener("click", async () => {
   // El deporte y la ventana de fechas solo cambian la vista, no los datos descargados.
   // La caché depende de las ligas de fútbol, que sí alteran qué eventos se recuperan.
   const cacheSignature = JSON.stringify({
-    leagues: selectedFootballLeagues.map(option => option.key).sort()
+    leagues: selectedFootballLeagues.map(option => option.key).sort(),
+    sport: $("dailySportFilter").value
   });
   const now = Date.now();
   let savedCalendar = null;
   let cooldownUntil = 0;
   try {
-    cooldownUntil = Number(sessionStorage.getItem(dailyCooldownKey) || 0);
-    const parsed = JSON.parse(sessionStorage.getItem(dailyCacheKey) || "null");
+    cooldownUntil = Number(sessionStorage.getItem(dailyCooldownKey) || localStorage.getItem(dailyCooldownKey) || 0);
+    const parsed = JSON.parse(localStorage.getItem(dailyCacheKey) || sessionStorage.getItem(dailyCacheKey) || "null");
     if (parsed && Array.isArray(parsed.events) && parsed.signature === cacheSignature) savedCalendar = parsed;
   } catch {}
   const showSavedCalendar = (stale, reason) => {
@@ -2167,18 +2173,17 @@ $("loadDailyGames").addEventListener("click", async () => {
   if (cooldownUntil > now) {
     const remaining = Math.ceil((cooldownUntil - now) / 1000);
     if (showSavedCalendar(true, "El proveedor limitó las solicitudes; quedan " + remaining + " segundos de espera.")) return;
-    status.textContent = "El proveedor limitó las solicitudes recientemente. Espera " + remaining + " segundos antes de volver a consultar. No hay calendario guardado para mostrar.";
+    status.textContent = "OddsLink está temporalmente limitado (" + remaining + " s). No hay calendario de cuotas guardado. Usa «BUSCAR MÁS PARTIDOS» en Calendario ampliado para consultar otras fuentes sin esperar a OddsLink.";
     return;
   }
   button.disabled = true;
   status.textContent = "Consultando fuentes deportivas compatibles...";
   const failures = [];
+  const activeSport = $("dailySportFilter").value;
   const requestedSports = [
-    // OddsLink admite el agregado soccer: devuelve las competiciones disponibles
-    // en una sola petición; el filtro se aplica usando la liga devuelta.
     { name: "Fútbol", key: "soccer" },
     ...DAILY_SPORTS.filter(sport => sport.name !== "Fútbol")
-  ];
+  ].filter(sport => activeSport==="Todos" || sport.name===activeSport);
   try {
     const responses = [];
     // Consultar cada deporte de forma secuencial evita ráfagas contra el proveedor.
@@ -2188,9 +2193,9 @@ $("loadDailyGames").addEventListener("click", async () => {
         const sportCacheKey = `modeloProOddsCache:${sport.key}`;
         let events = null;
         try {
-          const savedSport = JSON.parse(sessionStorage.getItem(sportCacheKey) || "null");
+          const savedSport = JSON.parse(localStorage.getItem(sportCacheKey) || sessionStorage.getItem(sportCacheKey) || "null");
           if (savedSport && Array.isArray(savedSport.events) && savedSport.events.length &&
-              Date.now() - savedSport.savedAt < 120000) {
+              Date.now() - savedSport.savedAt < 600000) {
             events = savedSport.events;
           }
         } catch {}
@@ -2212,7 +2217,7 @@ $("loadDailyGames").addEventListener("click", async () => {
             Array.isArray(data.events) ? data.events :
             Array.isArray(data.data) ? data.data : [];
           if (events.length) {
-            try { sessionStorage.setItem(sportCacheKey, JSON.stringify({ events, savedAt: Date.now() })); } catch {}
+            try { localStorage.setItem(sportCacheKey, JSON.stringify({ events, savedAt: Date.now() })); } catch {}
           }
         }
         responses.push(events.map(event => ({
@@ -2230,8 +2235,10 @@ $("loadDailyGames").addEventListener("click", async () => {
         // Si el proveedor aplica un límite, no seguir gastando solicitudes
         // y recuperar el último calendario válido en vez de reemplazarlo por una lista vacía.
         if (/speed limit|rate limit|SPEED_LIMIT|HTTP 429|too many requests/i.test(errorMessage)) {
-          try { sessionStorage.setItem(dailyCooldownKey, String(Date.now() + 300000)); } catch {}
-          if (showSavedCalendar(true, "El proveedor limitó las solicitudes. Se conservan los últimos datos guardados.")) return;
+          try { localStorage.setItem(dailyCooldownKey, String(Date.now() + 300000)); } catch {}
+          // Conservar los deportes que ya respondieron en esta consulta.
+          // Solo recurrir a la caché anterior si todavía no hay resultados nuevos.
+          if (!responses.some(batch=>batch.length) && showSavedCalendar(true, "El proveedor limitó las solicitudes. Se conservan los últimos datos guardados.")) return;
           const currentIndex = requestedSports.findIndex(item => item.key === sport.key);
           requestedSports.slice(currentIndex + 1).forEach(remainingSport => {
             failures.push(`${remainingSport.name}: consulta omitida para proteger la cuota tras el límite del proveedor`);
@@ -2278,7 +2285,7 @@ $("loadDailyGames").addEventListener("click", async () => {
     // Guarda los eventos recibidos para que el calendario siga siendo útil durante límites temporales.
     try {
       if (dailyGamesCache.length) {
-        sessionStorage.setItem(dailyCacheKey, JSON.stringify({
+        localStorage.setItem(dailyCacheKey, JSON.stringify({
           events: dailyGamesCache,
           savedAt: Date.now(),
           signature: cacheSignature
@@ -3196,6 +3203,9 @@ main{max-width:1240px!important}
   const boot=()=>{
     const trigger=document.getElementById("loadDailyGames");
     if(!trigger)return;
+    // Precargar solo fútbol. Consultar automáticamente seis deportes agota el límite.
+    const filter=document.getElementById("dailySportFilter");
+    if(filter && filter.value==="Todos")filter.value="Fútbol";
     const status=document.getElementById("dailyGamesStatus");
     if(status)status.textContent="Cargando el calendario automáticamente. La disponibilidad depende del proveedor…";
     trigger.click();
