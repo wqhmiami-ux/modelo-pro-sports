@@ -644,6 +644,12 @@ a { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 360px) { .vip-command-center { grid-template-columns: 1fr; } }
 
 </style>
+<style id="mp-inline-model-style">
+.mp-inline-model:not(:empty){border:1px solid #42576d;border-radius:12px;padding:14px;margin-top:12px;background:#101b2b}
+.mp-inline-model-heading{font-size:13px;font-weight:800;letter-spacing:.03em;margin-bottom:10px}
+.mp-inline-model .mp-independent-grid{max-height:380px;overflow:auto}
+.mp-auto-football{order:-1}
+</style>
 </head>
 <body>
 <header>
@@ -1967,7 +1973,7 @@ function renderDailyGames() {
     const prediction=favorite
       ? '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE SEGÚN LAS CUOTAS</div><strong class="mp-pick-name">'+escapeHTML(favorite.name)+'</strong><div class="mp-pick-prob">'+favorite.probability.toFixed(1)+'% <span>probabilidad de mercado sin margen aproximada</span></div><div class="mp-prediction-stats"><span>Mejor cuota encontrada <b>'+price+'</b></span><span>Casa <b>'+escapeHTML(favorite.book)+'</b></span><span>Fuentes <b>'+favorite.count+'</b></span></div><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO CONFIRMADA</b></div><p>Esta selección es el resultado favorito del mercado, no una predicción independiente. Para recomendar APOSTAR hacen falta una estimación estadística verificable, EDGE positivo y comprobación de datos. Un favorito puede perder.</p>'
       : '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE</div><strong>NO DETERMINADO</strong><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO APOSTAR SIN DATOS</b></div><p>La fuente no devolvió al menos dos cuotas comparables. No se inventa ganador, porcentaje ni predicción.</p>';
-    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div>'+additionalMarkets+'<div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">ANALIZAR</button>'+(game.sport==="Fútbol"?'<button type="button" class="mp-auto-football" data-home="'+escapeHTML(game.home_team||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-league="'+escapeHTML(game.league_key||game.tournament||"")+'">CALCULAR GOLES Y AMBOS MARCAN</button>':'')+'</div></article>';
+    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div>'+additionalMarkets+'<div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">'+(game.sport==="Fútbol"?"CALCULADORA OPCIONAL":"ANALIZAR CUOTAS")+'</button>'+(game.sport==="Fútbol"?'<button type="button" class="mp-auto-football" data-home="'+escapeHTML(game.home_team||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-league="'+escapeHTML(game.league_key||game.tournament||"")+'">ANALIZAR PARTIDO · MODELO</button>':'')+'</div>'+(game.sport==="Fútbol"?'<div class="mp-inline-model" role="status" aria-live="polite"></div>':'')+'</article>';
   }).join("");
   $("dailyGamesStatus").textContent = "Mostrando "+filtered.length+" partidos · Fechas en tu hora local. El consenso de mercado no equivale a una predicción independiente.";
 }
@@ -2140,16 +2146,32 @@ $("dailyGamesResults").addEventListener("click", event => {
     [/championship|efl.champ/,"ELC"]
   ];
   const found=competitions.find(pair=>pair[0].test(league));
-  const panel=$("football-model");
+  const card=button.closest(".mp-match-card");
+  const inline=card?.querySelector(".mp-inline-model");
   $("football-home").value=button.dataset.home||"";
   $("football-away").value=button.dataset.away||"";
-  panel?.scrollIntoView({behavior:"smooth",block:"start"});
+  if(inline){inline.textContent="Consultando el historial del partido…";inline.scrollIntoView({behavior:"smooth",block:"nearest"});}
   if(!found){
-    $("football-model-status").textContent="El análisis independiente de goles aún no cubre esta liga en la fuente histórica. Se muestran los equipos, pero NO se inventará una probabilidad.";
-    $("football-model-results").innerHTML="";
+    if(inline)inline.textContent="Esta liga aún no tiene historial compatible con el modelo. NO APOSTAR SIN DATOS.";
     return;
   }
   $("footballModelCompetition").value=found[1];
+  const modelStatus=$("football-model-status"),modelResults=$("football-model-results");
+  if(window.mpInlinePredictionObserver)window.mpInlinePredictionObserver.disconnect();
+  const updateInline=()=>{
+    if(!inline)return;
+    const message=modelStatus?.textContent||"";
+    if(modelResults?.children.length){
+      inline.innerHTML='<div class="mp-inline-model-heading">ANÁLISIS HISTÓRICO DEL PARTIDO</div>'+modelResults.innerHTML;
+      window.mpInlinePredictionObserver?.disconnect();
+    }else if(/No se generó|No se pudieron|Diagnóstico:|Faltan al menos|Escribe dos equipos/i.test(message)){
+      inline.textContent=message+" · NO APOSTAR SIN DATOS.";
+      window.mpInlinePredictionObserver?.disconnect();
+    }
+  };
+  window.mpInlinePredictionObserver=new MutationObserver(updateInline);
+  window.mpInlinePredictionObserver.observe(modelStatus,{childList:true,characterData:true,subtree:true});
+  window.mpInlinePredictionObserver.observe(modelResults,{childList:true,subtree:true});
   $("football-predict").click();
 });
 $("dailyGamesResults").addEventListener("click", event => {
