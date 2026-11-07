@@ -801,9 +801,10 @@ a { -webkit-tap-highlight-color: transparent; }
     <div>
       <label for="dailyEventWindow">Qué eventos mostrar</label>
       <select id="dailyEventWindow">
+        <option value="five" selected>Hoy y 4 días siguientes</option>
         <option value="today">Hoy</option>
         <option value="live">Posiblemente en vivo</option>
-        <option value="upcoming" selected>Próximos 7 días</option>
+        <option value="upcoming">Próximos 7 días</option>
         <option value="all">Todos los devueltos por la fuente</option>
       </select>
     </div>
@@ -822,6 +823,7 @@ a { -webkit-tap-highlight-color: transparent; }
   </div>
   <p class="note">El filtro “posiblemente en vivo” usa la hora programada. El estado real y las cuotas en directo solo se confirman si el proveedor los devuelve.</p>
   <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
+  <div id="mpCalendarDays" class="mp-calendar-days" role="group" aria-label="Seleccionar día de partidos"></div>
   <div class="mp-fast-filters" aria-label="Búsqueda rápida">
   <label for="mpQuickFind">Buscar equipos o partidos</label>
   <input id="mpQuickFind" type="search" placeholder="Escribe un equipo…">
@@ -1800,7 +1802,31 @@ function getLocalDateKey(value) {
   return `${year}-${month}-${day}`;
 }
 
+let mpSelectedCalendarDay = "all";
+function mpLocalDateOffset(offset) {
+  const date = new Date();
+  date.setHours(12,0,0,0);
+  date.setDate(date.getDate()+offset);
+  return getLocalDateKey(date);
+}
+function renderCalendarDays() {
+  const nav=$("mpCalendarDays");
+  if(!nav)return;
+  const labels=["HOY","MAÑANA","+2 DÍAS","+3 DÍAS","+4 DÍAS"];
+  const options=[{key:"all",label:"TODOS",subtitle:"5 días"},...labels.map((label,i)=>({
+    key:String(i),label,subtitle:new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()+i).toLocaleDateString("es-US",{day:"numeric",month:"short"})
+  }))];
+  nav.innerHTML=options.map(opt=>'<button type="button" class="mp-day-button'+(String(mpSelectedCalendarDay)===opt.key?' selected':'')+'" data-day="'+opt.key+'" aria-pressed="'+(String(mpSelectedCalendarDay)===opt.key)+'"><b>'+opt.label+'</b><small>'+opt.subtitle+'</small></button>').join("");
+}
+$("mpCalendarDays")?.addEventListener("click",event=>{
+  const button=event.target.closest("button[data-day]");
+  if(!button)return;
+  mpSelectedCalendarDay=button.dataset.day;
+  $("dailyEventWindow").value="five";
+  renderDailyGames();
+});
 function renderDailyGames() {
+  renderCalendarDays();
   const sportFilter = $("dailySportFilter").value;
   const countryFilter = $("dailyCountryFilter").value.trim().toLocaleLowerCase();
   const tournamentFilter = $("dailyTournamentFilter").value.trim().toLocaleLowerCase();
@@ -1811,7 +1837,7 @@ function renderDailyGames() {
     return (sportFilter === "Todos" || game.sport === sportFilter) &&
       (!countryFilter || (game.country || "").toLocaleLowerCase().includes(countryFilter)) &&
       (!tournamentFilter || (game.tournament || "").toLocaleLowerCase().includes(tournamentFilter)) &&
-      (windowFilter === "all" || (windowFilter === "today" && day === today) ||
+      (windowFilter === "all" || (windowFilter === "five" && (mpSelectedCalendarDay === "all" ? Array.from({length:5},(_,i)=>mpLocalDateOffset(i)).includes(day) : day === mpLocalDateOffset(Number(mpSelectedCalendarDay)))) || (windowFilter === "today" && day === today) ||
        (windowFilter === "live" && start <= now && start >= now - 10800000) ||
        (windowFilter === "upcoming" && start >= now && start <= now + 604800000));
   });
@@ -1900,7 +1926,10 @@ $("mpQuickOrder")?.addEventListener("change",renderDailyGames);
 $("dailySportFilter").addEventListener("change", renderDailyGames);
 $("dailyCountryFilter").addEventListener("input", renderDailyGames);
 $("dailyTournamentFilter").addEventListener("input", renderDailyGames);
-$("dailyEventWindow")?.addEventListener("change", renderDailyGames);
+$("dailyEventWindow")?.addEventListener("change",()=>{
+  if($("dailyEventWindow").value==="five")mpSelectedCalendarDay="all";
+  renderDailyGames();
+});
 $("dailyFootballLeague")?.addEventListener("change", renderDailyGames);
 
 function selectFootballKeys(predicate) {
@@ -3067,6 +3096,13 @@ main{max-width:1240px!important}
 </script>
 <!-- MODELO PRO SPORTS AUTO START: no cambia API, estrategias ni historial -->
 <style id="mp-auto-start-styles">
+.mp-calendar-days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0}
+.mp-day-button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 5px!important;border:1px solid #36506b!important;background:#101d30!important;color:#eaf1fd!important;border-radius:12px!important;min-width:0}
+.mp-day-button b{font-size:12px;white-space:nowrap}
+.mp-day-button small{font-size:11px;color:#aebfd5}
+.mp-day-button.selected{background:#c5fb62!important;color:#11200d!important;border-color:#c5fb62!important}
+.mp-day-button.selected small{color:#314b17}
+@media(max-width:700px){.mp-calendar-days{grid-template-columns:repeat(3,minmax(0,1fr))}.mp-day-button b{font-size:11px}}
 .mp-fast-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,220px);gap:10px 14px;margin:14px 0;padding:14px;border-radius:16px;border:1px solid rgba(197,251,98,.22);background:#0d1b2a}
 .mp-fast-filters label{margin:0;font-size:12px;align-self:end}.mp-fast-filters input,.mp-fast-filters select{margin:0}
 #daily-games{order:-1}
