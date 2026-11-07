@@ -2721,10 +2721,24 @@ renderHistory();
       api.searchParams.set("homeTeam", homeName);
       api.searchParams.set("awayTeam", awayName);
       api.searchParams.set("limit", "20");
-      const response = await fetch(api.toString());
-      if (!response.ok) throw new Error("La API respondió con error.");
-
-      const payload = await response.json().catch(() => ({}));
+      const cacheKey="modeloProFootballHistory:"+api.searchParams.get("competition")+":"+homeName.toLowerCase()+":"+awayName.toLowerCase();
+      let payload=null;
+      try{
+        const saved=JSON.parse(sessionStorage.getItem(cacheKey)||"null");
+        if(saved&&saved.time&&Date.now()-saved.time<15*60*1000&&Array.isArray(saved.payload?.matches))payload=saved.payload;
+      }catch{}
+      if(!payload){
+        const controller=new AbortController();
+        const timer=setTimeout(()=>controller.abort(),12000);
+        try{
+          const response=await fetch(api.toString(),{signal:controller.signal});
+          if(!response.ok)throw new Error("La API devolvió HTTP "+response.status);
+          payload=await response.json();
+          if(payload&&Array.isArray(payload.matches)){
+            try{sessionStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),payload}))}catch{}
+          }
+        }finally{clearTimeout(timer)}
+      }
       const matches = Array.isArray(payload)
         ? payload
         : payload.matches || payload.data || payload.results || [];
@@ -2874,8 +2888,8 @@ renderHistory();
         <p class="note">Estas probabilidades proceden del modelo, no de las cuotas. Para córners, tarjetas, tiros a puerta, jugadores y lesiones aún se requieren estadísticas verificables adicionales. No se calcula EDGE ni se recomienda apostar si no existe cuota real comparable. El modelo no tiene calibración ni validación retrospectiva demostrada.</p>
       `;
     } catch (error) {
-      status.textContent =
-        "No se pudieron consultar los resultados. Comprueba la conexión y la disponibilidad de la API. No se generó una predicción.";
+      const reason=error?.name==="AbortError"?"Tiempo de espera agotado":String(error?.message||"Servicio no disponible");
+      status.textContent="No se pudieron consultar resultados históricos ("+reason+"). NO APOSTAR SIN DATOS.";
     } finally {
       button.disabled = false;
     }
