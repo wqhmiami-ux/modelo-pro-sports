@@ -792,6 +792,7 @@ a { -webkit-tap-highlight-color: transparent; }
       </select>
       <p id="leagueSelectionHelp" class="note">Por defecto se muestran todas las ligas que entregue la fuente. Selecciona ligas solo para limitar la vista. La cobertura de partidos y mercados depende del proveedor.</p>
       <div class="grid league-presets">
+        <button type="button" id="selectAllFootballLeagues">TODAS LAS LIGAS</button>
         <button type="button" id="selectColombiaLeague">SOLO COLOMBIA</button>
         <button type="button" id="selectSouthAmerica">SUDAMÉRICA</button>
         <button type="button" id="selectEurope">EUROPA</button>
@@ -824,7 +825,7 @@ a { -webkit-tap-highlight-color: transparent; }
   <p class="note">El filtro “posiblemente en vivo” usa la hora programada. El estado real y las cuotas en directo solo se confirman si el proveedor los devuelve.</p>
   <p class="note"><strong>Pronósticos estadísticos:</strong> en partidos de fútbol cubiertos, pulsa «MODELO DE GOLES Y GANADOR» para obtener la estimación histórica independiente. En otros mercados, los porcentajes procedentes de cuotas son solo referencias de mercado.</p>
   <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
-  <p class="note">Carga inicial optimizada: fútbol. Para consultar NBA, NFL, MLB, NHL o UFC selecciona el deporte. «Todos» puede utilizar más consultas y alcanzar el límite del proveedor.</p>
+  <p class="note">Elige el día y el deporte. Para mostrar todas las ligas de fútbol pulsa «TODAS LAS LIGAS». La cobertura depende de los proveedores.</p>
   <p class="note"><strong>Datos disponibles:</strong> el calendario y las cuotas se obtienen de OddsLink. Goles y totales aparecen si la fuente entrega las líneas; córners, tarjetas, tiros y estadísticas avanzadas pueden requerir otro proveedor. Una lista de mercados en pantalla no significa que existan datos para todos.</p>
   <div id="mpCalendarDays" class="mp-calendar-days" role="group" aria-label="Seleccionar día de partidos"></div>
   <div class="mp-fast-filters" aria-label="Búsqueda rápida">
@@ -1972,6 +1973,10 @@ function selectFootballKeys(predicate) {
   const select = $("dailyFootballLeague");
   [...select.options].forEach(option => { option.selected = predicate(option.value, option.textContent); });
 }
+$("selectAllFootballLeagues")?.addEventListener("click",()=>{
+  selectFootballKeys(()=>false);
+  $("loadDailyGames").click();
+});
 $("selectColombiaLeague")?.addEventListener("click", () => {
   selectFootballKeys((key) => key === "soccer_colombia_primera_a");
 });
@@ -2295,17 +2300,16 @@ $("loadDailyGames").addEventListener("click", async () => {
     } catch {}
 
     const uniqueFailures = [...new Set(failures)];
-    const messages = [`Eventos recibidos de las fuentes: ${allReceived.length}. Tras filtros de ligas: ${dailyGamesCache.length}.`];
-    if (missingSoccerSelections.length) {
-      messages.push(`Competiciones de fútbol seleccionadas sin eventos devueltos por la fuente: ${missingSoccerSelections.map(option => option.label).join(", ")}. Puede faltar cobertura o disponibilidad de partidos/cuotas; no se inventaron eventos.`);
-    }
-    if (uniqueFailures.length) {
-      messages.push(`Fuentes con error: ${uniqueFailures.join("; ")}.`);
-    }
-    if (!dailyGamesCache.length) {
-      messages.push("La fuente no devolvió eventos para estas consultas. Esto no confirma que no haya partidos; puede faltar cobertura o cuotas disponibles.");
-    }
-    status.textContent = messages.join(" ");
+    const visibleDates = new Set([mpLocalDateOffset(0),mpLocalDateOffset(1),mpLocalDateOffset(2)]);
+    const inThreeDays = dailyGamesCache.filter(game=>visibleDates.has(getLocalDateKey(game.commence_time)));
+    const chosenSport = $("dailySportFilter").value;
+    const chosenCount = inThreeDays.filter(game=>chosenSport==="Todos"||game.sport===chosenSport).length;
+    const messages = [chosenCount+" partidos recibidos para hoy y los próximos dos días ("+chosenSport+")."];
+    if(selectedFootballLeagues.length)messages.push("Filtro aplicado: "+selectedFootballLeagues.length+" ligas. Para ver todas pulsa TODAS LAS LIGAS.");
+    if(missingSoccerSelections.length)messages.push(missingSoccerSelections.length+" ligas seleccionadas sin eventos de la fuente.");
+    if(uniqueFailures.length)messages.push("Algunas fuentes no respondieron. Consulta el estado de datos para más información.");
+    if(!dailyGamesCache.length)messages.push("Sin eventos del proveedor actual. No significa que no haya partidos.");
+    status.textContent=messages.join(" ");
   } catch (error) {
     status.textContent = `No se pudo cargar el calendario: ${error.message || "error de conexión"}.`;
   } finally {
