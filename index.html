@@ -1927,9 +1927,9 @@ function renderDailyGames() {
       candidates.sort((a,b)=>b.probability-a.probability);
       const best=candidates[0];
       if(best)availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'%</b></div>');
-      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span><b>Sin datos</b></div>');
+      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span><b>Sin cobertura de cuotas</b></div>');
     }
-    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO</div>'+availableMarketRows.join("")+'<p>Porcentajes basados en cuotas comparables, sin margen aproximado. No son probabilidades predictivas independientes. Sin datos significa que la fuente no permitió calcular una cifra verificable.</p></div>';
+    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO · CUOTAS</div>'+availableMarketRows.join("")+'<p>Estos porcentajes se calculan a partir de cuotas comparables, no son predicciones propias. «Sin cobertura de cuotas» significa que OddsLink no entregó precios suficientes. Para una estimación histórica independiente de ganador, goles y ambos marcan, utiliza «MODELO DE GOLES Y GANADOR» cuando la liga esté cubierta. Córners, tarjetas y tiros a puerta requieren estadísticas adicionales.</p></div>';
     const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
     const price=favorite?(favorite.price>0?"+":"")+favorite.price:"";
     const prediction=favorite
