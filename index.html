@@ -3419,7 +3419,19 @@ const offset=i=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+i
 const cooldownKey="modeloProApiFootballCooldown";
 const fixtureCachePrefix="modeloProApiFootballFixtures:";
 const cacheTTL=15*60*1000;
-const remainingCooldown=()=>Math.max(0,Math.ceil((Number(localStorage.getItem(cooldownKey)||0)-Date.now())/1000));
+const remainingCooldown=()=>{try{return Math.max(0,Math.ceil((Number(localStorage.getItem(cooldownKey)||0)-Date.now())/1000))}catch{return 0}};
+const initialLabel=load.textContent.trim();
+let loading=false;
+const refreshCooldown=()=>{
+ const remaining=remainingCooldown();
+ load.disabled=loading||remaining>0;
+ load.textContent=loading?"CONSULTANDO API-FOOTBALL…":remaining>0?"LÍMITE TEMPORAL · "+remaining+" s":initialLabel;
+ if(remaining>0&&!loading && !document.querySelector("#mp-api-results .mp-api-game")){
+   status.textContent="API-Football limita las consultas por minuto. Se podrá intentar de nuevo en "+remaining+" segundos. No hace falta modificar Cloudflare.";
+ }
+};
+refreshCooldown();
+setInterval(refreshCooldown,1000);
 const request=async(path)=>{
  const remaining=remainingCooldown();
  if(remaining){const e=new Error("Límite por minuto de API-Football. Evita nuevas consultas durante al menos "+remaining+" segundos.");e.status=429;throw e}
@@ -3442,7 +3454,8 @@ const request=async(path)=>{
  finally{clearTimeout(timer)}
 };
 load.addEventListener("click",async()=>{
- load.disabled=true;target.innerHTML="";status.textContent="Consultando calendario de API-Football…";
+ if(remainingCooldown()>0){refreshCooldown();return}
+ loading=true;refreshCooldown();target.innerHTML="";status.textContent="Consultando calendario de API-Football…";
  try{
   const league=document.getElementById("mp-api-league")?.value||"39";
   const season=(league==="253"?new Date().getFullYear():new Date().getMonth()<6?new Date().getFullYear()-1:new Date().getFullYear());
@@ -3460,8 +3473,8 @@ load.addEventListener("click",async()=>{
    const id=e.fixture?.id;
    return '<article class="mp-api-game"><small>'+escape(when)+' · '+escape(e.league?.name||"Liga")+'</small><strong>'+escape(e.teams?.home?.name||"Local")+' vs '+escape(e.teams?.away?.name||"Visitante")+'</strong><small>Estado: '+escape(e.fixture?.status?.long||"Sin información")+'</small>'+(id?'<button type="button" class="mp-api-stats" data-id="'+escape(id)+'">VER CÓRNERS, TARJETAS Y TIROS</button>':'')+'<div class="mp-api-details"></div></article>';
   }).join(""):'<p class="note">La fuente no devolvió eventos utilizables para estas fechas.</p>';
- }catch(error){const message=String(error.message||"error");status.textContent=message.includes("Invalid date range")?"La validación de parámetros del Worker requiere actualización. Despliega el código corregido de GitHub en Cloudflare; no cambies el secreto.":message.includes("secret not configured")?"El Worker no encuentra API_FOOTBALL_KEY. Revisa el secreto en el entorno de producción.":message.includes("Límite de API-Football")||message.includes("rateLimit")||message.includes("rate limit")?"API-Football alcanzó el límite de consultas por minuto. La aplicación ha bloqueado temporalmente nuevas consultas para no empeorarlo. "+message:message.includes("Load failed")||message.includes("Failed to fetch")?"La conexión a Cloudflare no se pudo completar; revisa la dirección del Worker.":"API-Football respondió: "+message+". Si indica plan gratuito sin acceso a esta temporada, hay que cambiar la cobertura o el proveedor; si indica límite, hay que esperar al reinicio de la cuota.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
- finally{load.disabled=false}
+ }catch(error){const message=String(error.message||"error");status.textContent=message.includes("Invalid date range")?"La validación de parámetros del Worker requiere actualización. Despliega el código corregido de GitHub en Cloudflare; no cambies el secreto.":message.includes("secret not configured")?"El Worker no encuentra API_FOOTBALL_KEY. Revisa el secreto en el entorno de producción.":message.includes("Límite de API-Football")||message.includes("rateLimit")||message.includes("rate limit")?"API-Football alcanzó su límite de consultas por minuto. El botón indicará cuándo volver a intentarlo. No cambies la clave ni el Worker.":message.includes("Load failed")||message.includes("Failed to fetch")?"La conexión a Cloudflare no se pudo completar; revisa la dirección del Worker.":"API-Football respondió: "+message+". Si indica plan gratuito sin acceso a esta temporada, hay que cambiar la cobertura o el proveedor; si indica límite, hay que esperar al reinicio de la cuota.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
+ finally{loading=false;refreshCooldown()}
 });
 target.addEventListener("click",async event=>{
  const btn=event.target.closest(".mp-api-stats");if(!btn)return;
