@@ -3289,7 +3289,7 @@ main{max-width:1240px!important}
    const area=btn.parentElement.querySelector(".mp-extra-stats");
    if(!area)return;
    const id=btn.dataset.statId;
-   if(!/^\\d+$/.test(id)){area.textContent="Identificador de partido no válido.";return}
+   if(!/^[0-9]+$/.test(id)){area.textContent="Identificador de partido no válido.";return}
    btn.disabled=true;area.textContent="Consultando estadísticas de TheSportsDB…";
    try{
      const data=await getJson("https://www.thesportsdb.com/api/v1/json/123/lookupeventstats.php?id="+id);
