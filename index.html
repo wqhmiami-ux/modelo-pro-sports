@@ -857,6 +857,16 @@ a { -webkit-tap-highlight-color: transparent; }
 <section id="mp-api-football" class="card">
 <h2>API-Football · Estadísticas avanzadas</h2>
 <p class="note">Consulta partidos de hoy, mañana y pasado mañana. Las estadísticas son valores observados del partido, no predicciones ni cuotas.</p>
+<label for="mp-api-league">Liga para consultar estadísticas</label>
+<select id="mp-api-league">
+<option value="39">Inglaterra · Premier League</option>
+<option value="140">España · La Liga</option>
+<option value="135">Italia · Serie A</option>
+<option value="78">Alemania · Bundesliga</option>
+<option value="61">Francia · Ligue 1</option>
+<option value="253">Estados Unidos · MLS</option>
+</select>
+<p class="note">Selecciona una liga. La consulta abarca tres días y se realiza una sola vez por liga; algunas ligas o temporadas pueden estar fuera de tu plan.</p>
 <button type="button" class="primary full" id="mp-api-load">CARGAR PARTIDOS API-FOOTBALL</button>
 <p class="note" id="mp-api-status" role="status">Requiere desplegar el Worker con el secreto API_FOOTBALL_KEY.</p>
 <div id="mp-api-results"></div>
@@ -3434,7 +3444,9 @@ const request=async(path)=>{
 load.addEventListener("click",async()=>{
  load.disabled=true;target.innerHTML="";status.textContent="Consultando calendario de API-Football…";
  try{
-  const path="/api/advanced/fixtures?from="+offset(0)+"&to="+offset(2);
+  const league=document.getElementById("mp-api-league")?.value||"39";
+  const season=(league==="253"?new Date().getFullYear():new Date().getMonth()<6?new Date().getFullYear()-1:new Date().getFullYear());
+  const path="/api/advanced/fixtures?from="+offset(0)+"&to="+offset(2)+"&league="+encodeURIComponent(league)+"&season="+season;
   let saved=null;
   try{saved=JSON.parse(localStorage.getItem(fixtureCachePrefix+offset(0))||"null")}catch{}
   const fresh=saved&&saved.path===path&&saved.savedAt&&Date.now()-saved.savedAt<cacheTTL&&saved.data?.response;
@@ -3442,13 +3454,13 @@ load.addEventListener("click",async()=>{
   if(!fresh){try{localStorage.setItem(fixtureCachePrefix+offset(0),JSON.stringify({path,savedAt:Date.now(),data:result}))}catch{}}
   const validDays=new Set([offset(0),offset(1),offset(2)]);
   const events=(Array.isArray(result.response)?result.response:[]).filter(e=>e.fixture?.date&&validDays.has(day(e.fixture.date))).sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
-  status.textContent=events.length+" encuentros disponibles en los tres días."+ (fresh?" Calendario guardado; no se consumió otra consulta.":"")+" Las estadísticas dependen del plan y de la liga.";
+  status.textContent=events.length+" encuentros disponibles en "+(document.getElementById("mp-api-league")?.selectedOptions[0]?.textContent||"la liga")+" durante estos tres días."+ (fresh?" Calendario guardado; no se consumió otra consulta.":"")+" La cobertura de estadísticas depende del plan y la temporada.";
   target.innerHTML=events.length?events.slice(0,100).map(e=>{
    const when=new Date(e.fixture.date).toLocaleString("es-US",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
    const id=e.fixture?.id;
    return '<article class="mp-api-game"><small>'+escape(when)+' · '+escape(e.league?.name||"Liga")+'</small><strong>'+escape(e.teams?.home?.name||"Local")+' vs '+escape(e.teams?.away?.name||"Visitante")+'</strong><small>Estado: '+escape(e.fixture?.status?.long||"Sin información")+'</small>'+(id?'<button type="button" class="mp-api-stats" data-id="'+escape(id)+'">VER CÓRNERS, TARJETAS Y TIROS</button>':'')+'<div class="mp-api-details"></div></article>';
   }).join(""):'<p class="note">La fuente no devolvió eventos utilizables para estas fechas.</p>';
- }catch(error){const message=String(error.message||"error");status.textContent=message.includes("Invalid date range")?"El Worker aún tiene la validación de fechas anterior. Actualiza y despliega cloudflare-worker-oddslink.js desde GitHub en Cloudflare; no cambies el secreto.":message.includes("secret not configured")?"El Worker no encuentra API_FOOTBALL_KEY. Revisa el secreto en el entorno de producción.":message.includes("Límite de API-Football")||message.includes("rateLimit")||message.includes("rate limit")?"API-Football alcanzó el límite de consultas por minuto. La aplicación ha bloqueado temporalmente nuevas consultas para no empeorarlo. "+message:message.includes("Load failed")||message.includes("Failed to fetch")?"La conexión a Cloudflare no se pudo completar; revisa la dirección del Worker.":"API-Football respondió: "+message+". Si indica plan gratuito sin acceso a esta temporada, hay que cambiar la cobertura o el proveedor; si indica límite, hay que esperar al reinicio de la cuota.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
+ }catch(error){const message=String(error.message||"error");status.textContent=message.includes("Invalid date range")?"La validación de parámetros del Worker requiere actualización. Despliega el código corregido de GitHub en Cloudflare; no cambies el secreto.":message.includes("secret not configured")?"El Worker no encuentra API_FOOTBALL_KEY. Revisa el secreto en el entorno de producción.":message.includes("Límite de API-Football")||message.includes("rateLimit")||message.includes("rate limit")?"API-Football alcanzó el límite de consultas por minuto. La aplicación ha bloqueado temporalmente nuevas consultas para no empeorarlo. "+message:message.includes("Load failed")||message.includes("Failed to fetch")?"La conexión a Cloudflare no se pudo completar; revisa la dirección del Worker.":"API-Football respondió: "+message+". Si indica plan gratuito sin acceso a esta temporada, hay que cambiar la cobertura o el proveedor; si indica límite, hay que esperar al reinicio de la cuota.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
  finally{load.disabled=false}
 });
 target.addEventListener("click",async event=>{
