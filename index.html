@@ -1915,6 +1915,10 @@ function renderDailyGames() {
           for(const outcome of (Array.isArray(market.outcomes)?market.outcomes:[])){
             const name = String(outcome.name||"");
             const point = outcome.point === undefined || outcome.point === null ? "" : String(outcome.point);
+            // Solo destacar líneas estándar de goles, no líneas extremas
+            // como Under 6.5 que pueden no existir en la casa del usuario.
+            if(game.sport==="Fútbol" && market.key==="totals" &&
+               ![1.5,2.5,3.5].includes(Number(point))) continue;
             const id = market.key+"|"+name+"|"+point;
             if(seen.has(id))continue;
             seen.add(id);
@@ -1924,7 +1928,15 @@ function renderDailyGames() {
           }
         }
       }
-      candidates.sort((a,b)=>b.probability-a.probability);
+      candidates.sort((a,b)=>{
+        // Favorecer líneas de 2.5 como referencia cuando existan;
+        // nunca sustituir disponibilidad real por cuotas supuestas.
+        if(game.sport==="Fútbol" && group.keys[0]==="totals"){
+          const priority=x=>x.point==="2.5"?0:x.point==="1.5"?1:2;
+          return priority(a)-priority(b) || b.probability-a.probability;
+        }
+        return b.probability-a.probability;
+      });
       const best=candidates[0];
       if(best)availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'%</b></div>');
       else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span><b>Sin cobertura de cuotas</b></div>');
