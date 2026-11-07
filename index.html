@@ -650,6 +650,37 @@ a { -webkit-tap-highlight-color: transparent; }
 .mp-inline-model .mp-independent-grid{max-height:380px;overflow:auto}
 .mp-auto-football{order:-1}
 </style>
+<style id="mp-vip-redesign-css">
+#mp-vip-workspace{background:linear-gradient(140deg,#15263c,#0b1526 72%);border:1px solid #324963;border-radius:24px;padding:25px;margin:16px 0 20px;color:#f4f8ff;box-shadow:0 16px 45px #060c1840}
+.mp-vip-kicker{font-size:11px;letter-spacing:2px;font-weight:850;color:#a8f4cb;display:flex;align-items:center;gap:8px}
+.mp-vip-dot{width:8px;height:8px;background:#45dba0;border-radius:99px;display:inline-block}
+.mp-vip-head{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.mp-vip-head h2{font-size:clamp(27px,4.5vw,45px);letter-spacing:-1.5px;line-height:1.09;margin:16px 0 10px;color:#fff}
+.mp-vip-head h2 span{color:#b7f47c}.mp-vip-head p{margin:0 0 20px;color:#b6c5d7}
+.mp-vip-live-tag{border:1px solid #38695a;border-radius:99px;padding:8px 12px;font-size:11px;color:#98e9c4;font-weight:700;white-space:nowrap}
+.mp-vip-tabs,.mp-vip-sportbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+#mp-vip-workspace button{width:auto;min-height:44px;padding:10px 14px;border-radius:12px;background:#1d314a;color:#d5e4f2;border:1px solid #334b64;font-size:13px;font-weight:750;cursor:pointer}
+#mp-vip-workspace button[aria-pressed="true"]{background:#c2f56d;color:#172419;border-color:#c2f56d;box-shadow:0 5px 16px #a8f06122}
+.mp-vip-sportbar{padding-top:13px;border-top:1px solid #314056}
+.mp-vip-source-info{color:#93a9bf;font-size:12px;margin:8px 0 0}
+body.mp-vip-simple main > section:not(#mp-vip-workspace):not(.mp-vip-visible),body.mp-vip-simple main > nav:not(#sports):not(.mp-vip-visible),body.mp-vip-simple main > p:not(.mp-vip-visible){display:none!important}
+body.mp-vip-simple main > nav#sports{display:none!important}
+body.mp-vip-simple #daily-games{display:block!important}
+body.mp-vip-simple[data-vip-view="estadisticas"] #daily-games,body.mp-vip-simple[data-vip-view="cuotas"] #daily-games,body.mp-vip-simple[data-vip-view="historial"] #daily-games{display:none!important}
+body.mp-vip-simple #daily-games{scroll-margin-top:12px}
+body.mp-vip-simple #daily-games .daily-controls>div:nth-child(2){display:none}
+body.mp-vip-simple #daily-games .daily-controls>div:nth-child(n+4){display:none}
+body.mp-vip-simple #daily-games .daily-controls{margin-bottom:10px}
+body.mp-vip-simple .mp-match-card{border-radius:17px}
+body.mp-vip-simple .mp-match-card .mp-prediction-box{border-radius:10px}
+body.mp-vip-simple #daily-games>.note{display:none}
+body.mp-vip-simple #daily-games #dailyGamesStatus{display:block}
+body.mp-vip-simple #daily-games .mp-match-actions{display:flex;flex-wrap:wrap;gap:8px}
+body.mp-vip-simple #daily-games .mp-match-actions button{flex:1 1 170px}
+body.mp-vip-simple .mp-api-game{border-radius:12px}
+body.mp-vip-simple #mp-vip-workspace{display:block!important}
+@media(max-width:660px){#mp-vip-workspace{padding:16px;margin:8px 0 14px;border-radius:17px}.mp-vip-head{display:block}.mp-vip-live-tag{display:inline-block;margin-bottom:14px}.mp-vip-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.mp-vip-tabs button:last-child{grid-column:1/-1}#mp-vip-workspace button{font-size:12px;padding:9px 7px}.mp-vip-sportbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
 </head>
 <body>
 <header>
@@ -658,6 +689,26 @@ a { -webkit-tap-highlight-color: transparent; }
 </header>
 
 <main>
+<section id="mp-vip-workspace" aria-label="Panel principal Modelo PRO VIP">
+  <div class="mp-vip-kicker"><span class="mp-vip-dot"></span> MODELO PRO SPORTS / CENTRO DE PARTIDOS</div>
+  <div class="mp-vip-head"><div><h2>Encuentra el partido.<br><span>Analiza los datos.</span></h2><p>Sin calculadoras obligatorias. Sin porcentajes inventados.</p></div><div class="mp-vip-live-tag">DATOS REALES · SEGÚN COBERTURA</div></div>
+  <nav id="mp-vip-tabs" class="mp-vip-tabs" aria-label="Vista principal">
+    <button type="button" data-vip-tab="partidos" aria-pressed="true">⚡ Partidos</button>
+    <button type="button" data-vip-tab="estadisticas" aria-pressed="false">📊 Estadísticas</button>
+    <button type="button" data-vip-tab="cuotas" aria-pressed="false">🎯 Cuotas y EDGE</button>
+    <button type="button" data-vip-tab="historial" aria-pressed="false">📈 Mis resultados</button>
+    <button type="button" data-vip-tab="todo" aria-pressed="false">⚙️ Todo</button>
+  </nav>
+  <div id="mp-vip-sportbar" class="mp-vip-sportbar" aria-label="Deporte">
+    <button type="button" data-vip-sport="Fútbol">⚽ Fútbol</button>
+    <button type="button" data-vip-sport="NBA">🏀 NBA</button>
+    <button type="button" data-vip-sport="NFL">🏈 NFL</button>
+    <button type="button" data-vip-sport="MLB">⚾ MLB</button>
+    <button type="button" data-vip-sport="NHL">🏒 NHL</button>
+    <button type="button" data-vip-sport="UFC">🥊 UFC</button>
+  </div>
+  <p id="mp-vip-source-info" class="mp-vip-source-info" role="status">Calendario: OddsLink · Historial: football-data.org · API-Football: sujeto a límites del proveedor</p>
+</section>
 
 <section class="premium-hero" aria-label="Panel principal">
   <div class="hero-copy">
@@ -3531,6 +3582,64 @@ target.addEventListener("click",async event=>{
  }catch(error){resultBox.textContent="Sin estadísticas: "+(error.message||"error")}
  finally{btn.disabled=false}
 });
+})();
+</script>
+<script id="mp-vip-redesign-js">
+(()=>{
+"use strict";
+const ready=()=>{
+ const main=document.querySelector("main"),tabs=document.getElementById("mp-vip-tabs"),bar=document.getElementById("mp-vip-sportbar"),filter=document.getElementById("dailySportFilter");
+ if(!main||!tabs||!bar||!filter)return;
+ const workspace=document.getElementById("mp-vip-workspace");
+ const firstDaily=document.getElementById("daily-games");
+ if(firstDaily && workspace && workspace.nextElementSibling!==firstDaily)main.insertBefore(firstDaily,workspace.nextSibling);
+ const mapping={
+  partidos:["daily-games","mp-extra-sources"],
+  estadisticas:["mp-api-football","football-model","data-health"],
+  cuotas:["odds-section","bestOddsPanel","calculator-section"],
+  historial:["bet-summary","results-section","history-section"]
+ };
+ const allIds=[...new Set(Object.values(mapping).flat())];
+ const selectTab=(tab,scroll=false)=>{
+  const name=mapping[tab]||tab==="todo"?tab:"partidos";
+  document.body.classList.toggle("mp-vip-simple",name!=="todo");
+  document.body.dataset.vipView=name;
+  allIds.forEach(id=>{
+   const element=document.getElementById(id);
+   if(element)element.classList.toggle("mp-vip-visible",name==="todo"||(mapping[name]||[]).includes(id));
+  });
+  [...tabs.querySelectorAll("[data-vip-tab]")].forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.vipTab===name)));
+  if(scroll)workspace?.scrollIntoView({behavior:"smooth",block:"start"});
+ };
+ tabs.addEventListener("click",event=>{
+  const btn=event.target.closest("[data-vip-tab]");if(!btn)return;
+  selectTab(btn.dataset.vipTab,true);
+ });
+ const syncSport=()=>[...bar.querySelectorAll("[data-vip-sport]")].forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.vipSport===filter.value)));
+ bar.addEventListener("click",event=>{
+  const btn=event.target.closest("[data-vip-sport]");if(!btn)return;
+  selectTab("partidos");
+  filter.value=btn.dataset.vipSport;
+  filter.dispatchEvent(new Event("change",{bubbles:true}));
+  syncSport();
+  document.getElementById("daily-games")?.scrollIntoView({behavior:"smooth",block:"start"});
+ });
+ filter.addEventListener("change",syncSport);
+ document.addEventListener("click",event=>{
+  const btn=event.target.closest("button.use-daily-game");
+  if(btn)selectTab("cuotas");
+  const link=event.target.closest('a[href^="#"]');
+  if(!link)return;
+  const section=document.querySelector(link.getAttribute("href"));
+  if(!section)return;
+  const sectionId=section.closest("main > section")?.id||section.id;
+  const tab=Object.entries(mapping).find(([_,ids])=>ids.includes(sectionId));
+  if(tab)selectTab(tab[0]);
+ },true);
+ syncSport();
+ selectTab("partidos");
+};
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",ready,{once:true});else ready();
 })();
 </script>
 </body>
