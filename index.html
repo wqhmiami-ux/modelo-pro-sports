@@ -829,7 +829,7 @@ a { -webkit-tap-highlight-color: transparent; }
     <button class="full" id="loadLiveGames" type="button">BUSCAR EVENTOS EN VIVO</button>
   </div>
   <p class="note">El filtro “posiblemente en vivo” usa la hora programada. El estado real y las cuotas en directo solo se confirman si el proveedor los devuelve.</p>
-  <p class="note"><strong>Pronósticos estadísticos:</strong> en partidos de fútbol cubiertos, pulsa «MODELO DE GOLES Y GANADOR» para obtener la estimación histórica independiente. En otros mercados, los porcentajes procedentes de cuotas son solo referencias de mercado.</p>
+  <p class="note"><strong>Pronósticos estadísticos:</strong> en cada partido de fútbol cubierto pulsa «ANALIZAR PARTIDO · MODELO». Los resultados de ganador, goles y ambos marcan aparecen en la tarjeta del partido. Las cuotas son referencias de mercado, no predicciones propias; córners, tarjetas y tiros requieren un historial estadístico adicional.</p>
   <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
   <p class="note">Elige el día y el deporte. Para mostrar todas las ligas de fútbol pulsa «TODAS LAS LIGAS». La cobertura depende de los proveedores.</p>
   <p class="note"><strong>Datos disponibles:</strong> el calendario y las cuotas se obtienen de OddsLink. Goles y totales aparecen si la fuente entrega las líneas; córners, tarjetas, tiros y estadísticas avanzadas pueden requerir otro proveedor. Una lista de mercados en pantalla no significa que existan datos para todos.</p>
@@ -874,7 +874,7 @@ a { -webkit-tap-highlight-color: transparent; }
 </select>
 <p class="note">Selecciona una liga. La consulta abarca tres días y se realiza una sola vez por liga; algunas ligas o temporadas pueden estar fuera de tu plan.</p>
 <button type="button" class="primary full" id="mp-api-load">CARGAR PARTIDOS API-FOOTBALL</button>
-<p class="note" id="mp-api-status" role="status">Requiere desplegar el Worker con el secreto API_FOOTBALL_KEY.</p>
+<p class="note" id="mp-api-status" role="status">Fuente complementaria: si hay límites o falta cobertura, el calendario y las cuotas de OddsLink siguen disponibles. No se inventan probabilidades.</p>
 <div id="mp-api-results"></div>
 </section>
 <section id="bet-summary" class="card" aria-labelledby="bet-summary-title">
