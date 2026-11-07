@@ -3196,6 +3196,10 @@ main{max-width:1240px!important}
 <style id="mp-extra-source-style">
 .mp-extra-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
 .mp-extra-event{padding:14px;border-radius:13px;border:1px solid #31445f;background:#0e1c2e}
+.mp-extra-event .mp-event-stats{margin-top:10px;width:100%;font-size:11px}
+.mp-extra-stats{margin-top:9px;color:#b6c9df;font-size:12px}
+.mp-extra-stats-title{font-size:10px;font-weight:800;color:#c5fb62;margin:10px 0}
+.mp-extra-stats-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #2d4055;padding:7px 0}
 .mp-extra-event strong{display:block;font-size:15px;margin:5px 0 8px}
 .mp-extra-event small{display:block;color:#a7b9cd;font-size:11px}
 .mp-extra-event .mp-extra-source{color:#c5fb62;font-weight:750}
@@ -3275,10 +3279,26 @@ main{max-width:1240px!important}
   status.textContent=events.length+" partidos complementarios encontrados"+(cached?" (caché reciente)":"")+". "+(errors.length?"Fuentes sin respuesta: "+errors.join(", ")+". ":"")+"Estos partidos no tienen cuotas verificadas en esta sección.";
   target.innerHTML=events.length?events.slice(0,120).map(e=>{
    const d=new Date(e.date),date=d.toLocaleDateString("es-US",{weekday:"short",day:"numeric",month:"short"}),time=d.toLocaleTimeString("es-US",{hour:"numeric",minute:"2-digit"});
-   return '<article class="mp-extra-event"><small>'+escape(date+" · "+time+" · "+e.league)+'</small><strong>'+escape(e.home)+" vs. "+escape(e.away)+'</strong><small class="mp-extra-source">Fuente: '+escape(e.source)+'</small><small>Cuotas y predicción: no verificadas con esta fuente</small></article>';
+   return '<article class="mp-extra-event"><small>'+escape(date+" · "+time+" · "+e.league)+'</small><strong>'+escape(e.home)+" vs. "+escape(e.away)+'</strong><small class="mp-extra-source">Fuente: '+escape(e.source)+'</small><small>Cuotas y predicción: no verificadas con esta fuente</small>'+(String(e.id||"").startsWith("tsdb:")?'<button class="mp-event-stats" type="button" data-stat-id="'+escape(String(e.id).slice(5))+'">VER ESTADÍSTICAS DEL PARTIDO</button><div class="mp-extra-stats" role="status"></div>':'')+'</article>';
   }).join(""):'<p class="note">No se recibieron encuentros utilizables. Puede ser falta de cobertura, límite gratuito o bloqueo del navegador; no significa que no haya partidos.</p>';
   if(events.length>120)target.insertAdjacentHTML("beforeend",'<p class="note">Mostrando los primeros 120 encuentros de '+events.length+'.</p>');
  }
+ target.addEventListener("click",async event=>{
+   const btn=event.target.closest(".mp-event-stats");
+   if(!btn)return;
+   const area=btn.parentElement.querySelector(".mp-extra-stats");
+   if(!area)return;
+   const id=btn.dataset.statId;
+   if(!/^\\d+$/.test(id)){area.textContent="Identificador de partido no válido.";return}
+   btn.disabled=true;area.textContent="Consultando estadísticas de TheSportsDB…";
+   try{
+     const data=await getJson("https://www.thesportsdb.com/api/v1/json/123/lookupeventstats.php?id="+id);
+     const stats=Array.isArray(data?.eventstats)?data.eventstats:[];
+     if(!stats.length){area.textContent="Esta fuente no dispone de estadísticas detalladas de este encuentro.";return}
+     area.innerHTML='<div class="mp-extra-stats-title">ESTADÍSTICAS DE ESTE PARTIDO (NO PRONÓSTICO)</div>'+stats.map(x=>'<div class="mp-extra-stats-row"><span>'+escape(x.strStat||"Estadística")+'</span><b>'+escape(x.intHome??"—")+' / '+escape(x.intAway??"—")+'</b></div>').join("")+'<small>Valores de local / visitante. Datos reportados por TheSportsDB, cobertura variable.</small>';
+   }catch(err){area.textContent="No fue posible obtener las estadísticas: "+(err?.message||"sin respuesta")}
+   finally{btn.disabled=false}
+ });
  button.addEventListener("click",load);
  $("mpExtraLeague").addEventListener("change",()=>{target.innerHTML="";status.textContent="Elige BUSCAR MÁS PARTIDOS para consultar esta liga."});
  // Carga alternativa manual para no multiplicar solicitudes automáticamente.
