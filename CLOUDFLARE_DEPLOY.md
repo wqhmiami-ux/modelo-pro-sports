@@ -48,3 +48,14 @@ El Worker guarda en la caché de Cloudflare respuestas exitosas de cuotas durant
 ## Publicar cambios
 
 El último cambio del Worker requiere desplegar de nuevo el archivo completo `cloudflare-worker-oddslink.js` en Cloudflare. El código del repositorio y GitHub Pages no pueden modificar por sí solos el Worker que ya está ejecutándose.
+
+
+## API-Football: estadísticas avanzadas (nueva integración)
+
+1. En Cloudflare → Workers & Pages → `modelo-pro-api` → **Settings → Variables and Secrets**, crea un secreto con nombre `API_FOOTBALL_KEY` usando una clave **nueva** (si la anterior fue compartida en un chat, revócala). Nunca añadas esta clave a GitHub o al HTML.
+2. Abre **Edit code** para el mismo Worker, conserva su nombre y reemplaza el contenido por [cloudflare-worker-oddslink.js](./cloudflare-worker-oddslink.js), y pulsa **Deploy**. Este archivo mantiene las rutas antiguas de OddsLink y football-data.org, y añade `/api/advanced/fixtures` y `/api/advanced/statistics`.
+3. Comprueba `https://modelo-pro-api.wqhmi.workers.dev/` y confirma que enumera ambas rutas nuevas.
+4. Prueba `https://modelo-pro-api.wqhmi.workers.dev/api/advanced/fixtures?from=2026-11-07&to=2026-11-09`. Sustituye las fechas por los tres días que deseas consultar. Una respuesta `ok:true` confirma que la clave ha funcionado, aunque `response` esté vacío.
+5. En GitHub Pages, abre **API-Football · Estadísticas avanzadas** y pulsa **CARGAR PARTIDOS API-FOOTBALL**. Para un partido con estadísticas pulsa **VER CÓRNERS, TARJETAS Y TIROS**.
+
+**Importante:** el repositorio no despliega automáticamente el Worker. El plan gratuito de API-Football limita solicitudes y cobertura. Las estadísticas por encuentro están sujetas a permisos y cobertura, y no equivalen a probabilidades predictivas. Los resultados del calendario se guardan en la caché del Worker durante 15 minutos y las estadísticas durante una hora, para reducir consumo de cuota.
