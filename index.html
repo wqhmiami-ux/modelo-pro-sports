@@ -2815,5 +2815,184 @@ renderHistory();
 })();
 </script>
 
+
+
+<!-- MODELO PRO SPORTS VIP WORKSPACE v2 -->
+<style id="modelo-pro-vip-v2">
+:root{--vip-bg:#070c16;--vip-panel:#101a2b;--vip-panel2:#142238;--vip-border:#263952;--vip-lime:#c7f36b;--vip-cyan:#68d8ef;--vip-muted:#98a9bf}
+body{background:radial-gradient(ellipse at 80% -10%,rgba(104,216,239,.13),transparent 36%),radial-gradient(ellipse at 0% 40%,rgba(199,243,107,.07),transparent 30%),var(--vip-bg)!important}
+header{background:linear-gradient(115deg,#0d1728,#12243b 65%,#102b2a)!important;border-bottom:1px solid rgba(199,243,107,.42)!important}
+header h1{letter-spacing:.09em!important}
+main{max-width:1240px!important}
+.premium-hero{border:1px solid rgba(199,243,107,.22)!important;border-radius:24px!important;background:linear-gradient(120deg,rgba(17,32,52,.98),rgba(12,25,42,.96) 65%,rgba(18,49,43,.9))!important;box-shadow:0 22px 60px rgba(0,0,0,.25)!important}
+.vip-command-center{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+.vip-command-card{border-radius:17px!important;background:linear-gradient(145deg,#14243a,#0d1728)!important;border:1px solid var(--vip-border)!important}
+#sports{position:sticky;top:0;z-index:30;backdrop-filter:blur(18px);background:rgba(7,12,22,.94)!important;border:1px solid var(--vip-border)!important;border-radius:16px!important}
+#sports button{border-radius:12px!important}
+#sports button.active{background:var(--vip-lime)!important;color:#10180a!important}
+.quick-nav{display:none!important}
+#mp-vip-nav{position:sticky;top:76px;z-index:29;display:flex;gap:7px;overflow-x:auto;padding:10px;margin:12px 0 18px;background:rgba(9,16,29,.94);border:1px solid var(--vip-border);border-radius:16px;backdrop-filter:blur(18px);scrollbar-width:thin}
+#mp-vip-nav button{flex:0 0 auto;min-width:max-content;background:#142238;border:1px solid #2a3d58;color:#dce7f5;border-radius:11px;padding:11px 15px;font-size:13px}
+#mp-vip-nav button[aria-selected=true]{background:var(--vip-lime);border-color:var(--vip-lime);color:#111a0c;box-shadow:0 5px 20px rgba(199,243,107,.13)}
+.mp-vip-page{display:none;animation:mpFade .2s ease}
+.mp-vip-page.active{display:block}
+@keyframes mpFade{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:none}}
+.mp-page-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:4px 0 14px}
+.mp-page-heading h2{font-size:22px;margin:0}
+.mp-page-heading p{color:var(--vip-muted);font-size:12px;margin:4px 0 0}
+.mp-live-tag{font-size:11px;letter-spacing:.08em;color:var(--vip-lime);border:1px solid rgba(199,243,107,.3);background:rgba(199,243,107,.07);padding:7px 10px;border-radius:99px;white-space:nowrap}
+.mp-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.mp-kpi{padding:15px;border:1px solid var(--vip-border);border-radius:15px;background:linear-gradient(145deg,#111e31,#0c1525)}
+.mp-kpi small{display:block;color:var(--vip-muted);font-size:10px;letter-spacing:.09em;text-transform:uppercase}
+.mp-kpi strong{display:block;margin-top:7px;font-size:23px;letter-spacing:-.04em}
+.mp-kpi .mp-kpi-sub{font-size:11px;color:var(--vip-muted);margin-top:3px}
+.mp-tool-card{background:linear-gradient(145deg,#111e31,#0c1525);border:1px solid var(--vip-border);border-radius:18px;padding:18px;margin:0 0 14px}
+.mp-tool-card h3{margin:0 0 7px;font-size:17px}
+.mp-tool-card p{color:var(--vip-muted);font-size:12px;line-height:1.55}
+.mp-parlay-leg{display:grid;grid-template-columns:1.4fr .8fr .8fr auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px solid var(--vip-border)}
+.mp-parlay-leg label{margin-top:0}
+.mp-parlay-leg input{min-width:0}
+.mp-parlay-leg button{padding:9px 12px}
+.mp-parlay-result{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
+.mp-parlay-result>div{background:#081321;border:1px solid var(--vip-border);padding:13px;border-radius:13px}
+.mp-parlay-result small{display:block;color:var(--vip-muted);font-size:10px;text-transform:uppercase}
+.mp-parlay-result strong{display:block;font-size:20px;margin-top:5px}
+.mp-warning{padding:12px;border:1px solid rgba(255,209,102,.35);border-radius:12px;background:rgba(255,209,102,.07);color:#f6d98e;font-size:12px;line-height:1.5;margin-top:12px}
+.mp-primary{background:var(--vip-lime)!important;color:#111a0c!important;border-color:var(--vip-lime)!important;font-weight:850}
+.mp-secondary{background:#1a2b43!important;border:1px solid var(--vip-border)!important}
+.mp-empty-state{border:1px dashed #354965;border-radius:14px;padding:18px;color:var(--vip-muted);font-size:13px;text-align:center}
+.mp-app-footer{color:#7f91a8;font-size:11px;text-align:center;padding:18px 6px 30px}
+#app-pages .card{margin-bottom:14px}
+#app-pages .card h2{margin-bottom:10px}
+@media(max-width:760px){.vip-command-center{grid-template-columns:repeat(2,minmax(0,1fr))!important}#mp-vip-nav{top:66px}.mp-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mp-two-col{grid-template-columns:1fr}}
+@media(max-width:480px){main{padding:12px!important}.premium-hero{padding:20px!important}.vip-command-center{gap:8px!important}.vip-command-card{padding:12px!important}.mp-page-heading h2{font-size:19px}.mp-parlay-leg{grid-template-columns:1fr 1fr}.mp-parlay-leg .mp-leg-name{grid-column:1/-1}.mp-parlay-result{grid-template-columns:1fr 1fr}.mp-parlay-result>div:last-child{grid-column:1/-1}}
+</style>
+<script id="modelo-pro-vip-v2-script">
+(() => {
+  "use strict";
+  const main = document.querySelector("main");
+  const sports = document.getElementById("sports");
+  if (!main || !sports || document.getElementById("mp-vip-nav")) return;
+  const sections = {
+    home:["daily-games","bet-summary"],
+    research:["football-model","odds-section","results-section"],
+    parlay:[],
+    calculator:["calculator-section"],
+    performance:["history-section"],
+    sources:["data-health"]
+  };
+  const labels = [["home","⌂  Inicio"],["research","◈  Investigación"],["parlay","▤  Parlay Lab"],["calculator","＋  Analizar apuesta"],["performance","▥  Rendimiento"],["sources","◎  Fuentes"]];
+  const nav=document.createElement("nav");
+  nav.id="mp-vip-nav";
+  nav.setAttribute("aria-label","Navegación principal Modelo PRO");
+  nav.innerHTML=labels.map(([key,label],i)=>'<button type="button" data-page="'+key+'" aria-selected="'+(i===0)+'" role="tab">'+label+'</button>').join("");
+  const pages=document.createElement("div");
+  pages.id="app-pages";
+  pages.setAttribute("role","region");
+  pages.setAttribute("aria-label","Herramientas deportivas");
+  const titles={home:["Centro de partidos","Calendario, eventos disponibles y picks guardados."],research:["Research desk","Cuotas disponibles, resultados y análisis estadístico."],parlay:["Parlay Lab","Calcula combinadas y revisa el riesgo conjunto."],calculator:["Bet analyzer","Evalúa probabilidad, cuota, EDGE y decisión."],performance:["Mi rendimiento","Registro, resultados y métricas de tus pronósticos."],sources:["Centro de datos","Comprueba el estado de las fuentes conectadas."]};
+  for(const [key] of labels){
+    const page=document.createElement("section");
+    page.className="mp-vip-page"+(key==="home"?" active":"");
+    page.id="mp-page-"+key;
+    page.setAttribute("role","tabpanel");
+    const heading=document.createElement("div");
+    heading.className="mp-page-heading";
+    heading.innerHTML='<div><h2>'+titles[key][0]+'</h2><p>'+titles[key][1]+'</p></div><span class="mp-live-tag">MODELO PRO · VIP</span>';
+    page.appendChild(heading);
+    if(key==="home"){
+      const kpis=document.createElement("div");
+      kpis.className="mp-kpi-grid";
+      kpis.innerHTML='<div class="mp-kpi"><small>Deportes</small><strong>06</strong><div class="mp-kpi-sub">Fútbol · NFL · NBA · MLB · NHL · UFC</div></div><div class="mp-kpi"><small>Picks pendientes</small><strong id="mp-pending-kpi">—</strong><div class="mp-kpi-sub">De tu historial guardado</div></div><div class="mp-kpi"><small>Acierto registrado</small><strong id="mp-hit-kpi">—</strong><div class="mp-kpi-sub">Solo picks resueltos</div></div><div class="mp-kpi"><small>Beneficio registrado</small><strong id="mp-profit-kpi">—</strong><div class="mp-kpi-sub">Según tu historial local</div></div>';
+      page.appendChild(kpis);
+    }
+    pages.appendChild(page);
+  }
+  nav.addEventListener("click",event=>{
+    const button=event.target.closest("button[data-page]");
+    if(!button)return;
+    const key=button.dataset.page;
+    nav.querySelectorAll("button").forEach(item=>item.setAttribute("aria-selected",String(item===button)));
+    pages.querySelectorAll(".mp-vip-page").forEach(item=>item.classList.toggle("active",item.id==="mp-page-"+key));
+    if(key==="home"||key==="performance")refreshKpis();
+    if(key==="parlay")renderParlay();
+    window.scrollTo({top:0,behavior:"smooth"});
+  });
+  const quickNav=main.querySelector(".quick-nav");
+  if(quickNav)quickNav.remove();
+  sports.insertAdjacentElement("afterend",nav);
+  nav.insertAdjacentElement("afterend",pages);
+  for(const [key,ids] of Object.entries(sections)){
+    const page=document.getElementById("mp-page-"+key);
+    ids.forEach(id=>{const node=document.getElementById(id);if(node)page.appendChild(node);});
+  }
+  const parlay=document.createElement("section");
+  parlay.className="mp-tool-card";
+  parlay.innerHTML='<h3>Constructor de combinadas</h3><p>Introduce las cuotas americanas y tus probabilidades independientes estimadas. El cálculo combinado supone independencia: si las selecciones están correlacionadas, la probabilidad real puede ser distinta.</p><div id="mp-parlay-legs"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="mp-secondary" id="mp-add-leg">＋ Añadir selección</button><button type="button" class="mp-primary" id="mp-calc-parlay">ANALIZAR COMBINADA</button></div><div id="mp-parlay-output" aria-live="polite"><div class="mp-empty-state">Añade al menos dos selecciones para calcular la combinada.</div></div><div class="mp-warning">Advertencia: la probabilidad combinada es una multiplicación matemática de las estimaciones introducidas, no una predicción del sistema. No uses este cálculo como garantía de acierto. Las cuotas y probabilidades deben verificarse antes de decidir.</div>';
+  document.getElementById("mp-page-parlay").appendChild(parlay);
+  const legs=document.getElementById("mp-parlay-legs");
+  const output=document.getElementById("mp-parlay-output");
+  function addLeg(name="",odds="",probability=""){
+    if(legs.children.length>=12)return;
+    const row=document.createElement("div");
+    row.className="mp-parlay-leg";
+    row.innerHTML='<div class="mp-leg-name"><label>Selección '+(legs.children.length+1)+'</label><input class="mp-leg-title" maxlength="100" placeholder="Equipo / jugador / mercado" value="'+name.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"></div><div><label>Cuota americana</label><input class="mp-leg-odds" type="number" step="1" placeholder="-110" value="'+odds+'"></div><div><label>Prob. estimada %</label><input class="mp-leg-prob" type="number" min="0.1" max="99.9" step="0.1" placeholder="55" value="'+probability+'"></div><button type="button" class="mp-secondary mp-remove-leg" aria-label="Eliminar selección">×</button>';
+    row.querySelector(".mp-remove-leg").addEventListener("click",()=>{row.remove();renumberLegs();});
+    legs.appendChild(row);
+  }
+  function renumberLegs(){[...legs.children].forEach((row,i)=>row.querySelector("label").textContent="Selección "+(i+1));}
+  function americanDecimal(n){if(!Number.isInteger(n)||Math.abs(n)<100)return null;return n>0?1+n/100:1+100/Math.abs(n);}
+  function calculateParlay(){
+    const rows=[...legs.children];
+    if(rows.length<2){output.innerHTML='<div class="mp-empty-state">Necesitas al menos dos selecciones.</div>';return;}
+    let combinedDecimal=1,combinedProbability=1,valid=true;
+    const details=[];
+    for(const row of rows){
+      const title=row.querySelector(".mp-leg-title").value.trim()||"Selección";
+      const odds=Number(row.querySelector(".mp-leg-odds").value);
+      const prob=Number(row.querySelector(".mp-leg-prob").value);
+      const dec=americanDecimal(odds);
+      if(!dec||!Number.isFinite(prob)||prob<=0||prob>=100){valid=false;break;}
+      combinedDecimal*=dec;
+      combinedProbability*=prob/100;
+      details.push({title,prob});
+    }
+    if(!valid){output.innerHTML='<div class="mp-warning">Revisa cada cuota americana (por ejemplo +120 o -110) y cada probabilidad entre 0.1% y 99.9%. No se calculó la combinada.</div>';return;}
+    const implied=100/combinedDecimal;
+    const fair=1/combinedProbability;
+    const edge=combinedProbability*100-implied;
+    output.innerHTML='<div class="mp-parlay-result"><div><small>Cuota combinada decimal</small><strong>'+combinedDecimal.toFixed(2)+'</strong></div><div><small>Prob. estimada combinada</small><strong>'+(combinedProbability*100).toFixed(2)+'%</strong></div><div><small>Prob. implícita cuota</small><strong>'+implied.toFixed(2)+'%</strong></div><div><small>EDGE estimado</small><strong class="'+(edge>0?"green":"red")+'">'+(edge>0?"+":"")+edge.toFixed(2)+' pp</strong></div><div><small>Cuota justa estimada</small><strong>'+fair.toFixed(2)+'</strong></div><div><small>Selecciones</small><strong>'+details.length+'</strong></div></div><p class="note">Estimación combinada: '+details.map(d=>d.title.replace(/[&<>]/g,"")+' ('+d.prob.toFixed(1)+'%)').join(" · ")+'. La cuota decimal combinada es el producto de las cuotas individuales; la probabilidad combinada solo es válida bajo el supuesto de independencia.</p>';
+  }
+  document.getElementById("mp-add-leg").addEventListener("click",()=>addLeg());
+  document.getElementById("mp-calc-parlay").addEventListener("click",calculateParlay);
+  function renderParlay(){if(!legs.children.length){addLeg();addLeg();}}
+  renderParlay();
+  function refreshKpis(){
+    try{
+      const rows=JSON.parse(localStorage.getItem("modeloProSportsHistoryV3")||"[]");
+      const valid=Array.isArray(rows)?rows:[];
+      const pending=valid.filter(r=>r.status==="Pendiente"&&["APUESTA","APUESTA CONDICIONAL"].includes(r.decision)).length;
+      const wins=valid.filter(r=>r.status==="Ganada").length;
+      const losses=valid.filter(r=>r.status==="Perdida").length;
+      const settled=valid.filter(r=>["Ganada","Perdida","Nula"].includes(r.status));
+      const profit=settled.reduce((sum,r)=>sum+(Number(r.pnl)||0),0);
+      const hit=wins+losses?100*wins/(wins+losses):null;
+      const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+      set("mp-pending-kpi",String(pending));
+      set("mp-hit-kpi",hit===null?"—":hit.toFixed(1)+"%");
+      set("mp-profit-kpi",(profit<0?"-$":"$")+Math.abs(profit).toFixed(2));
+    }catch(_){}
+  }
+  refreshKpis();
+  document.addEventListener("click",event=>{if(event.target.closest("#save,#clear,[data-result],[data-delete]"))setTimeout(refreshKpis,100);});
+  document.getElementById("mp-page-performance").addEventListener("click",()=>setTimeout(refreshKpis,100));
+  const footer=document.createElement("div");
+  footer.className="mp-app-footer";
+  footer.textContent="MODELO PRO SPORTS · Análisis y entretenimiento · Verifica datos y cuotas antes de tomar decisiones.";
+  pages.appendChild(footer);
+})();
+</script>
+<!-- END MODELO PRO SPORTS VIP WORKSPACE v2 -->
+
 </body>
 </html>
