@@ -3400,7 +3400,7 @@ main{max-width:1240px!important}
 </style>
 <script id="mp-api-football-js">
 (()=>{
-const base="https://modelo-pro-api.wqhmi.workers.dev";
+const base="https://modelo-pro-api.wqhmiami.workers.dev";
 const load=document.getElementById("mp-api-load"),status=document.getElementById("mp-api-status"),target=document.getElementById("mp-api-results");
 if(!load||!status||!target)return;
 const escape=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -3423,7 +3423,7 @@ load.addEventListener("click",async()=>{
    const id=e.fixture?.id;
    return '<article class="mp-api-game"><small>'+escape(when)+' · '+escape(e.league?.name||"Liga")+'</small><strong>'+escape(e.teams?.home?.name||"Local")+' vs '+escape(e.teams?.away?.name||"Visitante")+'</strong><small>Estado: '+escape(e.fixture?.status?.long||"Sin información")+'</small>'+(id?'<button type="button" class="mp-api-stats" data-id="'+escape(id)+'">VER CÓRNERS, TARJETAS Y TIROS</button>':'')+'<div class="mp-api-details"></div></article>';
   }).join(""):'<p class="note">La fuente no devolvió eventos utilizables para estas fechas.</p>';
- }catch(error){status.textContent="No se pudo comunicar con Cloudflare: "+(error.message||"error")+". Primero comprueba que la dirección del Worker abra en Safari. No vuelvas a configurar la clave todavía.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmi.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
+ }catch(error){status.textContent="No se pudo comunicar con Cloudflare: "+(error.message||"error")+". Primero comprueba que la dirección del Worker abra en Safari. No vuelvas a configurar la clave todavía.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
  finally{load.disabled=false}
 });
 target.addEventListener("click",async event=>{
