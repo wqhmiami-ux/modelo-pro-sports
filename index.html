@@ -679,6 +679,25 @@ a { -webkit-tap-highlight-color: transparent; }
   </div>
 </section>
 
+<section id="mp-api-football" class="card">
+<h2>⚽ API-Football · Partidos y estadísticas</h2>
+<p class="note">Consulta una liga en los próximos 3 días. Si API-Football no tiene cobertura o alcanza su límite, utiliza el calendario principal de OddsLink sin perder los partidos.</p>
+<label for="mp-api-league">Liga para consultar estadísticas</label>
+<select id="mp-api-league">
+<option value="39">Inglaterra · Premier League</option>
+<option value="140">España · La Liga</option>
+<option value="135">Italia · Serie A</option>
+<option value="78">Alemania · Bundesliga</option>
+<option value="61">Francia · Ligue 1</option>
+<option value="253">Estados Unidos · MLS</option>
+</select>
+<p class="note">Selecciona una liga. La consulta abarca tres días y se realiza una sola vez por liga; algunas ligas o temporadas pueden estar fuera de tu plan.</p>
+<button type="button" class="primary full" id="mp-api-load">CARGAR PARTIDOS API-FOOTBALL</button>
+<p class="note" id="mp-api-status" role="status">Fuente complementaria: si hay límites o falta cobertura, el calendario y las cuotas de OddsLink siguen disponibles. No se inventan probabilidades.</p>
+<div id="mp-api-results"></div>
+<p class="note"><a href="#daily-games">VER CALENDARIO PRINCIPAL Y CUOTAS (ODDSLINK)</a></p>
+</section>
+
 <section class="vip-command-center" aria-label="Centro de control VIP">
   <a class="vip-command-card" href="#data-health"><span class="vip-command-icon" aria-hidden="true">🛡️</span><strong>Datos verificables</strong><span>Comprueba la conexión y revisa qué fuentes respondieron.</span></a>
   <a class="vip-command-card" href="#daily-games"><span class="vip-command-icon" aria-hidden="true">📊</span><strong>Radar deportivo</strong><span>Explora eventos disponibles en los seis deportes.</span></a>
@@ -860,23 +879,7 @@ a { -webkit-tap-highlight-color: transparent; }
   <div id="mpExtraResults" class="mp-extra-grid"></div>
 </section>
 
-<section id="mp-api-football" class="card">
-<h2>API-Football · Estadísticas avanzadas</h2>
-<p class="note">Consulta partidos de hoy, mañana y pasado mañana. Las estadísticas son valores observados del partido, no predicciones ni cuotas.</p>
-<label for="mp-api-league">Liga para consultar estadísticas</label>
-<select id="mp-api-league">
-<option value="39">Inglaterra · Premier League</option>
-<option value="140">España · La Liga</option>
-<option value="135">Italia · Serie A</option>
-<option value="78">Alemania · Bundesliga</option>
-<option value="61">Francia · Ligue 1</option>
-<option value="253">Estados Unidos · MLS</option>
-</select>
-<p class="note">Selecciona una liga. La consulta abarca tres días y se realiza una sola vez por liga; algunas ligas o temporadas pueden estar fuera de tu plan.</p>
-<button type="button" class="primary full" id="mp-api-load">CARGAR PARTIDOS API-FOOTBALL</button>
-<p class="note" id="mp-api-status" role="status">Fuente complementaria: si hay límites o falta cobertura, el calendario y las cuotas de OddsLink siguen disponibles. No se inventan probabilidades.</p>
-<div id="mp-api-results"></div>
-</section>
+
 <section id="bet-summary" class="card" aria-labelledby="bet-summary-title">
 <h2 id="bet-summary-title">Resumen de apuestas</h2>
 <div class="metrics">
@@ -3508,8 +3511,8 @@ load.addEventListener("click",async()=>{
    const when=new Date(e.fixture.date).toLocaleString("es-US",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
    const id=e.fixture?.id;
    return '<article class="mp-api-game"><small>'+escape(when)+' · '+escape(e.league?.name||"Liga")+'</small><strong>'+escape(e.teams?.home?.name||"Local")+' vs '+escape(e.teams?.away?.name||"Visitante")+'</strong><small>Estado: '+escape(e.fixture?.status?.long||"Sin información")+'</small>'+(id?'<button type="button" class="mp-api-stats" data-id="'+escape(id)+'">VER CÓRNERS, TARJETAS Y TIROS</button>':'')+'<div class="mp-api-details"></div></article>';
-  }).join(""):'<p class="note">La fuente no devolvió eventos utilizables para estas fechas.</p>';
- }catch(error){const message=String(error.message||"error");status.textContent=message.includes("Invalid date range")?"La validación de parámetros del Worker requiere actualización. Despliega el código corregido de GitHub en Cloudflare; no cambies el secreto.":message.includes("secret not configured")?"El Worker no encuentra API_FOOTBALL_KEY. Revisa el secreto en el entorno de producción.":message.includes("Límite de API-Football")||message.includes("rateLimit")||message.includes("rate limit")?"API-Football alcanzó su límite de consultas por minuto. El botón indicará cuándo volver a intentarlo. No cambies la clave ni el Worker.":message.includes("Load failed")||message.includes("Failed to fetch")?"La conexión a Cloudflare no se pudo completar; revisa la dirección del Worker.":"API-Football respondió: "+message+". Si indica plan gratuito sin acceso a esta temporada, hay que cambiar la cobertura o el proveedor; si indica límite, hay que esperar al reinicio de la cuota.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
+  }).join(""):'<p class="note">API-Football no devolvió partidos cubiertos de esta liga para los tres días. Puedes consultar los encuentros que sí entregó OddsLink en el <a href="#daily-games">calendario principal</a>.</p>';
+ }catch(error){const message=String(error.message||"error");status.textContent=message.includes("Invalid date range")?"La validación de parámetros del Worker requiere actualización. Despliega el código corregido de GitHub en Cloudflare; no cambies el secreto.":message.includes("secret not configured")?"El Worker no encuentra API_FOOTBALL_KEY. Revisa el secreto en el entorno de producción.":message.includes("Límite de API-Football")||message.includes("rateLimit")||message.includes("rate limit")?"API-Football alcanzó el límite por minuto. El calendario principal de OddsLink sigue disponible más abajo; este botón se habilita al finalizar la espera.":message.includes("Load failed")||message.includes("Failed to fetch")?"La conexión a Cloudflare no se pudo completar; revisa la dirección del Worker.":"API-Football respondió: "+message+". Si indica plan gratuito sin acceso a esta temporada, hay que cambiar la cobertura o el proveedor; si indica límite, hay que esperar al reinicio de la cuota.";target.innerHTML='<p class="note"><a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">PROBAR CONEXIÓN DIRECTA A CLOUDFLARE</a> · Si no abre, revisa la URL pública en Cloudflare → modelo-pro-api → Settings → Domains & Routes.</p>'}
  finally{loading=false;refreshCooldown()}
 });
 target.addEventListener("click",async event=>{
