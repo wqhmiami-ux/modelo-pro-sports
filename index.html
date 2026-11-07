@@ -3457,7 +3457,7 @@ const day=value=>{const d=new Date(value);return d.getFullYear()+"-"+String(d.ge
 const offset=i=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+i);return day(d)};
 const cooldownKey="modeloProApiFootballCooldown";
 const fixtureCachePrefix="modeloProApiFootballFixtures:";
-const cacheTTL=15*60*1000;
+const cacheTTL=60*60*1000;
 const remainingCooldown=()=>{try{return Math.max(0,Math.ceil((Number(localStorage.getItem(cooldownKey)||0)-Date.now())/1000))}catch{return 0}};
 const initialLabel=load.textContent.trim();
 let loading=false;
@@ -3494,16 +3494,16 @@ const request=async(path)=>{
 };
 load.addEventListener("click",async()=>{
  if(remainingCooldown()>0){refreshCooldown();return}
- loading=true;refreshCooldown();target.innerHTML="";status.textContent="Consultando calendario de API-Football…";
+ loading=true;refreshCooldown();status.textContent="Consultando calendario de API-Football…";
  try{
   const league=document.getElementById("mp-api-league")?.value||"39";
   const season=(league==="253"?new Date().getFullYear():new Date().getMonth()<6?new Date().getFullYear()-1:new Date().getFullYear());
   const path="/api/advanced/fixtures?from="+offset(0)+"&to="+offset(2)+"&league="+encodeURIComponent(league)+"&season="+season;
   let saved=null;
-  try{saved=JSON.parse(localStorage.getItem(fixtureCachePrefix+offset(0))||"null")}catch{}
+  try{saved=JSON.parse(localStorage.getItem(fixtureCachePrefix+league+":"+offset(0))||"null")}catch{}
   const fresh=saved&&saved.path===path&&saved.savedAt&&Date.now()-saved.savedAt<cacheTTL&&saved.data?.response;
   const result=fresh?saved.data:await request(path);
-  if(!fresh){try{localStorage.setItem(fixtureCachePrefix+offset(0),JSON.stringify({path,savedAt:Date.now(),data:result}))}catch{}}
+  if(!fresh){try{localStorage.setItem(fixtureCachePrefix+league+":"+offset(0),JSON.stringify({path,savedAt:Date.now(),data:result}))}catch{}}
   const validDays=new Set([offset(0),offset(1),offset(2)]);
   const events=(Array.isArray(result.response)?result.response:[]).filter(e=>e.fixture?.date&&validDays.has(day(e.fixture.date))).sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
   status.textContent=events.length+" encuentros disponibles en "+(document.getElementById("mp-api-league")?.selectedOptions[0]?.textContent||"la liga")+" durante estos tres días."+ (fresh?" Calendario guardado; no se consumió otra consulta.":"")+" La cobertura de estadísticas depende del plan y la temporada.";
