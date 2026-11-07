@@ -1849,8 +1849,10 @@ function renderDailyGames() {
     }
     const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
     const price=favorite?(favorite.price>0?"+":"")+favorite.price:"";
-    const prediction=favorite ? '<strong>'+escapeHTML(favorite.name)+'</strong><div class="mp-prediction-stats"><span>Consenso <b>'+favorite.probability.toFixed(1)+'%</b></span><span>Mejor cuota <b>'+price+'</b></span><span>Casa <b>'+escapeHTML(favorite.book)+'</b></span></div><p>Favorito del mercado según '+favorite.count+' casas. No es una predicción independiente ni confirma valor.</p>' : '<strong>Pronóstico no disponible</strong><p>Faltan al menos dos cuotas comparables. No se inventa una selección ni una probabilidad.</p>';
-    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>FAVORITO SEGÚN CUOTAS · NO ES PREDICCIÓN</small>'+prediction+'</div><div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">ANALIZAR</button></div></article>';
+    const prediction=favorite
+      ? '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE SEGÚN LAS CUOTAS</div><strong class="mp-pick-name">'+escapeHTML(favorite.name)+'</strong><div class="mp-pick-prob">'+favorite.probability.toFixed(1)+'% <span>probabilidad de mercado sin margen aproximada</span></div><div class="mp-prediction-stats"><span>Mejor cuota encontrada <b>'+price+'</b></span><span>Casa <b>'+escapeHTML(favorite.book)+'</b></span><span>Fuentes <b>'+favorite.count+'</b></span></div><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO CONFIRMADA</b></div><p>Esta selección es el resultado favorito del mercado, no una predicción independiente. Para recomendar APOSTAR hacen falta una estimación estadística verificable, EDGE positivo y comprobación de datos. Un favorito puede perder.</p>'
+      : '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE</div><strong>NO DETERMINADO</strong><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO APOSTAR SIN DATOS</b></div><p>La fuente no devolvió al menos dos cuotas comparables. No se inventa ganador, porcentaje ni predicción.</p>';
+    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div><div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">ANALIZAR</button></div></article>';
   }).join("");
   $("dailyGamesStatus").textContent = "Mostrando "+filtered.length+" partidos · Fechas en tu hora local. El consenso de mercado no equivale a una predicción independiente.";
 }
@@ -3030,6 +3032,12 @@ main{max-width:1240px!important}
 .mp-fast-filters label{margin:0;font-size:12px;align-self:end}.mp-fast-filters input,.mp-fast-filters select{margin:0}
 #daily-games{order:-1}
 @media(max-width:600px){.mp-fast-filters{grid-template-columns:1fr;gap:7px}}
+.mp-pick-heading{font-size:11px;font-weight:850;letter-spacing:.07em;color:#c5fb62;margin-bottom:7px}
+.mp-pick-name{font-size:24px!important;line-height:1.2;display:block;color:#fff}
+.mp-pick-prob{font-size:29px;font-weight:900;color:#c5fb62;margin:8px 0}
+.mp-pick-prob span{display:block;font-size:11px;color:#b8c4d6;font-weight:500}
+.mp-pick-verdict{margin-top:12px;border:1px solid #52627b;border-radius:9px;padding:9px 11px;font-size:12px;color:#e5ecf7}
+.mp-pick-verdict b{color:#ffdc94}
 </style>
 <script id="mp-auto-start-script">
 (()=>{
