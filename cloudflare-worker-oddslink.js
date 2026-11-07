@@ -43,7 +43,7 @@ export default {
           ok: true,
           service: "Modelo PRO Sports API",
           oddsProvider: "OddsLink",
-          endpoints: ["/api/odds", "/api/football"],
+          endpoints: ["/api/odds", "/api/football", "/api/advanced/fixtures", "/api/advanced/statistics"],
           sports: Object.keys(sportMap),
         },
         { headers: corsHeaders }
@@ -219,6 +219,51 @@ export default {
         });
       } catch {
         return jsonError("Football data provider unavailable", 502);
+      }
+    }
+
+    // API-Football v3: credencial exclusivamente desde Cloudflare Secret.
+    // No compartir la clave con GitHub Pages ni el cliente.
+    if (path === "/api/advanced/fixtures" || path === "/api/advanced/statistics") {
+      const key = env.API_FOOTBALL_KEY;
+      if (!key) return jsonError("API-Football secret not configured in Cloudflare", 503, { provider: "API-Football" });
+      const isStats = path.endsWith("/statistics");
+      const isoDay = /^\\d{4}-\\d{2}-\\d{2}$/;
+      const from = url.searchParams.get("from") || "";
+      const to = url.searchParams.get("to") || "";
+      const fixture = url.searchParams.get("fixture") || "";
+      if (isStats ? !/^[0-9]{1,12}$/.test(fixture) : !(isoDay.test(from) && isoDay.test(to) && from <= to && (Date.parse(to)-Date.parse(from)) <= 2*86400000)) {
+        return jsonError("Invalid date range or fixture identifier", 400);
+      }
+      const upstream = new URL("https://v3.football.api-sports.io/" + (isStats ? "fixtures/statistics" : "fixtures"));
+      if (isStats) upstream.searchParams.set("fixture",fixture);
+      else { upstream.searchParams.set("from",from);upstream.searchParams.set("to",to); }
+      const cacheRequest = new Request(upstream.toString());
+      try {
+        const cached = await caches.default.match(cacheRequest);
+        if (cached) return new Response(cached.body, {status:cached.status, headers:{...Object.fromEntries(cached.headers),"X-Cache":"HIT"}});
+      } catch {}
+      try {
+        const upstreamResponse = await fetch(upstream.toString(),{
+          headers:{"x-apisports-key":key,Accept:"application/json"}
+        });
+        const data = await upstreamResponse.json().catch(()=>null);
+        if(!upstreamResponse.ok || !data || (data.errors && Object.keys(data.errors).length)){
+          return jsonError("API-Football rejected the request or reached its quota",upstreamResponse.status === 429 ? 429 : 502,{
+            provider:"API-Football",
+            providerStatus:upstreamResponse.status,
+            detail:data?.errors || null
+          });
+        }
+        const rows=Array.isArray(data.response)?data.response:[];
+        const response=Response.json({
+          ok:true,provider:"API-Football",response:rows,
+          count:rows.length,coverage:"Varies by league, season and plan"
+        },{headers:{...corsHeaders,"Cache-Control":isStats?"public, max-age=3600":"public, max-age=900"}});
+        try {await caches.default.put(cacheRequest,response.clone())}catch{}
+        return response;
+      }catch{
+        return jsonError("API-Football provider unavailable",502,{provider:"API-Football"});
       }
     }
 
