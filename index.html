@@ -723,9 +723,9 @@ a { -webkit-tap-highlight-color: transparent; }
       </select>
     </div>
     <div>
-      <label for="dailyFootballLeague">Torneos de fútbol (puedes elegir varios)</label>
+      <label for="dailyFootballLeague">Filtrar ligas de fútbol (sin selección = todas las que entregue la fuente)</label>
       <select id="dailyFootballLeague" multiple size="7" aria-describedby="leagueSelectionHelp">
-        <option value="soccer_epl" selected>Inglaterra · Premier League</option>
+        <option value="soccer_epl">Inglaterra · Premier League</option>
         <option value="soccer_efl_champ">Inglaterra · Championship</option>
         <option value="soccer_england_efl_cup">Inglaterra · EFL Cup</option>
         <option value="soccer_england_league1">Inglaterra · League One</option>
@@ -790,7 +790,7 @@ a { -webkit-tap-highlight-color: transparent; }
         <option value="soccer_sweden_superettan">Suecia · Superettan</option>
         <option value="soccer_switzerland_superleague">Suiza · Super League</option>
       </select>
-      <p id="leagueSelectionHelp" class="note">El calendario consulta las competiciones de fútbol que devuelve OddsLink y filtra por tu selección. La cobertura cambia según la fuente y puede haber ligas sin eventos o cuotas disponibles; comprueba el estado de datos antes de analizar.</p>
+      <p id="leagueSelectionHelp" class="note">Por defecto se muestran todas las ligas que entregue la fuente. Selecciona ligas solo para limitar la vista. La cobertura de partidos y mercados depende del proveedor.</p>
       <div class="grid league-presets">
         <button type="button" id="selectColombiaLeague">SOLO COLOMBIA</button>
         <button type="button" id="selectSouthAmerica">SUDAMÉRICA</button>
@@ -823,6 +823,7 @@ a { -webkit-tap-highlight-color: transparent; }
   </div>
   <p class="note">El filtro “posiblemente en vivo” usa la hora programada. El estado real y las cuotas en directo solo se confirman si el proveedor los devuelve.</p>
   <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
+  <p class="note"><strong>Datos disponibles:</strong> el calendario y las cuotas se obtienen de OddsLink. Goles y totales aparecen si la fuente entrega las líneas; córners, tarjetas, tiros y estadísticas avanzadas pueden requerir otro proveedor. Una lista de mercados en pantalla no significa que existan datos para todos.</p>
   <div id="mpCalendarDays" class="mp-calendar-days" role="group" aria-label="Seleccionar día de partidos"></div>
   <div class="mp-fast-filters" aria-label="Búsqueda rápida">
   <label for="mpQuickFind">Buscar equipos o partidos</label>
@@ -1854,7 +1855,7 @@ function renderDailyGames() {
   if ($("mpQuickOrder")?.value === "market") filtered.sort((a,b) => marketLeader(b)-marketLeader(a) || dateOrder(a,b));
   else filtered.sort(dateOrder);
   const target = $("dailyGamesResults");
-  if (!filtered.length) { target.innerHTML = '<div class="mp-empty-state">No hay partidos devueltos para estos filtros. Actualiza o cambia la fecha/deporte.</div>'; return; }
+  if (!filtered.length) { target.innerHTML = '<div class="mp-empty-state"><strong>No se encontraron partidos para esta fecha y filtros.</strong><p>Puede haber partidos reales sin cobertura en la fuente de cuotas. Prueba TODOS los deportes, limpia el buscador o vuelve a consultar. No significa que hoy no se juegue.</p></div>'; return; }
   target.innerHTML = filtered.map(game => {
     const kickoff = new Date(game.commence_time), valid = Number.isFinite(kickoff.getTime());
     const date = valid ? kickoff.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short",year:"numeric"}) : "Fecha no informada";
@@ -2221,7 +2222,7 @@ $("loadDailyGames").addEventListener("click", async () => {
     } catch {}
 
     const uniqueFailures = [...new Set(failures)];
-    const messages = [`Eventos recibidos: ${dailyGamesCache.length}.`];
+    const messages = [`Eventos recibidos de las fuentes: ${allReceived.length}. Tras filtros de ligas: ${dailyGamesCache.length}.`];
     if (missingSoccerSelections.length) {
       messages.push(`Competiciones de fútbol seleccionadas sin eventos devueltos por la fuente: ${missingSoccerSelections.map(option => option.label).join(", ")}. Puede faltar cobertura o disponibilidad de partidos/cuotas; no se inventaron eventos.`);
     }
