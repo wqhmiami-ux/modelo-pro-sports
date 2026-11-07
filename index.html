@@ -835,6 +835,22 @@ a { -webkit-tap-highlight-color: transparent; }
   <div id="dailyGamesResults"></div>
 </section>
 
+<section id="mp-extra-sources" class="card" aria-labelledby="mp-extra-title">
+  <h2 id="mp-extra-title">Calendario ampliado · Fuentes complementarias</h2>
+  <p class="note">Calendario adicional de hoy, mañana y pasado mañana. ESPN (fuente pública no oficial) y TheSportsDB (acceso gratuito limitado) pueden mostrar partidos que el proveedor de cuotas no incluye. Estos eventos NO implican que existan cuotas o predicciones disponibles.</p>
+  <div class="grid">
+    <button type="button" id="mpLoadExtraSources" class="primary full">BUSCAR MÁS PARTIDOS</button>
+    <select id="mpExtraLeague" aria-label="Liga adicional">
+      <option value="all">Ligas principales</option><option value="eng.1">Premier League</option>
+      <option value="esp.1">La Liga</option><option value="ita.1">Serie A</option>
+      <option value="ger.1">Bundesliga</option><option value="fra.1">Ligue 1</option>
+      <option value="usa.1">MLS</option><option value="mex.1">Liga MX</option>
+    </select>
+  </div>
+  <p id="mpExtraStatus" class="note" role="status" aria-live="polite">Consulta opcional. Los datos del proveedor principal se mantienen independientes.</p>
+  <div id="mpExtraResults" class="mp-extra-grid"></div>
+</section>
+
 <section id="bet-summary" class="card" aria-labelledby="bet-summary-title">
 <h2 id="bet-summary-title">Resumen de apuestas</h2>
 <div class="metrics">
@@ -3170,6 +3186,98 @@ main{max-width:1240px!important}
   };
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});
   else boot();
+})();
+</script>
+<!-- Calendario suplementario: no altera cuotas, estadísticas ni recomendaciones principales -->
+<style id="mp-extra-source-style">
+.mp-extra-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.mp-extra-event{padding:14px;border-radius:13px;border:1px solid #31445f;background:#0e1c2e}
+.mp-extra-event strong{display:block;font-size:15px;margin:5px 0 8px}
+.mp-extra-event small{display:block;color:#a7b9cd;font-size:11px}
+.mp-extra-event .mp-extra-source{color:#c5fb62;font-weight:750}
+@media(max-width:650px){.mp-extra-grid{grid-template-columns:1fr}}
+</style>
+<script id="mp-extra-source-script">
+(()=>{
+ const $=id=>document.getElementById(id);
+ const button=$("mpLoadExtraSources"),status=$("mpExtraStatus"),target=$("mpExtraResults");
+ if(!button||!status||!target)return;
+ const escape=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const isoDay=(shift)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+shift);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+ const dateDays=[0,1,2].map(isoDay);
+ const leagues=["eng.1","esp.1","ita.1","ger.1","fra.1","usa.1","mex.1"];
+ let busy=false;
+ async function getJson(url){
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000);
+  try{const response=await fetch(url,{signal:ctrl.signal,cache:"no-store"});if(!response.ok)throw Error("HTTP "+response.status);return await response.json()}
+  finally{clearTimeout(timer)}
+ }
+ function normalizeESPN(data,league){
+  return (Array.isArray(data?.events)?data.events:[]).map(e=>{
+   const comp=e.competitions?.[0],sides=comp?.competitors||[];
+   const home=sides.find(x=>x.homeAway==="home"),away=sides.find(x=>x.homeAway==="away");
+   const at=e.date||comp?.date;
+   if(!home||!away||!at||!Number.isFinite(new Date(at).getTime()))return null;
+   return {id:"espn:"+league+":"+e.id,home:home.team?.displayName||home.team?.name,away:away.team?.displayName||away.team?.name,date:at,league:data.leagues?.[0]?.name||league,source:"ESPN (no oficial)"};
+  }).filter(Boolean);
+ }
+ function normalizeTSD(data){
+  return (Array.isArray(data?.events)?data.events:[]).map(e=>{
+   if(!e.strHomeTeam||!e.strAwayTeam||!e.dateEvent)return null;
+   const at=e.strTimestamp||e.dateEvent+"T"+(e.strTime||"12:00:00")+"Z";
+   if(!Number.isFinite(new Date(at).getTime()))return null;
+   return{id:"tsdb:"+e.idEvent,home:e.strHomeTeam,away:e.strAwayTeam,date:at,league:e.strLeague||"Liga no informada",source:"TheSportsDB (gratuita)"};
+  }).filter(Boolean);
+ }
+ async function load(){
+  if(busy)return;busy=true;button.disabled=true;target.innerHTML="";
+  const selected=$("mpExtraLeague").value;
+  const list=selected==="all"?leagues:[selected];
+  const cacheKey="mpExtraScheduleV1:"+selected+":"+dateDays.join(",");
+  try{
+   const cached=JSON.parse(sessionStorage.getItem(cacheKey)||"null");
+   if(cached&&Array.isArray(cached.events)&&Date.now()-cached.time<900000){render(cached.events,cached.errors,true);return}
+  }catch(_){}
+  status.textContent="Consultando calendarios adicionales…";
+  const jobs=[];
+  // ESPN: endpoint público no oficial; su disponibilidad puede cambiar.
+  for(const league of list)for(const day of dateDays){
+   jobs.push({source:"ESPN",run:()=>getJson("https://site.api.espn.com/apis/site/v2/sports/soccer/"+encodeURIComponent(league)+"/scoreboard?dates="+day.replace(/-/g,"")).then(x=>normalizeESPN(x,league))});
+  }
+  // TheSportsDB: la clave pública gratuita limita el número de eventos.
+  for(const day of dateDays){
+   jobs.push({source:"TheSportsDB",run:()=>getJson("https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d="+day+"&s=Soccer").then(normalizeTSD)});
+  }
+  const all=[],errors=[];
+  // Tres peticiones simultáneas como máximo para evitar ráfagas.
+  for(let i=0;i<jobs.length;i+=3){
+   const group=jobs.slice(i,i+3);
+   const results=await Promise.allSettled(group.map(j=>j.run()));
+   results.forEach((r,j)=>{if(r.status==="fulfilled")all.push(...r.value);else errors.push(group[j].source)});
+  }
+  const unique=new Map();
+  for(const event of all){
+   const d=new Date(event.date);
+   const day=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+   if(!dateDays.includes(day))continue;
+   const key=[day,event.home,event.away].map(x=>String(x).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"")).join("|");
+   if(!unique.has(key))unique.set(key,event);
+  }
+  const events=[...unique.values()].sort((a,b)=>new Date(a.date)-new Date(b.date));
+  try{sessionStorage.setItem(cacheKey,JSON.stringify({events,errors:[...new Set(errors)],time:Date.now()}))}catch(_){}
+  render(events,[...new Set(errors)],false);
+ }
+ function render(events,errors,cached){
+  status.textContent=events.length+" partidos complementarios encontrados"+(cached?" (caché reciente)":"")+". "+(errors.length?"Fuentes sin respuesta: "+errors.join(", ")+". ":"")+"Estos partidos no tienen cuotas verificadas en esta sección.";
+  target.innerHTML=events.length?events.slice(0,120).map(e=>{
+   const d=new Date(e.date),date=d.toLocaleDateString("es-US",{weekday:"short",day:"numeric",month:"short"}),time=d.toLocaleTimeString("es-US",{hour:"numeric",minute:"2-digit"});
+   return '<article class="mp-extra-event"><small>'+escape(date+" · "+time+" · "+e.league)+'</small><strong>'+escape(e.home)+" vs. "+escape(e.away)+'</strong><small class="mp-extra-source">Fuente: '+escape(e.source)+'</small><small>Cuotas y predicción: no verificadas con esta fuente</small></article>';
+  }).join(""):'<p class="note">No se recibieron encuentros utilizables. Puede ser falta de cobertura, límite gratuito o bloqueo del navegador; no significa que no haya partidos.</p>';
+  if(events.length>120)target.insertAdjacentHTML("beforeend",'<p class="note">Mostrando los primeros 120 encuentros de '+events.length+'.</p>');
+ }
+ button.addEventListener("click",load);
+ $("mpExtraLeague").addEventListener("change",()=>{target.innerHTML="";status.textContent="Elige BUSCAR MÁS PARTIDOS para consultar esta liga."});
+ // Carga alternativa manual para no multiplicar solicitudes automáticamente.
 })();
 </script>
 </body>
