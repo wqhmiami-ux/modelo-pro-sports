@@ -232,12 +232,15 @@ export default {
       const from = url.searchParams.get("from") || "";
       const to = url.searchParams.get("to") || "";
       const fixture = url.searchParams.get("fixture") || "";
-      if (isStats ? !/^[0-9]{1,12}$/.test(fixture) : !(isoDay.test(from) && isoDay.test(to) && from <= to && (Date.parse(to)-Date.parse(from)) <= 2*86400000)) {
-        return jsonError("Invalid date range or fixture identifier", 400);
+      const league = url.searchParams.get("league") || "";
+      const season = url.searchParams.get("season") || "";
+      const allowedLeagues = new Set(["39","140","135","78","61","253"]);
+      if (isStats ? !/^[0-9]{1,12}$/.test(fixture) : !(isoDay.test(from) && isoDay.test(to) && from <= to && (Date.parse(to)-Date.parse(from)) <= 2*86400000 && allowedLeagues.has(league) && /^20[0-9]{2}$/.test(season))) {
+        return jsonError("Invalid date range, league, season or fixture identifier", 400);
       }
       const upstream = new URL("https://v3.football.api-sports.io/" + (isStats ? "fixtures/statistics" : "fixtures"));
       if (isStats) upstream.searchParams.set("fixture",fixture);
-      else { upstream.searchParams.set("from",from);upstream.searchParams.set("to",to); }
+      else { upstream.searchParams.set("from",from);upstream.searchParams.set("to",to);upstream.searchParams.set("league",league);upstream.searchParams.set("season",season); }
       const cacheRequest = new Request(upstream.toString());
       try {
         const cached = await caches.default.match(cacheRequest);
