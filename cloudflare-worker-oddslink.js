@@ -228,7 +228,7 @@ export default {
       const key = env.API_FOOTBALL_KEY;
       if (!key) return jsonError("API-Football secret not configured in Cloudflare", 503, { provider: "API-Football" });
       const isStats = path.endsWith("/statistics");
-      const isoDay = /^\\d{4}-\\d{2}-\\d{2}$/;
+      const isoDay = /^\d{4}-\d{2}-\d{2}$/;
       const from = url.searchParams.get("from") || "";
       const to = url.searchParams.get("to") || "";
       const fixture = url.searchParams.get("fixture") || "";
