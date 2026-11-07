@@ -1949,9 +1949,9 @@ function renderDailyGames() {
       });
       const best=candidates[0];
       if(best)availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'%</b></div>');
-      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':'<b>Sin historial suficiente</b>')+'</div>');
+      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':game.sport==="Fútbol"?'<button class="mp-open-advanced" type="button">VER ESTADÍSTICAS</button>':'<b>Sin cuotas de este mercado</b>')+'</div>');
     }
-    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO · CUOTAS</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros todavía faltan datos históricos de una API con cobertura de esa liga. No se inventan porcentajes.</p></div>';
+    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO · CUOTAS</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros pulsa VER ESTADÍSTICAS para consultar API-Football si la liga y el partido están cubiertos. Las estadísticas observadas no son predicciones; sin un modelo histórico validado, no se publican porcentajes.</p></div>';
     const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
     const price=favorite?(favorite.price>0?"+":"")+favorite.price:"";
     const prediction=favorite
@@ -2094,6 +2094,15 @@ $("dailyGamesResults").addEventListener("click", async event => {
   }
 });
 
+$("dailyGamesResults").addEventListener("click", event => {
+  const button=event.target.closest(".mp-open-advanced");
+  if(!button)return;
+  document.getElementById("mp-api-football")?.scrollIntoView({behavior:"smooth",block:"start"});
+  const load=document.getElementById("mp-api-load");
+  const status=document.getElementById("mp-api-status");
+  if(load && !load.disabled && !document.querySelector(".mp-api-game"))load.click();
+  else if(status)status.textContent="Busca el partido en el calendario API-Football y pulsa VER CÓRNERS, TARJETAS Y TIROS. Los datos disponibles dependen de la liga.";
+});
 $("dailyGamesResults").addEventListener("click", event => {
   const button=event.target.closest(".mp-btts-model");
   if(!button)return;
