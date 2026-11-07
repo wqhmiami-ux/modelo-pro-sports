@@ -854,6 +854,13 @@ a { -webkit-tap-highlight-color: transparent; }
   <div id="mpExtraResults" class="mp-extra-grid"></div>
 </section>
 
+<section id="mp-api-football" class="card">
+<h2>API-Football · Estadísticas avanzadas</h2>
+<p class="note">Consulta partidos de hoy, mañana y pasado mañana. Las estadísticas son valores observados del partido, no predicciones ni cuotas.</p>
+<button type="button" class="primary full" id="mp-api-load">CARGAR PARTIDOS API-FOOTBALL</button>
+<p class="note" id="mp-api-status" role="status">Requiere desplegar el Worker con el secreto API_FOOTBALL_KEY.</p>
+<div id="mp-api-results"></div>
+</section>
 <section id="bet-summary" class="card" aria-labelledby="bet-summary-title">
 <h2 id="bet-summary-title">Resumen de apuestas</h2>
 <div class="metrics">
@@ -3372,5 +3379,61 @@ main{max-width:1240px!important}
 .mp-independent-row span{font-size:12px}.mp-independent-row b{color:#c5fb62;white-space:nowrap}
 @media(max-width:540px){.mp-independent-grid{grid-template-columns:1fr}}
 </style>
+<style id="mp-api-football-css">
+#mp-api-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.mp-api-game{padding:14px;border:1px solid #354a65;background:#102034;border-radius:12px}
+.mp-api-game small{color:#afc2d7;font-size:11px}
+.mp-api-game strong{display:block;margin:7px 0;font-size:15px}
+.mp-api-game button{width:100%;margin-top:8px;font-size:12px}
+.mp-api-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #35445a;padding:7px 0;font-size:12px}
+.mp-api-row b{color:#c5fb62}
+@media(max-width:650px){#mp-api-results{grid-template-columns:1fr}}
+</style>
+<script id="mp-api-football-js">
+(()=>{
+const base="https://modelo-pro-api.wqhmi.workers.dev";
+const load=document.getElementById("mp-api-load"),status=document.getElementById("mp-api-status"),target=document.getElementById("mp-api-results");
+if(!load||!status||!target)return;
+const escape=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const day=value=>{const d=new Date(value);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const offset=i=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+i);return day(d)};
+const request=async(path)=>{
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{const response=await fetch(base+path,{signal:controller.signal});const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||"HTTP "+response.status);return data}
+ finally{clearTimeout(timer)}
+};
+load.addEventListener("click",async()=>{
+ load.disabled=true;target.innerHTML="";status.textContent="Consultando calendario de API-Football…";
+ try{
+  const result=await request("/api/advanced/fixtures?from="+offset(0)+"&to="+offset(2));
+  const validDays=new Set([offset(0),offset(1),offset(2)]);
+  const events=(Array.isArray(result.response)?result.response:[]).filter(e=>e.fixture?.date&&validDays.has(day(e.fixture.date))).sort((a,b)=>new Date(a.fixture.date)-new Date(b.fixture.date));
+  status.textContent=events.length+" encuentros disponibles en los tres días. Las estadísticas dependen del plan y de la liga.";
+  target.innerHTML=events.length?events.slice(0,100).map(e=>{
+   const when=new Date(e.fixture.date).toLocaleString("es-US",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+   const id=e.fixture?.id;
+   return '<article class="mp-api-game"><small>'+escape(when)+' · '+escape(e.league?.name||"Liga")+'</small><strong>'+escape(e.teams?.home?.name||"Local")+' vs '+escape(e.teams?.away?.name||"Visitante")+'</strong><small>Estado: '+escape(e.fixture?.status?.long||"Sin información")+'</small>'+(id?'<button type="button" class="mp-api-stats" data-id="'+escape(id)+'">VER CÓRNERS, TARJETAS Y TIROS</button>':'')+'<div class="mp-api-details"></div></article>';
+  }).join(""):'<p class="note">La fuente no devolvió eventos utilizables para estas fechas.</p>';
+ }catch(error){status.textContent="No se pudo cargar API-Football: "+(error.message||"error")+". Confirma el secreto y el despliegue en Cloudflare."}
+ finally{load.disabled=false}
+});
+target.addEventListener("click",async event=>{
+ const btn=event.target.closest(".mp-api-stats");if(!btn)return;
+ const id=btn.dataset.id;if(!/^[0-9]+$/.test(id))return;
+ const resultBox=btn.parentElement.querySelector(".mp-api-details");
+ btn.disabled=true;resultBox.textContent="Consultando estadísticas reales…";
+ try{
+  const data=await request("/api/advanced/statistics?fixture="+encodeURIComponent(id));
+  const teams=Array.isArray(data.response)?data.response.slice(0,2):[];
+  if(!teams.length){resultBox.textContent="Este partido no dispone de estadísticas en la fuente actual.";return}
+  const names=teams.map(t=>t.team?.name||"Equipo").join(" / ");
+  const types=["Corner Kicks","Yellow Cards","Red Cards","Shots on Goal","Total Shots"];
+  const find=(team,type)=>{const x=(team.statistics||[]).find(s=>s.type===type);return x?.value==null?"—":x.value};
+  resultBox.innerHTML='<small>Local / visitante: '+escape(names)+' · Estadísticas reales, no pronósticos</small>'+types.map(type=>'<div class="mp-api-row"><span>'+escape(type)+'</span><b>'+teams.map(t=>escape(find(t,type))).join(" / ")+'</b></div>').join("");
+ }catch(error){resultBox.textContent="Sin estadísticas: "+(error.message||"error")}
+ finally{btn.disabled=false}
+});
+})();
+</script>
 </body>
 </html>
