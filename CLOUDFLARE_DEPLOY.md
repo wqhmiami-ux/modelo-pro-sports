@@ -59,3 +59,12 @@ El último cambio del Worker requiere desplegar de nuevo el archivo completo `cl
 5. En GitHub Pages, abre **API-Football · Estadísticas avanzadas** y pulsa **CARGAR PARTIDOS API-FOOTBALL**. Para un partido con estadísticas pulsa **VER CÓRNERS, TARJETAS Y TIROS**.
 
 **Importante:** el repositorio no despliega automáticamente el Worker. El plan gratuito de API-Football limita solicitudes y cobertura. Las estadísticas por encuentro están sujetas a permisos y cobertura, y no equivalen a probabilidades predictivas. Los resultados del calendario se guardan en la caché del Worker durante 15 minutos y las estadísticas durante una hora, para reducir consumo de cuota.
+
+## Corrección de parámetros en API-Football
+
+La consulta de tres días mediante `from` y `to` requiere liga y temporada. El código actualizado del Worker solicita `league` y `season` para esta ruta y la interfaz permite elegir una sola liga cada vez, reduciendo el uso de API.
+
+Después de actualizar `cloudflare-worker-oddslink.js` y hacer **Deploy** en Cloudflare, comprueba este ejemplo de Premier League:
+`https://modelo-pro-api.wqhmiami.workers.dev/api/advanced/fixtures?from=2026-11-07&to=2026-11-09&league=39&season=2026`.
+
+Las fechas del ejemplo son ilustrativas: selecciona fechas vigentes al hacer la prueba. No modifiques `API_FOOTBALL_KEY`.
