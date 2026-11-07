@@ -249,11 +249,23 @@ export default {
         });
         const data = await upstreamResponse.json().catch(()=>null);
         if(!upstreamResponse.ok || !data || (data.errors && Object.keys(data.errors).length)){
-          return jsonError("API-Football rejected the request or reached its quota",upstreamResponse.status === 429 ? 429 : 502,{
-            provider:"API-Football",
-            providerStatus:upstreamResponse.status,
-            detail:data?.errors || null
+          const providerErrors=data?.errors || {};
+          const errorText=JSON.stringify(providerErrors);
+          const limited=upstreamResponse.status===429 || /rate.?limit|too many requests|requests per minute|quota|daily limit/i.test(errorText);
+          const retryAfterHeader=Number(upstreamResponse.headers.get("Retry-After"));
+          const retryAfterSeconds=limited ? Math.max(60,Math.min(3600,Number.isFinite(retryAfterHeader)&&retryAfterHeader>0?retryAfterHeader:60)) : 0;
+          const errorResponse=Response.json({
+            error:limited?"API-Football rate limit reached":"API-Football rejected the request",
+            provider:"API-Football",providerStatus:upstreamResponse.status,
+            detail:providerErrors,
+            ...(limited?{retryAfterSeconds}:{})
+          },{
+            status:limited?429:upstreamResponse.status>=400&&upstreamResponse.status<500?upstreamResponse.status:502,
+            headers:{...corsHeaders,"Cache-Control":limited?"public, max-age=60":"no-store",...(limited?{"Retry-After":String(retryAfterSeconds)}:{})}
           });
+          // Short negative cache prevents repeated identical requests from hitting provider.
+          if(limited){try{await caches.default.put(cacheRequest,errorResponse.clone())}catch{}}
+          return errorResponse;
         }
         const rows=Array.isArray(data.response)?data.response:[];
         const response=Response.json({
