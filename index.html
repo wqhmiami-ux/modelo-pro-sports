@@ -1942,7 +1942,7 @@ function renderDailyGames() {
       });
       const best=candidates[0];
       if(best)availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'%</b></div>');
-      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span><b>'+(group.keys[0]==="btts"?"Consultar modelo de goles":"Falta fuente estadística")+'</b></div>');
+      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':'<b>Sin historial suficiente</b>')+'</div>');
     }
     const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO · CUOTAS</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros todavía faltan datos históricos de una API con cobertura de esa liga. No se inventan porcentajes.</p></div>';
     const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
@@ -2087,6 +2087,16 @@ $("dailyGamesResults").addEventListener("click", async event => {
   }
 });
 
+$("dailyGamesResults").addEventListener("click", event => {
+  const button=event.target.closest(".mp-btts-model");
+  if(!button)return;
+  const match=button.closest(".mp-match-card");
+  const target=match?.querySelector(".mp-auto-football");
+  if(target) target.click();
+  else {
+    $("dailyGamesStatus").textContent="El modelo independiente de ambos marcan solo está disponible en partidos de fútbol con estadísticas históricas compatibles.";
+  }
+});
 $("dailyGamesResults").addEventListener("click", event => {
   const button=event.target.closest(".mp-auto-football");
   if(!button)return;
@@ -3189,6 +3199,7 @@ main{max-width:1240px!important}
 .mp-fast-filters label{margin:0;font-size:12px;align-self:end}.mp-fast-filters input,.mp-fast-filters select{margin:0}
 #daily-games{order:-1}
 @media(max-width:600px){.mp-fast-filters{grid-template-columns:1fr;gap:7px}}
+.mp-btts-model{font-size:10px!important;min-height:34px!important;padding:7px 9px!important;white-space:normal}
 .mp-market-panel{margin-top:12px;padding:12px;border:1px solid #2e4962;background:#0b1829;border-radius:11px}
 .mp-market-title{font-size:11px;letter-spacing:.08em;color:#c5fb62;font-weight:800;margin-bottom:10px}
 .mp-market-line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #21344a;font-size:12px}
