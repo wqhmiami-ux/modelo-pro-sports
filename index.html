@@ -801,7 +801,7 @@ a { -webkit-tap-highlight-color: transparent; }
     <div>
       <label for="dailyEventWindow">Qué eventos mostrar</label>
       <select id="dailyEventWindow">
-        <option value="five" selected>Hoy y 4 días siguientes</option>
+        <option value="five" selected>Hoy y 2 días siguientes</option>
         <option value="today">Hoy</option>
         <option value="live">Posiblemente en vivo</option>
         <option value="upcoming">Próximos 7 días</option>
@@ -1812,8 +1812,8 @@ function mpLocalDateOffset(offset) {
 function renderCalendarDays() {
   const nav=$("mpCalendarDays");
   if(!nav)return;
-  const labels=["HOY","MAÑANA","+2 DÍAS","+3 DÍAS","+4 DÍAS"];
-  const options=[{key:"all",label:"TODOS",subtitle:"5 días"},...labels.map((label,i)=>({
+  const labels=["HOY","MAÑANA","PASADO MAÑANA"];
+  const options=[{key:"all",label:"TODOS",subtitle:"3 días"},...labels.map((label,i)=>({
     key:String(i),label,subtitle:new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate()+i).toLocaleDateString("es-US",{day:"numeric",month:"short"})
   }))];
   nav.innerHTML=options.map(opt=>'<button type="button" class="mp-day-button'+(String(mpSelectedCalendarDay)===opt.key?' selected':'')+'" data-day="'+opt.key+'" aria-pressed="'+(String(mpSelectedCalendarDay)===opt.key)+'"><b>'+opt.label+'</b><small>'+opt.subtitle+'</small></button>').join("");
@@ -1837,7 +1837,7 @@ function renderDailyGames() {
     return (sportFilter === "Todos" || game.sport === sportFilter) &&
       (!countryFilter || (game.country || "").toLocaleLowerCase().includes(countryFilter)) &&
       (!tournamentFilter || (game.tournament || "").toLocaleLowerCase().includes(tournamentFilter)) &&
-      (windowFilter === "all" || (windowFilter === "five" && (mpSelectedCalendarDay === "all" ? Array.from({length:5},(_,i)=>mpLocalDateOffset(i)).includes(day) : day === mpLocalDateOffset(Number(mpSelectedCalendarDay)))) || (windowFilter === "today" && day === today) ||
+      (windowFilter === "all" || (windowFilter === "five" && (mpSelectedCalendarDay === "all" ? Array.from({length:3},(_,i)=>mpLocalDateOffset(i)).includes(day) : day === mpLocalDateOffset(Number(mpSelectedCalendarDay)))) || (windowFilter === "today" && day === today) ||
        (windowFilter === "live" && start <= now && start >= now - 10800000) ||
        (windowFilter === "upcoming" && start >= now && start <= now + 604800000));
   });
@@ -3096,13 +3096,13 @@ main{max-width:1240px!important}
 </script>
 <!-- MODELO PRO SPORTS AUTO START: no cambia API, estrategias ni historial -->
 <style id="mp-auto-start-styles">
-.mp-calendar-days{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0}
+.mp-calendar-days{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}
 .mp-day-button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 5px!important;border:1px solid #36506b!important;background:#101d30!important;color:#eaf1fd!important;border-radius:12px!important;min-width:0}
 .mp-day-button b{font-size:12px;white-space:nowrap}
 .mp-day-button small{font-size:11px;color:#aebfd5}
 .mp-day-button.selected{background:#c5fb62!important;color:#11200d!important;border-color:#c5fb62!important}
 .mp-day-button.selected small{color:#314b17}
-@media(max-width:700px){.mp-calendar-days{grid-template-columns:repeat(3,minmax(0,1fr))}.mp-day-button b{font-size:11px}}
+@media(max-width:700px){.mp-calendar-days{grid-template-columns:repeat(2,minmax(0,1fr))}.mp-day-button b{font-size:11px}}
 .mp-fast-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,220px);gap:10px 14px;margin:14px 0;padding:14px;border-radius:16px;border:1px solid rgba(197,251,98,.22);background:#0d1b2a}
 .mp-fast-filters label{margin:0;font-size:12px;align-self:end}.mp-fast-filters input,.mp-fast-filters select{margin:0}
 #daily-games{order:-1}
