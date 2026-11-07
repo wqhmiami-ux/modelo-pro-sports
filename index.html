@@ -849,6 +849,7 @@ a { -webkit-tap-highlight-color: transparent; }
     </select>
   </div>
   <p id="mpExtraStatus" class="note" role="status" aria-live="polite">Consulta opcional. Los datos del proveedor principal se mantienen independientes.</p>
+  <p class="note">Si OddsLink no puede responder, este calendario alternativo puede cargarse solo. No contiene cuotas verificadas ni reemplaza un modelo predictivo.</p>
   <div id="mpExtraResults" class="mp-extra-grid"></div>
 </section>
 
@@ -3323,7 +3324,26 @@ main{max-width:1240px!important}
  });
  button.addEventListener("click",load);
  $("mpExtraLeague").addEventListener("change",()=>{target.innerHTML="";status.textContent="Elige BUSCAR MÁS PARTIDOS para consultar esta liga."});
- // Carga alternativa manual para no multiplicar solicitudes automáticamente.
+ // Si OddsLink falla o queda limitado sin calendario en caché, cargar automáticamente
+ // las fuentes suplementarias de fútbol. Se intenta una vez por pestaña.
+ let fallbackStarted=false;
+ const maybeFallback=()=>{
+   if(fallbackStarted)return;
+   const mainStatus=document.getElementById("dailyGamesStatus");
+   if(!mainStatus)return;
+   const msg=mainStatus.textContent||"";
+   const unavailable=/OddsLink está temporalmente limitado|No hay calendario guardado|La fuente no devolvió eventos|No se pudo cargar el calendario|Fuentes con error/i.test(msg);
+   if(!unavailable)return;
+   fallbackStarted=true;
+   status.textContent="OddsLink no tiene suficientes datos. Consultando calendarios alternativos de fútbol…";
+   load();
+ };
+ const mainStatus=document.getElementById("dailyGamesStatus");
+ if(mainStatus){
+   const observer=new MutationObserver(maybeFallback);
+   observer.observe(mainStatus,{childList:true,characterData:true,subtree:true});
+   maybeFallback();
+ }
 })();
 </script>
 <style id="mp-independent-goals-style">
