@@ -822,6 +822,7 @@ a { -webkit-tap-highlight-color: transparent; }
     <button class="full" id="loadLiveGames" type="button">BUSCAR EVENTOS EN VIVO</button>
   </div>
   <p class="note">El filtro “posiblemente en vivo” usa la hora programada. El estado real y las cuotas en directo solo se confirman si el proveedor los devuelve.</p>
+  <p class="note"><strong>Pronósticos estadísticos:</strong> en partidos de fútbol cubiertos, pulsa «MODELO DE GOLES Y GANADOR» para obtener la estimación histórica independiente. En otros mercados, los porcentajes procedentes de cuotas son solo referencias de mercado.</p>
   <p id="dailyGamesStatus" class="note" role="status" aria-live="polite">Pulsa para consultar las fuentes deportivas conectadas.</p>
   <p class="note"><strong>Datos disponibles:</strong> el calendario y las cuotas se obtienen de OddsLink. Goles y totales aparecen si la fuente entrega las líneas; córners, tarjetas, tiros y estadísticas avanzadas pueden requerir otro proveedor. Una lista de mercados en pantalla no significa que existan datos para todos.</p>
   <div id="mpCalendarDays" class="mp-calendar-days" role="group" aria-label="Seleccionar día de partidos"></div>
@@ -1918,7 +1919,7 @@ function renderDailyGames() {
     const prediction=favorite
       ? '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE SEGÚN LAS CUOTAS</div><strong class="mp-pick-name">'+escapeHTML(favorite.name)+'</strong><div class="mp-pick-prob">'+favorite.probability.toFixed(1)+'% <span>probabilidad de mercado sin margen aproximada</span></div><div class="mp-prediction-stats"><span>Mejor cuota encontrada <b>'+price+'</b></span><span>Casa <b>'+escapeHTML(favorite.book)+'</b></span><span>Fuentes <b>'+favorite.count+'</b></span></div><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO CONFIRMADA</b></div><p>Esta selección es el resultado favorito del mercado, no una predicción independiente. Para recomendar APOSTAR hacen falta una estimación estadística verificable, EDGE positivo y comprobación de datos. Un favorito puede perder.</p>'
       : '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE</div><strong>NO DETERMINADO</strong><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO APOSTAR SIN DATOS</b></div><p>La fuente no devolvió al menos dos cuotas comparables. No se inventa ganador, porcentaje ni predicción.</p>';
-    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div>'+additionalMarkets+'<div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">ANALIZAR</button></div></article>';
+    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div>'+additionalMarkets+'<div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">ANALIZAR</button>'+(game.sport==="Fútbol"?'<button type="button" class="mp-auto-football" data-home="'+escapeHTML(game.home_team||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-league="'+escapeHTML(game.league_key||game.tournament||"")+'">MODELO DE GOLES Y GANADOR</button>':'')+'</div></article>';
   }).join("");
   $("dailyGamesStatus").textContent = "Mostrando "+filtered.length+" partidos · Fechas en tu hora local. El consenso de mercado no equivale a una predicción independiente.";
 }
@@ -2048,6 +2049,35 @@ $("dailyGamesResults").addEventListener("click", async event => {
 });
 
 $("dailyGamesResults").addEventListener("click", event => {
+  const button=event.target.closest(".mp-auto-football");
+  if(!button)return;
+  const league=String(button.dataset.league||"").toLowerCase();
+  const competitions=[
+    [/epl|premier.league|england.premier/,"PL"],
+    [/la.liga|spain.*primera|espana.*primera/,"PD"],
+    [/bundesliga|germany.*first/,"BL1"],
+    [/serie.a|italy.*first/,"SA"],
+    [/ligue.1|france.*first/,"FL1"],
+    [/eredivisie|netherlands/,"DED"],
+    [/primeira.liga|portugal/,"PPL"],
+    [/brazil.*campeonato|brasil.*serie.a/,"BSA"],
+    [/champions.league|uefa.champs/,"CL"],
+    [/championship|efl.champ/,"ELC"]
+  ];
+  const found=competitions.find(pair=>pair[0].test(league));
+  const panel=$("football-model");
+  $("football-home").value=button.dataset.home||"";
+  $("football-away").value=button.dataset.away||"";
+  panel?.scrollIntoView({behavior:"smooth",block:"start"});
+  if(!found){
+    $("football-model-status").textContent="El análisis independiente de goles aún no cubre esta liga en la fuente histórica. Se muestran los equipos, pero NO se inventará una probabilidad.";
+    $("football-model-results").innerHTML="";
+    return;
+  }
+  $("footballModelCompetition").value=found[1];
+  $("football-predict").click();
+});
+$("dailyGamesResults").addEventListener("click", event => {
   const button = event.target.closest(".use-daily-game");
   if (!button) return;
   $("sport").value = button.dataset.sport;
@@ -2140,8 +2170,15 @@ $("loadDailyGames").addEventListener("click", async () => {
           const url = new URL(ODDS_API_URL);
           url.searchParams.set("sport", sport.key);
           url.searchParams.set("markets", sport.name === "UFC" ? "h2h" : "h2h,totals");
-          const response = await fetch(url.toString());
-          const data = await response.json().catch(() => ({}));
+          let response = await fetch(url.toString(), {cache:"no-store"});
+          let data = await response.json().catch(() => ({}));
+          // Los mercados adicionales pueden ser rechazados por algunos proveedores.
+          // Reintentar únicamente ganador evita perder también el calendario.
+          if (!response.ok && response.status !== 429 && !/rate limit|speed limit/i.test(String(data.error||"")) && sport.name !== "UFC") {
+            url.searchParams.set("markets","h2h");
+            response = await fetch(url.toString(),{cache:"no-store"});
+            data = await response.json().catch(() => ({}));
+          }
           if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
           events = Array.isArray(data) ? data :
             Array.isArray(data.events) ? data.events :
