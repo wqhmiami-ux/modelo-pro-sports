@@ -311,32 +311,54 @@ async function loadStandings(g){
 }
 
 
+let quickStandingsRequest=0;
+let quickStandingsController=null;
+const quickStandingsAliases={PL:"eng.1",PD:"esp.1",BL1:"ger.1",SA:"ita.1",FL1:"fra.1",DED:"ned.1",PPL:"por.1"};
+const quickStandingsNames={PL:/premier league|england/i,PD:/la ?liga|primera division|spain/i,BL1:/bundesliga|germany/i,SA:/serie a|italy|italia/i,FL1:/ligue 1|france/i,DED:/eredivisie|netherlands|países bajos/i,PPL:/primeira|portugal/i};
 async function showStandingsOverview(force=false){
- const box=$("standings-quick-result"),comp=$("standings-league").value;
+ const box=$("standings-quick-result"),selector=$("standings-league"),comp=selector.value;
+ const label=selector.selectedOptions[0]?.textContent||comp,request=++quickStandingsRequest;
+ // Always discard the previous table immediately on changing the selected league.
+ box.replaceChildren();
+ const loading=document.createElement("div");loading.className="status";loading.textContent="Consultando posiciones de "+label+"…";box.appendChild(loading);
+ if(quickStandingsController)quickStandingsController.abort();
+ const controller=new AbortController();quickStandingsController=controller;
  let data=!force?standingsCache.get(comp):null;
- box.textContent="Consultando posiciones de "+$("standings-league").selectedOptions[0].textContent+"…";
- if(!data){
-  try{
-   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
-   let res;
-   try{res=await fetch(BASE+"/api/standings?competition="+encodeURIComponent(comp),{signal:controller.signal})}finally{clearTimeout(timer)}
-   const payload=await res.json().catch(()=>({}));
-   if(!res.ok)throw Error("HTTP "+res.status+" · "+String(payload.error||"La fuente no está disponible"));
-   if(!Array.isArray(payload.table))throw Error("Respuesta sin tabla");
-   data=payload;standingsCache.set(comp,data);
-  }catch(e){if($("standings-league").value===comp)box.textContent="No fue posible consultar la clasificación: "+String(e.message||"Error de red");return}
- }
- if($("standings-league").value!==comp)return;
- const rows=data.table.map(r=>'<tr><td><b>'+r.position+'</b></td><td>'+esc(r.team?.name||"Equipo")+'</td><td>'+r.playedGames+'</td><td>'+r.won+'</td><td>'+r.draw+'</td><td>'+r.lost+'</td><td>'+r.points+'</td><td>'+r.goalDifference+'</td></tr>').join("");
- box.innerHTML='<p class="hint">Fuente: '+esc(data.provider||"football-data.org")+' · '+esc(data.competition||comp)+' · Jornada '+esc(data.matchday??"no informada")+'</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pts</th><th>DG</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
- renderGames();
- if(selected&&sport==="soccer"){
-  const match=standingsForGame(selected);
-  if(match.data?.table && $("standingboard"))void loadStandings(selected);
+ try{
+  if(!data){
+   const timer=setTimeout(()=>controller.abort(),14000);
+   try{
+    const res=await fetch(BASE+"/api/standings?competition="+encodeURIComponent(comp),{signal:controller.signal,cache:"no-store"});
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok)throw Error("HTTP "+res.status+": "+String(payload.error||"sin respuesta"));
+    if(!Array.isArray(payload.table)||!payload.table.length)throw Error("La fuente no entregó equipos");
+    const reported=String(payload.competition||"");
+    // If an upstream mapping goes wrong, never display another competition's table.
+    if(reported&&!quickStandingsNames[comp].test(reported))throw Error("La fuente devolvió otra liga: "+reported);
+    data=payload;
+    standingsCache.set(comp,{...data,__receivedAt:Date.now()});
+   }catch(error){
+    if(controller.signal.aborted)return;
+    // ESPN serves an independent table when football-data is unavailable.
+    const espn=await ensureEspnStandings(quickStandingsAliases[comp]);
+    if(espn?.table?.length)data=espn;
+    else throw error;
+   }finally{clearTimeout(timer)}
+  }
+  if(request!==quickStandingsRequest||selector.value!==comp)return;
+  if(!Array.isArray(data?.table)||!data.table.length)throw Error("Clasificación vacía");
+  const rows=data.table.map(r=>'<tr><td><b>'+esc(r.position??"—")+'</b></td><td>'+esc(r.team?.name||"Equipo")+'</td><td>'+esc(r.playedGames??"—")+'</td><td>'+esc(r.won??"—")+'</td><td>'+esc(r.draw??"—")+'</td><td>'+esc(r.lost??"—")+'</td><td>'+esc(r.points??"—")+'</td><td>'+esc(r.goalDifference??"—")+'</td></tr>').join("");
+  box.innerHTML='<h3>🏆 '+esc(label)+'</h3><p class="hint">Tabla de '+esc(label)+' · Fuente: '+esc(data.provider||"no identificada")+' · '+esc(data.competition||comp)+' · Jornada '+esc(data.matchday??"no informada")+'</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pts</th><th>DG</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  renderGames();
+ }catch(error){
+  if(request!==quickStandingsRequest||selector.value!==comp)return;
+  box.textContent="No fue posible actualizar "+label+": "+String(error.message||"error de conexión")+". No se mostrará la tabla de otra liga.";
+ }finally{
+  if(quickStandingsController===controller)quickStandingsController=null;
  }
 }
-$("standings-league").addEventListener("change",()=>showStandingsOverview());
-$("standings-refresh").addEventListener("click",()=>showStandingsOverview(true));
+$("standings-league").addEventListener("change",()=>{void showStandingsOverview(true)});
+$("standings-refresh").addEventListener("click",()=>{void showStandingsOverview(true)});
 
 const savedKey="modeloProV2History";
 const readSaved=()=>{try{return JSON.parse(localStorage.getItem(savedKey)||"[]")}catch{return []}};
