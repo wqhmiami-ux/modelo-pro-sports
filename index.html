@@ -2060,17 +2060,30 @@ function renderDailyGames() {
     const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">LECTURA RÁPIDA · CUOTAS DISPONIBLES</div>'+availableMarketRows.join("")+'<p>Porcentajes derivados de cuotas, NO pronósticos propios. Para obtener una estimación independiente, pulsa ANALIZAR PARTIDO · MODELO. Sin cuota comparable y modelo validado: NO HAY APUESTA CONFIRMADA. Las demás líneas están en VER TODOS LOS DATOS Y CUOTAS DISPONIBLES.</p></div>';
     // Tabla comparativa de mercados con cuotas realmente recibidas. No genera precios faltantes.
     const bookRows=[];
+    const oddsDecimal=price=>{
+      const value=Number(price);
+      if(!Number.isFinite(value)||value===0)return null;
+      // El Worker solicita oddsFormat=american. También admitimos decimal si la fuente cambia.
+      if(Number.isInteger(value)&&Math.abs(value)>=100)
+        return value>0?1+value/100:1+100/(-value);
+      return value>1?value:null;
+    };
+    const bookMarketLabels={
+      h2h:"Ganador",totals:game.sport==="Fútbol"?"Total goles":"Total puntos",
+      spreads:"Hándicap",btts:"Ambos marcan",both_teams_to_score:"Ambos marcan",
+      corners:"Córners",total_corners:"Córners",soccer_corners:"Córners",
+      cards:"Tarjetas",total_cards:"Tarjetas",shots_on_target:"Tiros a puerta",
+      total_shots_on_target:"Tiros a puerta"
+    };
     for(const book of (Array.isArray(game.bookmakers)?game.bookmakers:[])){
       const bookmaker=String(book.title||book.key||"Casa no identificada");
-      const updated=book.last_update?new Date(book.last_update):null;
       for(const market of (Array.isArray(book.markets)?book.markets:[])){
-        if(!["h2h","totals","spreads","btts","both_teams_to_score"].includes(market.key))continue;
+        const marketLabel=bookMarketLabels[market.key]||String(market.key||"Otro mercado");
         for(const outcome of (Array.isArray(market.outcomes)?market.outcomes:[])){
-          const decimal=Number(outcome.price);
-          if(!Number.isFinite(decimal)||decimal<=1)continue;
-          const american=toAmericanOdds(decimal);
+          const decimal=oddsDecimal(outcome.price);
+          if(decimal===null)continue;
+          const american=toAmericanOdds(outcome.price);
           const point=outcome.point===undefined||outcome.point===null?"":String(outcome.point);
-          const marketLabel=market.key==="h2h"?"Ganador":market.key==="totals"?(game.sport==="Fútbol"?"Total goles":"Total puntos"):market.key==="spreads"?"Hándicap":"Ambos marcan";
           const implied=100/decimal;
           const timestamp=market.last_update||book.last_update||"";
           bookRows.push({bookmaker,market:marketLabel,selection:String(outcome.name||"Selección"),point,american,decimal,implied,timestamp});
@@ -2091,7 +2104,7 @@ function renderDailyGames() {
       return {best,worst,count:rows.length,gap:((best.decimal/worst.decimal-1)*100)};
     }).sort((a,b)=>b.gap-a.gap).slice(0,12);
     const fmtPrice=price=>price===null?"—":(price>0?"+":"")+price;
-    const detailedRows=bookRows.slice(0,80).map(row=>
+    const detailedRows=bookRows.map(row=>
       '<tr><td>'+escapeHTML(row.market)+'</td><td>'+escapeHTML(row.selection+(row.point?" "+row.point:""))+'</td><td>'+escapeHTML(row.bookmaker)+'</td><td><b>'+escapeHTML(fmtPrice(row.american))+'</b></td><td>'+row.implied.toFixed(1)+'%</td></tr>'
     ).join("");
     const comparison=compareRows.length?'<div class="mp-data-subhead">MEJORES PRECIOS ENTRE CASAS (NO PREDICCIONES)</div>'+
@@ -2104,7 +2117,7 @@ function renderDailyGames() {
       '<p class="mp-data-timestamp">Última actualización reportada: '+escapeHTML(newestUpdate)+'. Probabilidad implícita sin retirar margen; NO es una predicción independiente.</p>'+
       comparison+
       (bookRows.length?'<div class="mp-data-table-wrap"><table class="mp-data-table"><thead><tr><th>Mercado</th><th>Selección</th><th>Casa</th><th>Cuota US</th><th>Implícita</th></tr></thead><tbody>'+detailedRows+'</tbody></table></div>':'<p>La fuente no entregó cuotas utilizables para este partido.</p>')+
-      (bookRows.length>80?'<p class="note">Se muestran 80 de '+bookRows.length+' cotizaciones recibidas.</p>':'')+
+
       '<p class="note">No incluye lesiones, forma, posesión, córners, tiros ni tarjetas si el proveedor no los devuelve. EDGE y recomendación requieren una probabilidad propia validada.</p></details>';
     const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
     const price=favorite?(favorite.price>0?"+":"")+favorite.price:"";
