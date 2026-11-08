@@ -389,7 +389,7 @@ function marketCategory(key){
  return "Otros";
 }
 function probabilityBrief(game){
- const rows=flatten(game).filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&1/r.decimal<0.80);
+ const rows=[...flatten(game),...(Array.isArray(game.__shotsRows)?game.__shotsRows:[])].filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&1/r.decimal<0.80);
  const categories=["Ganador","Goles / total","Ambos marcan","Córners","Tiros a puerta","Tarjetas","Hándicap","Doble oportunidad","Empate no apuesta"];
  const groups=new Map();
  for(const r of rows){
