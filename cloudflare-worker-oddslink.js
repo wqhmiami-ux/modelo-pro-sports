@@ -43,11 +43,58 @@ export default {
           ok: true,
           service: "Modelo PRO Sports API",
           oddsProvider: "OddsLink",
-          endpoints: ["/api/odds", "/api/football", "/api/advanced/fixtures", "/api/advanced/statistics"],
+          endpoints: ["/api/odds", "/api/football", "/api/advanced/fixtures", "/api/advanced/statistics", "/api/standings"],
           sports: Object.keys(sportMap),
         },
         { headers: corsHeaders }
       );
+    }
+
+    // Clasificaciones de temporada en curso proporcionadas por football-data.org.
+    // El token permanece secreto en Cloudflare; no se expone al navegador.
+    if (path === "/api/standings") {
+      if (!env.FOOTBALL_DATA_TOKEN) {
+        return jsonError("Football data token not configured", 503);
+      }
+      const competition = String(url.searchParams.get("competition") || "").toUpperCase();
+      const supported = new Set(["PL", "PD", "BL1", "SA", "FL1", "DED", "PPL"]);
+      if (!supported.has(competition)) {
+        return jsonError("Standings unavailable for this competition", 400, { competition });
+      }
+      const upstream = new URL("https://api.football-data.org/v4/competitions/" + competition + "/standings");
+      const cacheKey = new Request(upstream.toString());
+      try {
+        const stored = await caches.default.match(cacheKey);
+        if (stored) return new Response(stored.body, { status: stored.status, headers: { ...Object.fromEntries(stored.headers), "X-Cache": "HIT" } });
+      } catch {}
+      try {
+        const response = await fetch(upstream.toString(), {
+          headers: { Accept: "application/json", "X-Auth-Token": env.FOOTBALL_DATA_TOKEN }
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) return jsonError("Standings provider returned HTTP " + response.status, response.status === 429 ? 429 : 502, { provider: "football-data.org", retryAfterSeconds: response.status === 429 ? 60 : undefined });
+        const standings = Array.isArray(data?.standings) ? data.standings : [];
+        const total = standings.find(item => item.type === "TOTAL");
+        if (!total || !Array.isArray(total.table)) {
+          return jsonError("Current league table not available", 404, { competition });
+        }
+        const table = total.table.map(row => ({
+          position: row.position,
+          team: { id: row.team?.id, name: row.team?.name, shortName: row.team?.shortName, tla: row.team?.tla },
+          playedGames: row.playedGames, won: row.won, draw: row.draw, lost: row.lost,
+          points: row.points, goalsFor: row.goalsFor, goalsAgainst: row.goalsAgainst,
+          goalDifference: row.goalDifference, form: row.form
+        }));
+        const result = Response.json({
+          ok: true, provider: "football-data.org", competition: data?.competition?.name || competition,
+          season: data?.season?.startDate || null,
+          matchday: data?.season?.currentMatchday || null, table
+        }, { headers: { ...corsHeaders, "Cache-Control": "public, max-age=1800" } });
+        try { await caches.default.put(cacheKey, result.clone()) } catch {}
+        return result;
+      } catch {
+        return jsonError("Standings provider unavailable", 502);
+      }
     }
 
     // Se conserva la ruta existente para resultados y partidos de fútbol.
