@@ -370,11 +370,11 @@ function groupPrices(rows){
  return [...by.values()].map(arr=>({best:arr.reduce((a,b)=>a.decimal>=b.decimal?a:b),count:new Set(arr.map(r=>r.book)).size,rows:arr})).sort((a,b)=>b.count-a.count||b.best.decimal-a.best.decimal);
 }
 function probabilityBrief(game){
- const candidates=flatten(game).filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&r.decimal<1000);
- if(!candidates.length)return '<div class="mp-probability"><b>📊 Mayor probabilidad implícita:</b> Sin cuotas disponibles</div>';
+ const candidates=flatten(game).filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&r.decimal<1000&&1/r.decimal<0.80);
+ if(!candidates.length)return '<div class="mp-probability"><b>📊 Mayor probabilidad implícita menor del 80 %:</b> No hay opciones que cumplan el filtro</div>';
  candidates.sort((a,b)=>a.decimal-b.decimal);
  const best=candidates[0],market=({h2h:"Ganador",totals:"Total",spreads:"Hándicap"})[best.market]||best.market;
- return '<div class="mp-probability"><div>📊 MAYOR PROBABILIDAD IMPLÍCITA: <strong>'+pct(1/best.decimal)+'</strong></div><div>'+esc(market)+' · '+esc(best.name)+(best.point?' '+esc(best.point):'')+' · cuota <b>'+esc(priceText(best.price))+'</b></div><small>'+esc(best.book)+' · '+candidates.length+' cuotas comparadas. Solo cálculo según cuota, NO probabilidad estimada ni recomendación.</small></div>';
+ return '<div class="mp-probability"><div>📊 MEJOR PROBABILIDAD IMPLÍCITA (< 80 %): <strong>'+pct(1/best.decimal)+'</strong></div><div>'+esc(market)+' · '+esc(best.name)+(best.point?' '+esc(best.point):'')+' · cuota <b>'+esc(priceText(best.price))+'</b></div><small>'+esc(best.book)+' · '+candidates.length+' cuotas bajo el 80 % comparadas. Solo cálculo según cuota, NO probabilidad estimada ni recomendación.</small></div>';
 }
 function briefOdds(game){
  const groups=groupPrices(flatten(game));
