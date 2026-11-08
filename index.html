@@ -628,7 +628,7 @@ async function loadAdvancedFootball(g){
   const qs=new URLSearchParams({from,to,league,season});
   const response=await fetch(BASE+"/api/advanced/fixtures?"+qs,{signal:controller.signal});
   const payload=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(response.status===503?"Falta configurar API_FOOTBALL_KEY en Cloudflare":payload.error||"HTTP "+response.status);
+  if(!response.ok)throw Error(response.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":apiFootballErrorMessage(payload,response.status));
   const matches=Array.isArray(payload.response)?payload.response:[];
   const matching=apiFootballMatch(g,matches);
   if(selected!==g)return;
@@ -644,7 +644,7 @@ async function loadAdvancedFootball(g){
   target.textContent="Partido encontrado. Consultando tiros, córners, tarjetas y posesión…";
   const stats=await fetch(BASE+"/api/advanced/statistics?"+new URLSearchParams({fixture:String(matching.fixture.id)}),{signal:controller.signal});
   const data=await stats.json().catch(()=>({}));
-  if(!stats.ok)throw Error(stats.status===503?"Falta configurar API_FOOTBALL_KEY en Cloudflare":data.error||"HTTP "+stats.status);
+  if(!stats.ok)throw Error(stats.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":apiFootballErrorMessage(data,stats.status));
   if(selected!==g)return;
   const report=Array.isArray(data.response)?data.response:[];
   if(!report.length){target.textContent="Partido confirmado, pero API-Football no devolvió estadísticas para este encuentro y su estado actual.";return}
@@ -781,6 +781,16 @@ function renderSaved(){
 $("clear-history").addEventListener("click",()=>{writeSaved([]);renderSaved()});
 $("find").addEventListener("input",renderGames);$("datefilter").addEventListener("change",renderGames);$("order").addEventListener("change",renderGames);
 $("refresh").addEventListener("click",()=>load(true));
+function apiFootballErrorMessage(data,httpStatus){
+ const details=data?.detail;
+ const values=details&&typeof details==="object"?Object.entries(details).filter(([,v])=>v!==null&&v!==""&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>k+": "+(typeof v==="string"?v:JSON.stringify(v))):[];
+ const raw=values.length?values.join("; "):String(data?.error||"HTTP "+httpStatus);
+ const safe=raw.replace(/(api.?key|token|secret|authorization)\s*[:=]\s*[A-Za-z0-9._-]{8,}/gi,"$1: [oculto]").slice(0,500);
+ if(/invalid.?key|invalid.?token|unauthorized|authentication|subscription key/i.test(safe))return "Clave rechazada por el proveedor. "+safe;
+ if(/plan|subscription|access|current season|not available|free plan|premium/i.test(safe))return "Posible restricción del plan o temporada. "+safe;
+ if(/rate.?limit|too many|quota|limit reached/i.test(safe))return "Límite de consultas alcanzado. "+safe;
+ return safe;
+}
 $("apiFootballCheck").addEventListener("click",async()=>{
  const button=$("apiFootballCheck"),out=$("apiFootballCheckStatus"),indicator=$("apiFootballHealth");
  button.disabled=true;out.textContent="Comprobando API-Football a través de Cloudflare…";
@@ -791,12 +801,12 @@ $("apiFootballCheck").addEventListener("click",async()=>{
   const qs=new URLSearchParams({from,to,league:"39",season:String(season)});
   const res=await fetch(BASE+"/api/advanced/fixtures?"+qs,{signal:ctrl.signal,cache:"no-store"});
   const data=await res.json().catch(()=>({}));
-  if(!res.ok)throw Error(res.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":String(data.error||"HTTP "+res.status));
+  if(!res.ok){indicator.textContent=res.status===503?"Sin clave":"Consulta rechazada";throw Error("HTTP "+res.status+" · "+(res.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":apiFootballErrorMessage(data,res.status)))}
   if(!Array.isArray(data.response))throw Error("Respuesta sin lista de partidos");
   indicator.textContent="Responde";
   out.textContent="✅ API-Football respondió. Se recibieron "+data.response.length+" encuentros de prueba; 0 también es válido si no hay partidos en estas fechas. Esto no confirma cobertura de todas las ligas o mercados.";
  }catch(error){
-  indicator.textContent="Sin confirmar";
+  if(indicator.textContent==="Sin verificar")indicator.textContent="No disponible";
   out.textContent="API-Football no pudo verificarse: "+(error.name==="AbortError"?"tiempo de espera agotado":String(error.message||"Error de conexión"));
  }finally{clearTimeout(timer);button.disabled=false}
 });
