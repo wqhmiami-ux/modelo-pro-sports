@@ -24,6 +24,10 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 .standings-legend{display:flex;gap:12px;flex-wrap:wrap;margin:11px 0;font-size:12px;color:#dce8f6}
 .standings-legend span{display:inline-flex;align-items:center;gap:6px}
 .standings-legend i{display:inline-block;width:11px;height:11px;border-radius:3px}
+
+.mp-probability{margin:10px 0;padding:10px 12px;border-radius:12px;background:#193a43;border:1px solid #397c82;color:#eafffb;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.45}
+.mp-probability strong{color:#c8f76c;font-size:19px;margin-left:6px}
+.mp-probability small{color:#b9d2d8;font-size:11px}
 </style>
 <style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
 <body>
@@ -365,6 +369,13 @@ function groupPrices(rows){
  for(const r of rows){const key=[r.market,r.name,r.point].join("|"),group=by.get(key)||[];group.push(r);by.set(key,group)}
  return [...by.values()].map(arr=>({best:arr.reduce((a,b)=>a.decimal>=b.decimal?a:b),count:new Set(arr.map(r=>r.book)).size,rows:arr})).sort((a,b)=>b.count-a.count||b.best.decimal-a.best.decimal);
 }
+function probabilityBrief(game){
+ const candidates=flatten(game).filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&r.decimal<1000);
+ if(!candidates.length)return '<div class="mp-probability"><b>📊 Mayor probabilidad implícita:</b> Sin cuotas disponibles</div>';
+ candidates.sort((a,b)=>a.decimal-b.decimal);
+ const best=candidates[0],market=({h2h:"Ganador",totals:"Total",spreads:"Hándicap"})[best.market]||best.market;
+ return '<div class="mp-probability"><div>📊 MAYOR PROBABILIDAD IMPLÍCITA: <strong>'+pct(1/best.decimal)+'</strong></div><div>'+esc(market)+' · '+esc(best.name)+(best.point?' '+esc(best.point):'')+' · cuota <b>'+esc(priceText(best.price))+'</b></div><small>'+esc(best.book)+' · '+candidates.length+' cuotas comparadas. Solo cálculo según cuota, NO probabilidad estimada ni recomendación.</small></div>';
+}
 function briefOdds(game){
  const groups=groupPrices(flatten(game));
  const main=groups.filter(g=>g.best.market==="h2h"&&g.count>=1).sort((a,b)=>a.best.decimal-b.best.decimal)[0];
@@ -386,7 +397,7 @@ function renderGames(){
  $("loadstatus").textContent=items.length+" partidos recibidos de "+sportNames[sport]+" · "+matches.length+" visibles. Datos y cuotas según cobertura del proveedor.";
  $("games").innerHTML=matches.length?matches.map((g,i)=>{
   const rows=flatten(g),title=String(g.away_team||"Visitante")+" vs "+String(g.home_team||"Local");
-  return '<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
+  return '<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+probabilityBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
  }).join(""):'<div class="empty">No hay partidos para los filtros actuales o la fuente no devolvió encuentros. Cambia el período o deporte.</div>';
  window.__modelVisible=matches;
 }
@@ -431,7 +442,7 @@ function renderDetail(){
  const table=groups.map(g=>'<tr><td>'+esc(displayMarket(g.best.market))+'</td><td>'+esc(g.best.name+(g.best.point?" "+g.best.point:""))+'</td><td>'+esc(priceText(g.best.price))+'</td><td>'+esc(g.best.book)+'</td><td>'+g.count+'</td></tr>').join("");
  const all=rows.map(r=>'<tr><td>'+esc(displayMarket(r.market))+'</td><td>'+esc(r.name+(r.point?" "+r.point:""))+'</td><td>'+esc(r.book)+'</td><td>'+esc(priceText(r.price))+'</td><td>'+(100/r.decimal).toFixed(1)+'%</td></tr>').join("");
  $("detail").innerHTML='<div class="sectionhead"><h2>'+esc(g.home_team||"Local")+' - '+esc(g.away_team||"Visitante")+'</h2><span class="tag">'+esc(sportNames[sport])+'</span></div>'+
- '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+rankBrief(g)+
+ '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+rankBrief(g)+probabilityBrief(g)+
  '<div class="metricgrid"><div class="metric"><strong>'+books.size+'</strong><span>Casas</span></div><div class="metric"><strong>'+markets.size+'</strong><span>Mercados</span></div><div class="metric"><strong>'+rows.length+'</strong><span>Cuotas</span></div></div>'+
  (sport==="soccer"?'<div id="standingboard" class="status">Cargando posiciones del torneo…</div>':"")+
  '<div class="verdict"><span class="meta">LECTURA DEL MERCADO</span><br>'+topnote+'</div>'+
