@@ -510,6 +510,46 @@ $("healthbtn").addEventListener("click",async()=>{
  try{const r=await fetch(BASE+"/",{cache:"no-store"});const d=await r.json();$("apihealth").textContent=d.ok?"Conectado":"Sin confirmar";$("healthstatus").textContent=d.ok?"El Worker responde. Esto no confirma disponibilidad de los proveedores externos.":"No se confirmó la conexión."}
  catch(e){$("apihealth").textContent="Sin conexión";$("healthstatus").textContent=String(e.message||"Error de red")}
 });
+async function fetchOddsWithRetry(sportCode){
+ const qs=new URLSearchParams({sport:sportCode,markets:"h2h,spreads,totals"});
+ const endpoint=BASE+"/api/odds?"+qs.toString();
+ let lastError=null;
+ for(let attempt=0;attempt<3;attempt++){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),attempt?17000:13000);
+  try{
+   const response=await fetch(endpoint+(attempt?"&_try="+attempt:""),{signal:controller.signal,cache:"no-store",mode:"cors"});
+   return response;
+  }catch(e){
+   lastError=e;
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,650*(attempt+1)));
+  }finally{clearTimeout(timer)}
+ }
+ throw Error("No hubo conexión con Cloudflare después de 3 intentos ("+String(lastError?.message||"error de red")+").");
+}
+async function fallbackEspnEvents(sportCode){
+ if(sportCode!=="soccer")return [];
+ const now=new Date(),ymd=d=>{const x=new Date(d),p=n=>String(n).padStart(2,"0");return x.getFullYear()+p(x.getMonth()+1)+p(x.getDate())};
+ const until=new Date(now.getTime()+7*86400000);
+ const leagues=["eng.1","esp.1","ita.1","ger.1","fra.1","usa.1","mex.1","arg.1","col.1","aus.1","kor.1","kor.2"];
+ const dates=ymd(now)+"-"+ymd(until),found=new Map();
+ await Promise.all(leagues.map(async slug=>{
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
+  try{
+   const response=await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/"+slug+"/scoreboard?dates="+dates+"&limit=100",{signal:ctrl.signal});
+   if(!response.ok)return;
+   const payload=await response.json(),events=Array.isArray(payload.events)?payload.events:[];
+   for(const e of events){
+    const competitors=e.competitions?.[0]?.competitors||[];
+    const home=competitors.find(x=>x.homeAway==="home")?.team?.displayName;
+    const away=competitors.find(x=>x.homeAway==="away")?.team?.displayName;
+    if(!home||!away||!e.date)continue;
+    const id="espn:"+slug+":"+e.id;
+    found.set(id,{id,commence_time:e.date,home_team:home,away_team:away,league:{key:slug,title:payload.leagues?.[0]?.name||slug},sport_key:"soccer",bookmakers:[],__calendarOnly:true});
+   }
+  }catch{}finally{clearTimeout(timer)}
+ }));
+ return [...found.values()].sort((a,b)=>new Date(a.commence_time)-new Date(b.commence_time));
+}
 async function load(force){
  if(pending)return;
  pending=true;$("refresh").disabled=true;
@@ -521,16 +561,27 @@ async function load(force){
  let remaining=0;try{remaining=Math.ceil((Number(localStorage.getItem(throttleKey)||0)-Date.now())/1000)}catch{}
  if(remaining>0){$("loadstatus").textContent="Límite de consultas. Conservando los últimos datos guardados. Nueva consulta disponible en "+remaining+" s.";pending=false;$("refresh").disabled=false;return}
  $("loadstatus").textContent=cached?"Actualizando precios; se conservan los datos anteriores…":"Consultando partidos y cuotas…";
- const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),13000);
  try{
-  const r=await fetch(BASE+"/api/odds?"+new URLSearchParams({sport,markets:"h2h,spreads,totals"}),{signal:ctrl.signal});
+  const r=await fetchOddsWithRetry(sport);
   const data=await r.json().catch(()=>({}));
   if(!r.ok){if(r.status===429||data.code==="SPEED_LIMIT"){const sec=Math.max(20,Math.min(600,Number(data.retryAfterSeconds)||60));try{localStorage.setItem(throttleKey,String(Date.now()+sec*1000))}catch{}}throw Error(String(data.error||"HTTP "+r.status))}
   const list=Array.isArray(data)?data:Array.isArray(data.events)?data.events:Array.isArray(data.data)?data.data:[];
   items=list.filter(x=>x&&x.commence_time);try{sessionStorage.setItem(key,JSON.stringify({time:Date.now(),items}))}catch{}
   renderGames();renderValue();primeGameStandings();
- }catch(e){$("loadstatus").textContent="No fue posible actualizar "+sportNames[sport]+": "+String(e.message||"sin respuesta")+". "+(cached?"Se conserva el último calendario.":"No se inventan partidos ni cuotas.");if(!cached)$("games").innerHTML='<div class="empty">Datos no disponibles. Prueba otro deporte o vuelve a consultar después.</div>'}
- finally{clearTimeout(timer);pending=false;$("refresh").disabled=false}
+ }catch(e){
+  const message=String(e.message||"sin respuesta");
+  if(!cached&&sport==="soccer"){
+   $("loadstatus").textContent="Sin conexión a cuotas de Cloudflare. Recuperando calendario alternativo (sin cuotas)…";
+   const replacement=await fallbackEspnEvents(sport);
+   if(replacement.length){
+    items=replacement;renderGames();primeGameStandings();
+    $("loadstatus").textContent="Calendario alternativo ESPN · "+replacement.length+" partidos. Cuotas no disponibles por fallo de conexión con Cloudflare. Reintentar con ↻ Actualizar.";
+   }else{
+    $("loadstatus").textContent="No fue posible conectar con Cloudflare: "+message+". También falló el calendario alternativo.";
+    $("games").innerHTML='<div class="empty">Sin datos verificables disponibles ahora. Revisa la conexión y reintenta.</div>';
+   }
+  }else $("loadstatus").textContent="No fue posible actualizar "+sportNames[sport]+": "+message+". "+(cached?"Se conserva el último calendario.":"No se inventan partidos ni cuotas.");
+ }finally{pending=false;$("refresh").disabled=false}
 }
 load(false);
 void showStandingsOverview();
