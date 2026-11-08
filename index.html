@@ -28,6 +28,10 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 <button class="pill" data-tab="fuentes" aria-pressed="false">🔌 Fuentes</button>
 </nav>
 <div id="view-partidos">
+<section class="panel" id="standings-quick-panel">
+<div class="sectionhead"><div><h2>🏆 Clasificación del torneo</h2><p class="hint">Tabla oficial de la liga, independiente de las cuotas y del calendario.</p></div><div class="filters"><select id="standings-league" aria-label="Liga para clasificación"><option value="PL">Premier League</option><option value="PD">LaLiga</option><option value="BL1">Bundesliga</option><option value="SA">Serie A</option><option value="FL1">Ligue 1</option><option value="DED">Eredivisie</option><option value="PPL">Portugal</option></select><button class="secondary" type="button" id="standings-refresh">Ver posiciones</button></div></div>
+<div id="standings-quick-result" class="status">Selecciona una liga para consultar su clasificación.</div>
+</section>
 <nav class="sports" aria-label="Deportes">
 <button class="pill" data-sport="soccer" aria-pressed="true">⚽ Fútbol</button><button class="pill" data-sport="basketball_nba" aria-pressed="false">🏀 NBA</button><button class="pill" data-sport="americanfootball_nfl" aria-pressed="false">🏈 NFL</button><button class="pill" data-sport="baseball_mlb" aria-pressed="false">⚾ MLB</button><button class="pill" data-sport="icehockey_nhl" aria-pressed="false">🏒 NHL</button><button class="pill" data-sport="mma_mixed_martial_arts" aria-pressed="false">🥊 UFC</button>
 </nav>
@@ -94,6 +98,30 @@ async function loadStandings(g){
  renderGames();
 }
 
+
+async function showStandingsOverview(force=false){
+ const box=$("standings-quick-result"),comp=$("standings-league").value;
+ let data=!force?standingsCache.get(comp):null;
+ box.textContent="Consultando posiciones de "+$("standings-league").selectedOptions[0].textContent+"…";
+ if(!data){
+  try{
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   let res;
+   try{res=await fetch(BASE+"/api/standings?competition="+encodeURIComponent(comp),{signal:controller.signal})}finally{clearTimeout(timer)}
+   const payload=await res.json().catch(()=>({}));
+   if(!res.ok)throw Error("HTTP "+res.status+" · "+String(payload.error||"La fuente no está disponible"));
+   if(!Array.isArray(payload.table))throw Error("Respuesta sin tabla");
+   data=payload;standingsCache.set(comp,data);
+  }catch(e){if($("standings-league").value===comp)box.textContent="No fue posible consultar la clasificación: "+String(e.message||"Error de red");return}
+ }
+ if($("standings-league").value!==comp)return;
+ const rows=data.table.map(r=>'<tr><td><b>'+r.position+'</b></td><td>'+esc(r.team?.name||"Equipo")+'</td><td>'+r.playedGames+'</td><td>'+r.won+'</td><td>'+r.draw+'</td><td>'+r.lost+'</td><td>'+r.points+'</td><td>'+r.goalDifference+'</td></tr>').join("");
+ box.innerHTML='<p class="hint">Fuente: '+esc(data.provider||"football-data.org")+' · '+esc(data.competition||comp)+' · Jornada '+esc(data.matchday??"no informada")+'</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pts</th><th>DG</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ renderGames();
+}
+$("standings-league").addEventListener("change",()=>showStandingsOverview());
+$("standings-refresh").addEventListener("click",()=>showStandingsOverview(true));
+
 const savedKey="modeloProV2History";
 const readSaved=()=>{try{return JSON.parse(localStorage.getItem(savedKey)||"[]")}catch{return []}};
 const writeSaved=rows=>{try{localStorage.setItem(savedKey,JSON.stringify(rows.slice(0,60)))}catch{}};
@@ -107,6 +135,8 @@ document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.cl
 document.querySelector(".sports").addEventListener("click",e=>{
  const b=e.target.closest("[data-sport]");if(!b||pending)return;
  sport=b.dataset.sport;
+ $("standings-quick-panel").classList.toggle("hidden",sport!=="soccer");
+ if(sport==="soccer")void showStandingsOverview();
  for(const x of document.querySelectorAll("[data-sport]"))x.setAttribute("aria-pressed",String(x.dataset.sport===sport));
  selected=null;renderDetail();load(false);
 });
@@ -189,7 +219,7 @@ function renderDetail(){
 }
 function normalizeName(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\b(fc|afc|cf|sc|club|de|the)\b/g,"").replace(/[^a-z0-9]/g,"")}
 function competitionFor(g){
- const k=String(g.sport_key||g.league?.key||g.league?.title||g.tournament||"").toLowerCase();
+ const k=[g.sport_key,g.league?.key,g.league?.title,g.league,g.tournament,g.competition].filter(v=>typeof v==="string").join(" ").toLowerCase();
  const tests=[[/epl|premier.?league|england/,"PL"],[/spain|la.?liga/,"PD"],[/bundesliga|germany/,"BL1"],[/italy|serie.?a/,"SA"],[/ligue.?1|france/,"FL1"],[/netherlands|eredivisie/,"DED"],[/portugal|primeira/,"PPL"]];
  return tests.find(x=>x[0].test(k))?.[1]||null;
 }
@@ -312,6 +342,7 @@ async function load(force){
  finally{clearTimeout(timer);pending=false;$("refresh").disabled=false}
 }
 load(false);
+void showStandingsOverview();
 })();
 </script>
 </body>
