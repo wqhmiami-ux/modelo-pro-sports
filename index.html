@@ -28,6 +28,12 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 .mp-probability{margin:10px 0;padding:10px 12px;border-radius:12px;background:#193a43;border:1px solid #397c82;color:#eafffb;display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:1.45}
 .mp-probability strong{color:#c8f76c;font-size:19px;margin-left:6px}
 .mp-probability small{color:#b9d2d8;font-size:11px}
+
+.mp-probability{background:#122b35!important;border:1px solid #39657b!important;gap:5px!important;padding:12px!important}
+.mp-prob-line{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #29485a;padding:7px 0;font-size:12px}
+.mp-prob-line>span:last-child{text-align:right}
+.mp-prob-line strong{display:block!important;font-size:15px!important;margin:0!important;color:#c8f76c}
+.mp-prob-line small{display:block;margin-top:2px}
 </style>
 <style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
 <body>
@@ -369,12 +375,68 @@ function groupPrices(rows){
  for(const r of rows){const key=[r.market,r.name,r.point].join("|"),group=by.get(key)||[];group.push(r);by.set(key,group)}
  return [...by.values()].map(arr=>({best:arr.reduce((a,b)=>a.decimal>=b.decimal?a:b),count:new Set(arr.map(r=>r.book)).size,rows:arr})).sort((a,b)=>b.count-a.count||b.best.decimal-a.best.decimal);
 }
+function marketCategory(key){
+ const k=String(key||"").toLowerCase();
+ if(/corner/.test(k))return "Córners";
+ if(/shot|on_target/.test(k))return "Tiros a puerta";
+ if(/both.?teams|btts/.test(k))return "Ambos marcan";
+ if(/card|booking/.test(k))return "Tarjetas";
+ if(/double.?chance/.test(k))return "Doble oportunidad";
+ if(/draw.?no.?bet/.test(k))return "Empate no apuesta";
+ if(/spread|handicap/.test(k))return "Hándicap";
+ if(/total|goal/.test(k))return "Goles / total";
+ if(/h2h/.test(k))return "Ganador";
+ return "Otros";
+}
 function probabilityBrief(game){
- const candidates=flatten(game).filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&r.decimal<1000&&1/r.decimal<0.80);
- if(!candidates.length)return '<div class="mp-probability"><b>📊 Mayor probabilidad implícita menor del 80 %:</b> No hay opciones que cumplan el filtro</div>';
- candidates.sort((a,b)=>a.decimal-b.decimal);
- const best=candidates[0],market=({h2h:"Ganador",totals:"Total",spreads:"Hándicap"})[best.market]||best.market;
- return '<div class="mp-probability"><div>📊 MEJOR PROBABILIDAD IMPLÍCITA (< 80 %): <strong>'+pct(1/best.decimal)+'</strong></div><div>'+esc(market)+' · '+esc(best.name)+(best.point?' '+esc(best.point):'')+' · cuota <b>'+esc(priceText(best.price))+'</b></div><small>'+esc(best.book)+' · '+candidates.length+' cuotas bajo el 80 % comparadas. Solo cálculo según cuota, NO probabilidad estimada ni recomendación.</small></div>';
+ const rows=flatten(game).filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&1/r.decimal<0.80);
+ const categories=["Ganador","Goles / total","Ambos marcan","Córners","Tiros a puerta","Tarjetas","Hándicap","Doble oportunidad","Empate no apuesta"];
+ const groups=new Map();
+ for(const r of rows){
+  const cat=marketCategory(r.market),current=groups.get(cat);
+  if(!current||r.decimal<current.decimal)groups.set(cat,r);
+ }
+ const body=categories.map(cat=>{
+  const r=groups.get(cat);
+  if(!r)return '<div class="mp-prob-line"><span>'+esc(cat)+'</span><small>Sin cuota verificada</small></div>';
+  return '<div class="mp-prob-line"><span><b>'+esc(cat)+'</b><small>'+esc(r.name)+(r.point!==""?' '+esc(r.point):'')+' · '+esc(r.book)+'</small></span><span><strong>'+pct(1/r.decimal)+'</strong><small>Cuota '+esc(priceText(r.price))+'</small></span></div>';
+ }).join("");
+ const other=groups.get("Otros");
+ return '<div class="mp-probability"><div><b>📊 MERCADOS DEL PARTIDO</b><small>Mejor porcentaje implícito menor al 80 % por tipo de mercado; no es probabilidad estimada ni consejo de apuesta.</small></div>'+body+(other?'<div class="mp-prob-line"><span>Otros · '+esc(other.market)+'</span><strong>'+pct(1/other.decimal)+'</strong></div>':'')+
+ (game.__extrasStatus?'<small>'+esc(game.__extrasStatus)+'</small>':'<small>Ambos marcan, córners y tiros a puerta requieren consultar mercados adicionales en el informe.</small>')+'</div>';
+}
+function soccerPropsRows(raw){
+ const out=[];
+ for(const p of (Array.isArray(raw?.props)?raw.props:[])){
+  if(!/shot|target/i.test(String(p.stat||"")))continue;
+  for(const outcome of (Array.isArray(p.outcomes)?p.outcomes:[])){
+   const decimal=priceDecimal(outcome.price);
+   if(!decimal||1/decimal>=0.8)continue;
+   out.push({market:p.stat,name:String(p.player||"Jugador")+" · "+String(outcome.name||"")+ (p.point!=null?" "+p.point:""),price:outcome.price,decimal,book:String(p.bookmaker?.title||p.bookmaker?.key||"Casa")});
+  }
+ }
+ return out.sort((a,b)=>a.decimal-b.decimal).slice(0,8);
+}
+async function loadSoccerExtraMarkets(g){
+ if(sport!=="soccer"||!g?.id||g.__extraChecked)return;
+ g.__extraChecked=true;g.__extrasStatus="Consultando mercados ampliados…";
+ if(selected===g){renderGames();renderDetail()}
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),14000);
+ try{
+  const response=await fetch(BASE+"/api/soccer-extras?"+new URLSearchParams({eventId:String(g.id)}),{signal:controller.signal});
+  if(!response.ok)throw Error(response.status===404?"Actualiza el Worker en Cloudflare para habilitar esta función":"HTTP "+response.status);
+  const data=await response.json();
+  const full=data.fixture;
+  if(full&&String(full.id)===String(g.id)&&Array.isArray(full.bookmakers))g.bookmakers=full.bookmakers;
+  const shots=soccerPropsRows(data.playerProps);
+  g.__shotsRows=shots;
+  g.__extrasStatus=data.ok?"Mercados adicionales consultados en OddsLink; los que no tengan precio se muestran como no disponibles.":"OddsLink no entregó los mercados adicionales para este partido.";
+  if(data.propsStatus===403)g.__extrasStatus+=" Tiros a puerta de jugadores: el plan de OddsLink no permite props.";
+ }catch(e){g.__extrasStatus="Mercados adicionales no disponibles: "+String(e.message||"fallo de conexión")}
+ finally{
+  clearTimeout(timer);
+  if(selected===g){renderGames();renderDetail()}
+ }
 }
 function briefOdds(game){
  const groups=groupPrices(flatten(game));
@@ -406,6 +468,7 @@ $("games").addEventListener("click",e=>{
  selected=window.__modelVisible[Number(b.dataset.select)];
  renderGames();renderDetail();$("detail").scrollIntoView({behavior:"smooth",block:"start"});
  if(selected?.__compact)void loadFullFixtureOdds(selected);
+ if(sport==="soccer")void loadSoccerExtraMarkets(selected);
 });
 async function loadFullFixtureOdds(g){
  const target=$("detail");
@@ -445,6 +508,7 @@ function renderDetail(){
  '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+rankBrief(g)+probabilityBrief(g)+
  '<div class="metricgrid"><div class="metric"><strong>'+books.size+'</strong><span>Casas</span></div><div class="metric"><strong>'+markets.size+'</strong><span>Mercados</span></div><div class="metric"><strong>'+rows.length+'</strong><span>Cuotas</span></div></div>'+
  (sport==="soccer"?'<div id="standingboard" class="status">Cargando posiciones del torneo…</div>':"")+
+ (sport==="soccer"?'<button class="secondary" type="button" id="extraMarketsButton">↻ CONSULTAR AMBOS MARCAN, CÓRNERS Y TIROS</button>'+((g.__shotsRows||[]).length?'<div class="verdict"><span class="meta">TIROS A PUERTA · JUGADORES</span><br>'+g.__shotsRows.map(r=>'<p>'+esc(r.name)+' · '+pct(1/r.decimal)+' · '+esc(priceText(r.price))+' · '+esc(r.book)+'</p>').join("")+'</div>':''):'')+
  '<div class="verdict"><span class="meta">LECTURA DEL MERCADO</span><br>'+topnote+'</div>'+
  '<div class="verdict"><span class="meta">DECISIÓN MODELO PRO</span><br><strong>NO APOSTAR SIN EDGE VERIFICADO</strong><small>Una cuota no permite inferir rentabilidad. Requiere probabilidad propia validada y comparación con ese precio.</small></div>'+
  '<p class="hint">Última actualización reportada: '+esc(latest?new Date(latest).toLocaleString("es-US"):"No disponible")+'</p>'+
@@ -454,6 +518,7 @@ function renderDetail(){
  '<details><summary class="gamebutton">TODAS LAS CUOTAS REALES ('+rows.length+')</summary><div class="tablewrap"><table><thead><tr><th>Mercado</th><th>Selección</th><th>Casa</th><th>Cuota</th><th>Implícita</th></tr></thead><tbody>'+all+'</tbody></table></div></details>'+
  '<div class="callout">Datos no suministrados por OddsLink: lesiones, alineaciones, últimos cinco partidos, córners, tarjetas y tiros a puerta. Si no hay otra fuente autorizada, se indican como no disponibles.</div>';
  $("savebtn").addEventListener("click",saveSelected);
+ if(sport==="soccer"&&$("extraMarketsButton"))$("extraMarketsButton").addEventListener("click",()=>{g.__extraChecked=false;void loadSoccerExtraMarkets(g)});
  $("predictbtn")?.addEventListener("click",predict);
  if(sport==="soccer")void loadStandings(g);
 }
