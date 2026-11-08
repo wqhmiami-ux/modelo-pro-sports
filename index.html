@@ -468,7 +468,7 @@ $("games").addEventListener("click",e=>{
  selected=window.__modelVisible[Number(b.dataset.select)];
  renderGames();renderDetail();$("detail").scrollIntoView({behavior:"smooth",block:"start"});
  if(selected?.__compact)void loadFullFixtureOdds(selected);
- if(sport==="soccer")void loadSoccerExtraMarkets(selected);
+ else if(sport==="soccer")void loadSoccerExtraMarkets(selected);
 });
 async function loadFullFixtureOdds(g){
  const target=$("detail");
@@ -487,7 +487,8 @@ async function loadFullFixtureOdds(g){
   if(selected!==g)return;
   const i=items.indexOf(g);if(i>=0)items[i]=full;
   selected=full;renderGames();renderDetail();
- }catch(e){if(selected===g&&$("full-odds-loading"))$("full-odds-loading").textContent="Se muestran cuotas resumidas. El detalle completo no está disponible: "+String(e.message||"error de conexión")}
+  if(sport==="soccer")void loadSoccerExtraMarkets(full);
+ }catch(e){if(sport==="soccer"&&selected===g)void loadSoccerExtraMarkets(g);if(selected===g&&$("full-odds-loading"))$("full-odds-loading").textContent="Se muestran cuotas resumidas. El detalle completo no está disponible: "+String(e.message||"error de conexión")}
  finally{clearTimeout(timer)}
 }
 function saveSelected(){
