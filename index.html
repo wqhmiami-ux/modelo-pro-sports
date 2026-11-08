@@ -34,6 +34,8 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 .mp-prob-line>span:last-child{text-align:right}
 .mp-prob-line strong{display:block!important;font-size:15px!important;margin:0!important;color:#c8f76c}
 .mp-prob-line small{display:block;margin-top:2px}
+.mp-prob-missing{opacity:.73}
+.mp-prob-missing small{color:#a5b5c2}
 </style>
 <style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
 <body>
@@ -399,12 +401,12 @@ function probabilityBrief(game){
  }
  const body=categories.map(cat=>{
   const r=groups.get(cat);
-  if(!r)return '<div class="mp-prob-line"><span>'+esc(cat)+'</span><small>Sin cuota verificada</small></div>';
+  if(!r)return '<div class="mp-prob-line mp-prob-missing"><span>'+esc(cat)+'</span><small>'+(game.__extrasStatus?("Sin precio por debajo del 80 % / no disponible"):"Sin precio recibido · abre el informe para consultar")+'</small></div>';
   return '<div class="mp-prob-line"><span><b>'+esc(cat)+'</b><small>'+esc(r.name)+(r.point!==""?' '+esc(r.point):'')+' · '+esc(r.book)+'</small></span><span><strong>'+pct(1/r.decimal)+'</strong><small>Cuota '+esc(priceText(r.price))+'</small></span></div>';
  }).join("");
  const other=groups.get("Otros");
  return '<div class="mp-probability"><div><b>📊 MERCADOS DEL PARTIDO</b><small>Mejor porcentaje implícito menor al 80 % por tipo de mercado; no es probabilidad estimada ni consejo de apuesta.</small></div>'+body+(other?'<div class="mp-prob-line"><span>Otros · '+esc(other.market)+'</span><strong>'+pct(1/other.decimal)+'</strong></div>':'')+
- (game.__extrasStatus?'<small>'+esc(game.__extrasStatus)+'</small>':'<small>Ambos marcan, córners y tiros a puerta requieren consultar mercados adicionales en el informe.</small>')+'</div>';
+ (game.__extrasStatus?'<small>'+esc(game.__extrasStatus)+'</small>':'<small>Abre el informe para consultar las cuotas adicionales. No todos los partidos o casas ofrecen estos mercados.</small>')+'</div>';
 }
 function soccerPropsRows(raw){
  const out=[];
@@ -428,11 +430,17 @@ async function loadSoccerExtraMarkets(g){
   if(!response.ok)throw Error(response.status===404?"Actualiza el Worker en Cloudflare para habilitar esta función":"HTTP "+response.status);
   const data=await response.json();
   const full=data.fixture;
-  if(full&&String(full.id)===String(g.id)&&Array.isArray(full.bookmakers))g.bookmakers=full.bookmakers;
+  if(full&&String(full.id)===String(g.id)&&Array.isArray(full.bookmakers)&&full.bookmakers.length){const merged=new Map((g.bookmakers||[]).map(b=>[b.key,b]));for(const b of full.bookmakers){const prev=merged.get(b.key);merged.set(b.key,prev?{...prev,...b,markets:[...new Map([...(prev.markets||[]),...(b.markets||[])].map(m=>[m.key+"|"+String(m.period||""),m])).values()]}:b)}g.bookmakers=[...merged.values()]}
   const shots=soccerPropsRows(data.playerProps);
   g.__shotsRows=shots;
-  g.__extrasStatus=data.ok?"Mercados adicionales consultados en OddsLink; los que no tengan precio se muestran como no disponibles.":"OddsLink no entregó los mercados adicionales para este partido.";
-  if(data.propsStatus===403)g.__extrasStatus+=" Tiros a puerta de jugadores: el plan de OddsLink no permite props.";
+  if(!data.ok){
+   g.__extrasStatus="No se recibieron precios adicionales (proveedor HTTP "+String(data.oddsStatus||"desconocido")+"). Se conservan las cuotas originales.";
+  }else{
+   const markets=Array.isArray(data.availableGameMarkets)?data.availableGameMarkets:[];
+   g.__extrasStatus=markets.length?"Consulta adicional realizada ("+markets.length+" tipos de mercado solicitados). Si alguno aparece sin cuota, OddsLink no devolvió una selección válida inferior al 80 %.":"El catálogo de OddsLink no reportó otros mercados generales para fútbol en esta consulta.";
+  }
+  if(data.propsStatus===403)g.__extrasStatus+=" Los tiros a puerta de jugadores requieren un plan con acceso a props.";
+  if(data.propsStatus===204)g.__extrasStatus+=" No se identificaron mercados de tiros a puerta de jugadores en el catálogo.";
  }catch(e){g.__extrasStatus="Mercados adicionales no disponibles: "+String(e.message||"fallo de conexión")}
  finally{
   clearTimeout(timer);
