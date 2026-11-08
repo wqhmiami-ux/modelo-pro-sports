@@ -24,6 +24,31 @@ function jsonError(message, status = 500, extra = {}) {
   );
 }
 
+function respondWithOddsView(events, requestUrl) {
+ const selectedId=String(requestUrl.searchParams.get("eventId")||"");
+ const mode=String(requestUrl.searchParams.get("view")||"");
+ if(selectedId){
+  const match=events.find(e=>String(e?.id||"")===selectedId);
+  return Response.json(match?[match]:[],{headers:{...corsHeaders,"Cache-Control":"public, max-age=30","X-Provider":"OddsLink","X-View":"event"}});
+ }
+ if(mode==="compact"){
+  const now=Date.now(),days=Math.max(1,Math.min(14,Number(requestUrl.searchParams.get("days"))||7)),limit=Math.max(10,Math.min(400,Number(requestUrl.searchParams.get("limit"))||200));
+  const preferred=new Set(["hardrock","pinnacle","bet365","draftkings","fanduel","betmgm","betfair","caesars","betonline","unibet"]);
+  const active=events.filter(e=>{const t=Date.parse(e?.commence_time||"");return Number.isFinite(t)&&t>=now-2*3600000&&t<now+days*86400000})
+   .sort((a,b)=>Date.parse(a.commence_time)-Date.parse(b.commence_time)).slice(0,limit);
+  const smaller=active.map(e=>({
+   id:e.id,sport_key:e.sport_key,sport_title:e.sport_title,commence_time:e.commence_time,is_live:e.is_live,status:e.status,
+   home_team:e.home_team,away_team:e.away_team,league:e.league,
+   bookmakers:(Array.isArray(e.bookmakers)?e.bookmakers:[]).filter(b=>preferred.has(String(b.key||"").toLowerCase())).map(b=>({
+    key:b.key,title:b.title,last_update:b.last_update,
+    markets:(Array.isArray(b.markets)?b.markets:[]).map(m=>({key:m.key,last_update:m.last_update,outcomes:m.outcomes}))
+   })),
+   __compact:true
+  }));
+  return Response.json(smaller,{headers:{...corsHeaders,"Cache-Control":"public, max-age=30","X-Provider":"OddsLink","X-View":"compact"}});
+ }
+ return null;
+}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -373,6 +398,13 @@ export default {
     try {
       const cachedResponse = await caches.default.match(cacheKey);
       if (cachedResponse) {
+        if (cachedResponse.ok && (url.searchParams.has("eventId") || url.searchParams.get("view")==="compact")) {
+          const cachedEvents=await cachedResponse.clone().json().catch(()=>null);
+          if(Array.isArray(cachedEvents)){
+            const view=respondWithOddsView(cachedEvents,url);
+            if(view)return view;
+          }
+        }
         return new Response(cachedResponse.body, {
           status: cachedResponse.status,
           headers: { ...Object.fromEntries(cachedResponse.headers), "X-Cache": "HIT" },
@@ -461,7 +493,7 @@ export default {
       } catch {
         // A cache write failure must not prevent live odds from being returned.
       }
-      return oddsResponse;
+      return respondWithOddsView(events,url)||oddsResponse;
     } catch {
       return jsonError("OddsLink provider unavailable", 502);
     }
