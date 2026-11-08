@@ -6,13 +6,13 @@
 *{box-sizing:border-box}body{background:var(--bg);color:var(--text);margin:0}main{max-width:1050px;margin:auto;padding:25px 20px 90px}header{border-bottom:1px solid var(--line);padding:17px 22px}.head{max-width:1050px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.logo{font-weight:900}.logo span{color:var(--lime)}a{color:var(--lime)}h1{font-size:clamp(26px,4vw,38px);margin-bottom:8px}.intro{color:var(--muted);line-height:1.5}.panel{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:18px;margin:18px 0}.filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap}label{font-size:13px;font-weight:650}label span{display:block;margin-bottom:6px}select,button{font:inherit;border-radius:10px;padding:11px;background:#0b1a2c;border:1px solid #36506a;color:var(--text)}button{cursor:pointer}button.primary{background:var(--lime);color:#142117;font-weight:850;border:0}button:disabled{opacity:.5;cursor:wait}.hint{font-size:13px;line-height:1.5;color:var(--muted)}.status{padding:12px 0;color:var(--muted)}.card{border:1px solid var(--line);background:#0e1b2c;border-radius:14px;margin:14px 0;padding:18px}.card h2{font-size:20px;color:var(--lime);margin:0 0 10px}.leg{padding:12px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;align-items:center}.leg:last-child{border-bottom:0}.leg small{display:block;color:var(--muted);margin-top:5px}.price{font-size:20px;font-weight:800;white-space:nowrap}.metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.metrics>div{flex:1;min-width:150px;background:#192c41;padding:13px;border-radius:10px}.metrics strong{display:block;color:var(--lime);margin-top:5px}.empty{padding:15px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}
 </style></head>
 <body><header><div class="head"><div class="logo">MODELO <span>PRO</span> SPORTS · COMBINADAS</div><a href="./index.html">← Regresar a partidos</a></div></header>
-<main><h1>🧩 Combinadas sugeridas</h1><p class="intro">Consulta cuotas verificables de fútbol, NBA, NFL, NHL, MLB y UFC. Este generador presenta selecciones favoritas según precios de mercado, <strong>no</strong> pronósticos de un modelo estadístico validado.</p>
+<main><h1>🧩 Combinadas sugeridas · hasta 10 opciones</h1><p class="intro">Consulta cuotas verificables de fútbol, NBA, NFL, NHL, MLB y UFC. Este generador presenta selecciones favoritas según precios de mercado, <strong>no</strong> pronósticos de un modelo estadístico validado.</p>
 <section class="panel"><div class="filters">
 <label><span>Deportes</span><select id="sports"><option value="all">Todos los deportes</option><option value="soccer">Fútbol</option><option value="basketball_nba">NBA</option><option value="americanfootball_nfl">NFL</option><option value="icehockey_nhl">NHL</option><option value="baseball_mlb">MLB</option><option value="mma_mixed_martial_arts">UFC</option></select></label>
 <label><span>Partidos</span><select id="legs"><option value="2">2 selecciones</option><option value="3" selected>3 selecciones</option><option value="4">4 selecciones</option></select></label>
 <label><span>Apuesta de ejemplo</span><select id="stake"><option value="5">$5</option><option value="10" selected>$10</option><option value="20">$20</option></select></label>
 <button class="primary" id="generate">✨ GENERAR COMBINADAS</button>
-</div><div class="status" id="status" role="status">Selecciona las opciones y pulsa Generar combinadas.</div>
+</div><div class="status" id="status" role="status">Selecciona las opciones y genera hasta 10 combinadas distintas según cuotas disponibles.</div>
 <div id="results"></div>
 <p class="hint">Solo ganador del encuentro, una selección por partido y cuotas de una misma casa. Las cuotas combinadas son teóricas: la disponibilidad del parlay debe confirmarse en la casa. No se inventan mercados, datos ni probabilidades de éxito.</p></section>
 </main>
@@ -48,39 +48,52 @@ function findPick(game,code,book){
  return {id:String(game.id),sport:code,match:String(game.away_team)+" vs "+String(game.home_team),league:String(game.league?.title||game.tournament||names[code]),time:game.commence_time,pick:picks[0],bookName:String(b.title||book),updated};
 }
 function optionsFor(items,n){
+ const results=[],signatures=new Set();
  for(const key of bookKeys){
   const candidates=items.map(item=>findPick(item.game,item.sport,key)).filter(Boolean);
-  candidates.sort((a,b)=>a.pick.d-b.pick.d);
-  const strategies=[
-   {title:"Favoritos del mercado",pool:candidates.filter(x=>x.pick.d<=1.7)},
-   {title:"Cuotas equilibradas",pool:candidates.filter(x=>x.pick.d>=1.4&&x.pick.d<=2.1)},
-   {title:"Alternativa conservadora",pool:candidates.filter(x=>x.pick.d<=1.85).slice().reverse()}
+  // Unique fixture IDs; select one event at most once inside each combination.
+  const unique=[...new Map(candidates.map(x=>[x.id,x])).values()];
+  if(unique.length<n)continue;
+  const sequences=[
+   unique.slice().sort((a,b)=>a.pick.d-b.pick.d),
+   unique.slice().sort((a,b)=>Math.abs(a.pick.d-1.65)-Math.abs(b.pick.d-1.65)),
+   unique.slice().sort((a,b)=>a.pick.d-b.pick.d).reverse(),
+   unique.slice().sort((a,b)=>Date.parse(a.time)-Date.parse(b.time))
   ];
-  const found=[],seen=new Set();
-  for(const strategy of strategies){
-   const used=new Set(),selected=[];
-   for(const candidate of strategy.pool){
-    if(used.has(candidate.id))continue;
-    used.add(candidate.id);selected.push(candidate);
-    if(selected.length===n)break;
+  for(const [strategyIndex,pool] of sequences.entries()){
+   const bound=Math.min(pool.length,36);
+   for(let start=0;start<bound&&results.length<10;start++){
+    // Spread selections over distinct events, generating genuinely different tickets.
+    for(let jump=1;jump<=3&&results.length<10;jump++){
+     const chosen=[],used=new Set();
+     for(let step=0;step<bound&&chosen.length<n;step++){
+      const candidate=pool[(start+step*jump)%bound];
+      if(used.has(candidate.id))continue;
+      used.add(candidate.id);chosen.push(candidate);
+     }
+     if(chosen.length!==n)continue;
+     const keyForTicket=key+":"+chosen.map(x=>x.id).sort().join("|");
+     if(signatures.has(keyForTicket))continue;
+     signatures.add(keyForTicket);
+     const title=["Favoritos del mercado","Cuotas equilibradas","Favoritos con mayor cuota","Próximos encuentros"][strategyIndex];
+     results.push({title:"Combinada "+(results.length+1)+" · "+title,picks:chosen,book:chosen[0].bookName});
+    }
    }
-   if(selected.length!==n)continue;
-   const signature=selected.map(x=>x.id).sort().join("|");
-   if(seen.has(signature))continue;
-   seen.add(signature);
-   found.push({title:strategy.title,picks:selected,book:selected[0].bookName});
+   if(results.length===10)break;
   }
-  if(found.length)return found;
+  if(results.length===10)break;
  }
- return [];
+ return results.slice(0,10);
 }
+function reportHeight(){if(window.parent!==window)window.parent.postMessage({type:"modelo-pro-parlay-height",height:Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)} ,window.location.origin)}
 function display(proposals,stake){
- if(!proposals.length){$("results").innerHTML='<div class="empty">No encontramos suficientes favoritos con cuotas verificables de una misma casa. Prueba con menos selecciones u otro deporte.</div>';return}
+ if(!proposals.length){$("results").innerHTML='<div class="empty">No hay suficientes mercados verificados para generar combinadas. Prueba con 2 selecciones u otro deporte.</div>';return}
  $("results").innerHTML=proposals.map(p=>{
   const d=p.picks.reduce((x,v)=>x*v.pick.d,1),implied=100/d;
   const legs=p.picks.map((x,i)=>'<div class="leg"><div><strong>'+(i+1)+'. '+esc(x.pick.name)+'</strong><small>'+esc(names[x.sport])+' · '+esc(x.match)+' · '+esc(date(x.time))+'</small><small>'+esc(x.league)+'</small></div><span class="price">'+esc(american(x.pick.price))+'</span></div>').join("");
   return '<article class="card"><h2>'+esc(p.title)+'</h2><p class="hint">Casa: '+esc(p.book)+' · '+p.picks.length+' partidos diferentes</p>'+legs+'<div class="metrics"><div>Cuota combinada teórica<strong>'+d.toFixed(2)+'</strong></div><div>Probabilidad implícita (NO predicción)<strong>'+implied.toFixed(1)+'%</strong></div><div>Retorno bruto con $'+stake+'<strong>$'+(stake*d).toFixed(2)+'</strong></div><div>Beneficio neto potencial<strong>$'+(stake*(d-1)).toFixed(2)+'</strong></div></div><p class="hint">La casa puede no admitir esta combinada. Verifica cuotas, alineaciones y restricciones antes de apostar. No se ha estimado EDGE positivo.</p></article>';
  }).join("");
+ reportHeight();
 }
 async function generate(){
  if(busy)return;busy=true;
@@ -108,8 +121,10 @@ async function generate(){
   display(suggestions,stake);
   $("status").textContent=items.length+" partidos recibidos · "+suggestions.length+" combinadas posibles."+(failures.length?" Fuentes no disponibles: "+failures.join("; "):"");
  }catch(e){$("status").textContent="No fue posible generar combinadas: "+String(e.message||"error")}
- finally{busy=false;$("generate").disabled=false}
+ finally{busy=false;$("generate").disabled=false;reportHeight()}
 }
 $("generate").addEventListener("click",generate);
+window.addEventListener("load",reportHeight);
+if(window.ResizeObserver)new ResizeObserver(reportHeight).observe(document.body);
 })();
 </script></body></html>
