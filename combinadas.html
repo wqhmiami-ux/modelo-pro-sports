@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Combinadas sugeridas | Modelo PRO Sports</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color-scheme:dark;--bg:#0a1220;--panel:#142235;--line:#2c4660;--text:#eff6ff;--muted:#acc0d5;--lime:#c8f76c}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--text);margin:0}main{max-width:1050px;margin:auto;padding:25px 20px 90px}header{border-bottom:1px solid var(--line);padding:17px 22px}.head{max-width:1050px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.logo{font-weight:900}.logo span{color:var(--lime)}a{color:var(--lime)}h1{font-size:clamp(26px,4vw,38px);margin-bottom:8px}.intro{color:var(--muted);line-height:1.5}.panel{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:18px;margin:18px 0}.filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap}label{font-size:13px;font-weight:650}label span{display:block;margin-bottom:6px}select,button{font:inherit;border-radius:10px;padding:11px;background:#0b1a2c;border:1px solid #36506a;color:var(--text)}button{cursor:pointer}button.primary{background:var(--lime);color:#142117;font-weight:850;border:0}button:disabled{opacity:.5;cursor:wait}.hint{font-size:13px;line-height:1.5;color:var(--muted)}.status{padding:12px 0;color:var(--muted)}.card{border:1px solid var(--line);background:#0e1b2c;border-radius:14px;margin:14px 0;padding:18px}.card h2{font-size:20px;color:var(--lime);margin:0 0 10px}.leg{padding:12px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;align-items:center}.leg:last-child{border-bottom:0}.leg small{display:block;color:var(--muted);margin-top:5px}.price{font-size:20px;font-weight:800;white-space:nowrap}.metrics{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.metrics>div{flex:1;min-width:150px;background:#192c41;padding:13px;border-radius:10px}.metrics strong{display:block;color:var(--lime);margin-top:5px}.empty{padding:15px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}
+</style></head>
+<body><header><div class="head"><div class="logo">MODELO <span>PRO</span> SPORTS · COMBINADAS</div><a href="./index.html">← Regresar a partidos</a></div></header>
+<main><h1>🧩 Combinadas sugeridas</h1><p class="intro">Consulta cuotas verificables de fútbol, NBA, NFL, NHL, MLB y UFC. Este generador presenta selecciones favoritas según precios de mercado, <strong>no</strong> pronósticos de un modelo estadístico validado.</p>
+<section class="panel"><div class="filters">
+<label><span>Deportes</span><select id="sports"><option value="all">Todos los deportes</option><option value="soccer">Fútbol</option><option value="basketball_nba">NBA</option><option value="americanfootball_nfl">NFL</option><option value="icehockey_nhl">NHL</option><option value="baseball_mlb">MLB</option><option value="mma_mixed_martial_arts">UFC</option></select></label>
+<label><span>Partidos</span><select id="legs"><option value="2">2 selecciones</option><option value="3" selected>3 selecciones</option><option value="4">4 selecciones</option></select></label>
+<label><span>Apuesta de ejemplo</span><select id="stake"><option value="5">$5</option><option value="10" selected>$10</option><option value="20">$20</option></select></label>
+<button class="primary" id="generate">✨ GENERAR COMBINADAS</button>
+</div><div class="status" id="status" role="status">Selecciona las opciones y pulsa Generar combinadas.</div>
+<div id="results"></div>
+<p class="hint">Solo ganador del encuentro, una selección por partido y cuotas de una misma casa. Las cuotas combinadas son teóricas: la disponibilidad del parlay debe confirmarse en la casa. No se inventan mercados, datos ni probabilidades de éxito.</p></section>
+</main>
+<script>
+(()=>{
+"use strict";
+const BASE="https://modelo-pro-api.wqhmiami.workers.dev";
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const sports=["soccer","basketball_nba","americanfootball_nfl","icehockey_nhl","baseball_mlb","mma_mixed_martial_arts"];
+const names={soccer:"Fútbol",basketball_nba:"NBA",americanfootball_nfl:"NFL",icehockey_nhl:"NHL",baseball_mlb:"MLB",mma_mixed_martial_arts:"UFC"};
+const bookKeys=["hardrock","draftkings","fanduel","bet365","pinnacle","betmgm","caesars"];
+const decimal=p=>{const n=Number(p);if(!Number.isFinite(n)||n===0)return null;return Number.isInteger(n)&&Math.abs(n)>=100?(n>0?1+n/100:1+100/-n):n>1?n:null};
+const american=p=>{const d=decimal(p);if(!d)return "—";const n=Number(p);const a=Number.isInteger(n)&&Math.abs(n)>=100?n:d>=2?Math.round((d-1)*100):-Math.round(100/(d-1));return a>0?"+"+a:String(a)};
+const normalized=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const date=s=>new Date(s).toLocaleString("es-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+let busy=false;
+function findPick(game,code,book){
+ if(!game||!game.id||!game.home_team||!game.away_team||game.is_live||game.__calendarOnly)return null;
+ const time=Date.parse(game.commence_time);
+ if(!Number.isFinite(time)||time<=Date.now()+900000||time>Date.now()+7*86400000)return null;
+ if(/live|final|finish|complete|postpone|cancel/i.test(String(game.status||"")))return null;
+ const b=(Array.isArray(game.bookmakers)?game.bookmakers:[]).find(v=>String(v.key||"").toLowerCase()===book);
+ const market=(Array.isArray(b?.markets)?b.markets:[]).find(x=>x.key==="h2h");
+ if(!market||!Array.isArray(market.outcomes))return null;
+ const teamNames=new Set([normalized(game.home_team),normalized(game.away_team)]);
+ const picks=market.outcomes.filter(o=>teamNames.has(normalized(o.name))).map(o=>({name:o.name,price:o.price,d:decimal(o.price)})).filter(o=>Number.isFinite(o.d));
+ if(picks.length!==2)return null;
+ picks.sort((a,b)=>a.d-b.d);
+ if(picks[0].d<1.3||picks[0].d>2.1)return null;
+ const updated=Date.parse(market.last_update||b.last_update);
+ if(Number.isFinite(updated)&&Date.now()-updated>7200000)return null;
+ return {id:String(game.id),sport:code,match:String(game.away_team)+" vs "+String(game.home_team),league:String(game.league?.title||game.tournament||names[code]),time:game.commence_time,pick:picks[0],bookName:String(b.title||book),updated};
+}
+function optionsFor(items,n){
+ for(const key of bookKeys){
+  const candidates=items.map(item=>findPick(item.game,item.sport,key)).filter(Boolean);
+  candidates.sort((a,b)=>a.pick.d-b.pick.d);
+  const strategies=[
+   {title:"Favoritos del mercado",pool:candidates.filter(x=>x.pick.d<=1.7)},
+   {title:"Cuotas equilibradas",pool:candidates.filter(x=>x.pick.d>=1.4&&x.pick.d<=2.1)},
+   {title:"Alternativa conservadora",pool:candidates.filter(x=>x.pick.d<=1.85).slice().reverse()}
+  ];
+  const found=[],seen=new Set();
+  for(const strategy of strategies){
+   const used=new Set(),selected=[];
+   for(const candidate of strategy.pool){
+    if(used.has(candidate.id))continue;
+    used.add(candidate.id);selected.push(candidate);
+    if(selected.length===n)break;
+   }
+   if(selected.length!==n)continue;
+   const signature=selected.map(x=>x.id).sort().join("|");
+   if(seen.has(signature))continue;
+   seen.add(signature);
+   found.push({title:strategy.title,picks:selected,book:selected[0].bookName});
+  }
+  if(found.length)return found;
+ }
+ return [];
+}
+function display(proposals,stake){
+ if(!proposals.length){$("results").innerHTML='<div class="empty">No encontramos suficientes favoritos con cuotas verificables de una misma casa. Prueba con menos selecciones u otro deporte.</div>';return}
+ $("results").innerHTML=proposals.map(p=>{
+  const d=p.picks.reduce((x,v)=>x*v.pick.d,1),implied=100/d;
+  const legs=p.picks.map((x,i)=>'<div class="leg"><div><strong>'+(i+1)+'. '+esc(x.pick.name)+'</strong><small>'+esc(names[x.sport])+' · '+esc(x.match)+' · '+esc(date(x.time))+'</small><small>'+esc(x.league)+'</small></div><span class="price">'+esc(american(x.pick.price))+'</span></div>').join("");
+  return '<article class="card"><h2>'+esc(p.title)+'</h2><p class="hint">Casa: '+esc(p.book)+' · '+p.picks.length+' partidos diferentes</p>'+legs+'<div class="metrics"><div>Cuota combinada teórica<strong>'+d.toFixed(2)+'</strong></div><div>Probabilidad implícita (NO predicción)<strong>'+implied.toFixed(1)+'%</strong></div><div>Retorno bruto con $'+stake+'<strong>$'+(stake*d).toFixed(2)+'</strong></div><div>Beneficio neto potencial<strong>$'+(stake*(d-1)).toFixed(2)+'</strong></div></div><p class="hint">La casa puede no admitir esta combinada. Verifica cuotas, alineaciones y restricciones antes de apostar. No se ha estimado EDGE positivo.</p></article>';
+ }).join("");
+}
+async function generate(){
+ if(busy)return;busy=true;
+ $("generate").disabled=true;$("results").innerHTML="";
+ const count=Number($("legs").value),stake=Number($("stake").value),scope=$("sports").value;
+ const chosen=scope==="all"?sports:[scope],items=[],failures=[];
+ try{
+  for(let i=0;i<chosen.length;i+=2){
+   const group=chosen.slice(i,i+2);
+   $("status").textContent="Consultando cuotas de "+Math.min(i+2,chosen.length)+" de "+chosen.length+" deportes…";
+   await Promise.all(group.map(async sport=>{
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),13000);
+    try{
+     const q=new URLSearchParams({sport,markets:"h2h",view:"compact",days:"7",limit:"200"});
+     const response=await fetch(BASE+"/api/odds?"+q,{signal:controller.signal});
+     if(!response.ok)throw Error("HTTP "+response.status);
+     const data=await response.json();
+     if(!Array.isArray(data))throw Error("Respuesta inesperada");
+     for(const game of data)items.push({sport,game});
+    }catch(e){failures.push(names[sport]+": "+String(e.message||"error"))}
+    finally{clearTimeout(timer)}
+   }));
+  }
+  const suggestions=optionsFor(items,count);
+  display(suggestions,stake);
+  $("status").textContent=items.length+" partidos recibidos · "+suggestions.length+" combinadas posibles."+(failures.length?" Fuentes no disponibles: "+failures.join("; "):"");
+ }catch(e){$("status").textContent="No fue posible generar combinadas: "+String(e.message||"error")}
+ finally{busy=false;$("generate").disabled=false}
+}
+$("generate").addEventListener("click",generate);
+})();
+</script></body></html>
