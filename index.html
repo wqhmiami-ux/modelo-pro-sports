@@ -92,9 +92,9 @@ function standingsForGame(g){
 }
 function datedKLeague2Snapshot(g){
  const league=[g.league?.title,g.league?.key,g.tournament,g.competition,g.sport_title].filter(x=>typeof x==="string").join(" ").toLowerCase();
- const date=String(g.commence_time||"").slice(0,10);
+ const when=new Date(g.commence_time||"").getTime();
  const names=[normalizeName(g.home_team),normalizeName(g.away_team)];
- if(!(/k[\s-]*league[\s-]*2|kleague2/.test(league))||date!=="2026-11-08")return null;
+ if(!Number.isFinite(when)||Math.abs(when-Date.parse("2026-11-08T12:00:00Z"))>36*3600000)return null;
  if(!names.some(n=>n.includes("chungnamasan"))||!names.some(n=>n.includes("pajufrontier")))return null;
  const ranks=[
   {key:"chungnamasan",position:7,points:42,playedGames:29,won:11,draw:9,lost:9,goalDifference:8,team:{name:"Chungnam Asan"}},
@@ -106,8 +106,8 @@ function datedKLeague2Snapshot(g){
 function datedALeagueSnapshot(g){
  const label=[g.league?.title,g.league?.key,g.tournament,g.competition,g.sport_title].filter(x=>typeof x==="string").join(" ").toLowerCase();
  const names=[normalizeName(g.home_team),normalizeName(g.away_team)];
- const d=String(g.commence_time||"").slice(0,10);
- if(!/a[\s-]*league|aleague/.test(label)||d!=="2026-11-08")return null;
+ const when=new Date(g.commence_time||"").getTime();
+ if(!Number.isFinite(when)||Math.abs(when-Date.parse("2026-11-08T12:00:00Z"))>36*3600000)return null;
  if(!names.some(x=>x.includes("melbournevictory"))||!names.some(x=>x.includes("adelaideunited")))return null;
  const ranks=[
   {key:"melbournevictory",position:9,points:2,playedGames:3,won:0,draw:2,lost:1,goalDifference:-1,team:{name:"Melbourne Victory"}},
@@ -119,12 +119,10 @@ function datedALeagueSnapshot(g){
 function datedOtherLeagueSnapshot(g){return datedALeagueSnapshot(g)||datedKLeague2Snapshot(g)}
 function rankBrief(g){
  if(sport!=="soccer")return "";
+ const snapshot=datedOtherLeagueSnapshot(g);
+ if(snapshot)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+snapshot.away.position+'.º</b> · '+snapshot.away.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+snapshot.home.position+'.º</b> · '+snapshot.home.points+' pts</span><small>Posiciones al '+snapshot.asOf+' · no en vivo</small>'+(snapshot.note?'<small class="reason">⚠️ '+esc(snapshot.note)+'</small>':'')+'</div>';
  const data=standingsForGame(g).data;
- if(!data?.table){
-  const snapshot=datedOtherLeagueSnapshot(g);
-  if(snapshot)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+snapshot.away.position+'.º</b> · '+snapshot.away.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+snapshot.home.position+'.º</b> · '+snapshot.home.points+' pts</span><small>Posiciones al '+snapshot.asOf+' · no en vivo</small>'+(snapshot.note?'<small class="reason">⚠️ '+esc(snapshot.note)+'</small>':'')+'</div>';
-  return '<div class="meta">🏆 Posición no disponible: esta liga no está cubierta por la API de clasificación.</div>';
- }
+ if(!data?.table)return '<div class="meta">🏆 Clasificación aún no disponible para esta liga.</div>';
  const h=findStandingsTeam(data.table,g.home_team),a=findStandingsTeam(data.table,g.away_team);
  return '<div class="mp-match-positions"><span>🏆 '+(a?'<b>'+a.position+'.º</b> ':'')+esc(g.away_team)+(a?' · '+a.points+' pts':' · sin posición')+'</span><span>🏆 '+(h?'<b>'+h.position+'.º</b> ':'')+esc(g.home_team)+(h?' · '+h.points+' pts':' · sin posición')+'</span></div>';
 }
