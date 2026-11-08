@@ -90,15 +90,38 @@ function standingsForGame(g){
  }
  return matches.length===1?matches[0]:{competition:explicit,data:null};
 }
+function datedKLeague2Snapshot(g){
+ const league=[g.league?.title,g.league?.key,g.tournament,g.competition,g.sport_title].filter(x=>typeof x==="string").join(" ").toLowerCase();
+ const date=String(g.commence_time||"").slice(0,10);
+ const names=[normalizeName(g.home_team),normalizeName(g.away_team)];
+ if(!(/k[\s-]*league[\s-]*2|kleague2/.test(league))||date!=="2026-11-08")return null;
+ if(!names.some(n=>n.includes("chungnamasan"))||!names.some(n=>n.includes("pajufrontier")))return null;
+ const ranks=[
+  {key:"chungnamasan",position:7,points:42,playedGames:29,won:11,draw:9,lost:9,goalDifference:8,team:{name:"Chungnam Asan"}},
+  {key:"pajufrontier",position:10,points:34,playedGames:29,won:9,draw:7,lost:13,goalDifference:-6,team:{name:"Paju Frontier"}}
+ ];
+ const match=name=>ranks.find(r=>normalizeName(name).includes(r.key))||null;
+ return {home:match(g.home_team),away:match(g.away_team),asOf:"7 nov 2026",source:"Rotascore · K League 2 2026",url:"https://www.rotascore.com/en/league/k-league-2/kn54qllh25dqvy9/standings"};
+}
 function rankBrief(g){
  if(sport!=="soccer")return "";
  const data=standingsForGame(g).data;
- if(!data?.table)return '<div class="meta">🏆 Posición: sin clasificación confirmada</div>';
+ if(!data?.table){
+  const snapshot=datedKLeague2Snapshot(g);
+  if(snapshot)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+snapshot.away.position+'.º</b> · '+snapshot.away.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+snapshot.home.position+'.º</b> · '+snapshot.home.points+' pts</span><small>Tabla consultada al '+snapshot.asOf+' · referencia histórica, no en vivo</small></div>';
+  return '<div class="meta">🏆 Posición no disponible: esta liga no está cubierta por la API de clasificación.</div>';
+ }
  const h=findStandingsTeam(data.table,g.home_team),a=findStandingsTeam(data.table,g.away_team);
  return '<div class="mp-match-positions"><span>🏆 '+(a?'<b>'+a.position+'.º</b> ':'')+esc(g.away_team)+(a?' · '+a.points+' pts':' · sin posición')+'</span><span>🏆 '+(h?'<b>'+h.position+'.º</b> ':'')+esc(g.home_team)+(h?' · '+h.points+' pts':' · sin posición')+'</span></div>';
 }
 async function loadStandings(g){
  const target=$("standingboard");if(!target)return;
+ const snapshot=datedKLeague2Snapshot(g);
+ if(snapshot){
+  const box=(label,r)=>'<div class="verdict"><span class="meta">'+label+'</span><br><strong>'+r.position+'.º · '+esc(r.team.name)+'</strong><div class="statline"><span>Puntos / PJ</span><b>'+r.points+' / '+r.playedGames+'</b></div><div class="statline"><span>G / E / P</span><b>'+r.won+' / '+r.draw+' / '+r.lost+'</b></div><div class="statline"><span>Diferencia de goles</span><b>'+r.goalDifference+'</b></div></div>';
+  target.innerHTML='<h3>🏆 POSICIÓN EN K LEAGUE 2</h3><div class="twocol">'+box("LOCAL SEGÚN ODDSLINK",snapshot.home)+box("VISITANTE SEGÚN ODDSLINK",snapshot.away)+'</div><p class="hint">Referencia comprobada al '+snapshot.asOf+'. <a href="'+snapshot.url+'" target="_blank" rel="noopener noreferrer">Ver clasificación de origen</a>. No es una conexión automática en vivo.</p><div class="callout">⚠️ El calendario externo consultado muestra Paju Frontier como local y Chungnam Asan como visitante, al contrario del orden recibido en las cuotas. Comprueba quién juega en casa antes de utilizar los mercados.</div>';
+  return;
+ }
  const comp=standingsForGame(g).competition;
  if(!comp){target.innerHTML='<div class="callout">No se pudo identificar la liga de los dos equipos de forma inequívoca. Selecciona la liga en Clasificación del torneo para cargar sus posiciones.</div>';return}
  let data=standingsForGame(g).data||standingsCache.get(comp);
