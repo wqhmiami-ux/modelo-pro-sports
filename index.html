@@ -36,6 +36,9 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 .mp-prob-line small{display:block;margin-top:2px}
 .mp-prob-missing{opacity:.73}
 .mp-prob-missing small{color:#a5b5c2}
+
+.mp-league-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;margin:16px 0 4px;border-radius:12px;border:1px solid #54724e;background:#1c302d;color:#d6ffad;font-weight:800;font-size:15px}
+.mp-league-heading small{font-size:11px;color:#adc9b7;font-weight:500}
 </style>
 <style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
 <body>
@@ -58,7 +61,7 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 </nav>
 <div class="shell"><section class="panel">
 <div class="sectionhead"><div><h2>Calendario y partidos</h2><span class="hint">Selecciona un partido para ver todos los datos que entrega la fuente.</span></div><button class="secondary" id="refresh" type="button">↻ Actualizar</button></div>
-<div class="filters"><select id="datefilter" aria-label="Fechas"><option value="3">Hoy + 2 días</option><option value="7">Próximos 7 días</option><option value="all">Todos los recibidos</option></select><input id="find" type="search" placeholder="Buscar equipo o torneo" aria-label="Buscar"><select id="order" aria-label="Ordenar"><option value="date">Por fecha</option><option value="coverage">Más cuotas</option></select></div>
+<div class="filters"><select id="datefilter" aria-label="Fechas"><option value="3">Hoy + 2 días</option><option value="7">Próximos 7 días</option><option value="all">Todos los recibidos</option></select><input id="find" type="search" placeholder="Buscar equipo o torneo" aria-label="Buscar"><select id="order" aria-label="Ordenar"><option value="priority" selected>🏆 Ligas importantes</option><option value="date">Por fecha</option><option value="coverage">Más cuotas</option></select></div>
 <div class="status" id="loadstatus" role="status">Preparando el calendario...</div><div id="games" class="games"></div>
 </section>
 <aside class="panel aside" id="detail"><h2>Informe del partido</h2><div class="empty">Selecciona un partido para analizar sus cuotas, mercados y estadísticas disponibles.</div></aside></div></div>
@@ -452,6 +455,31 @@ function briefOdds(game){
  const main=groups.filter(g=>g.best.market==="h2h"&&g.count>=1).sort((a,b)=>a.best.decimal-b.best.decimal)[0];
  return main?'<span>Mercado: '+esc(main.best.name)+' <b>'+esc(priceText(main.best.price))+'</b> · '+main.count+' casas</span>':"<span>Sin cuotas de ganador verificadas</span>";
 }
+const leaguePriorityRules=[
+ [/uefa.champions|champions league|copa libertadores|libertadores|world cup|copa mundial/,1],
+ [/uefa.europa$|europa league|copa america|euro championship|euros\b|gold cup/,2],
+ [/eng\.1|premier league|esp\.1|la liga|laliga|ita\.1|serie a.*ital|ger\.1|bundesliga|fra\.1|ligue 1/,3],
+ [/usa\.1|major league soccer|(^|[^a-z])mls([^a-z]|$)|col\.1|liga betplay|primera a colombia|arg\.1|liga profesional argentina|bra\.1|brasileirao|por\.1|primeira liga/,4],
+ [/mex\.1|liga mx|ned\.1|eredivisie|uefa.europa.conf|conference league|saudi pro league|jpn\.1|j1 league/,5],
+ [/eng\.2|championship|esp\.2|segunda division|ger\.2|2. bundesliga|ita\.2|serie b|fra\.2|ligue 2|uefa youth/,6],
+ [/women|femenin|wsl|nwsl|youth|reserve|sub.?2[013]|under.?2[013]|u.?2[013]/,8]
+];
+function leagueInfo(g){
+ const name=String(g.league?.title||g.league?.name||g.tournament||g.competition||g.sport_title||sportNames[sport]||"Liga no identificada").trim();
+ const key=String(g.league?.key||"").trim();
+ const slug=sport==="soccer"?espnLeagueFor(g):"";
+ const search=[key,slug,name].filter(Boolean).join(" ").toLowerCase();
+ const hit=leaguePriorityRules.find(([re])=>re.test(search));
+ const priority=hit?hit[1]:7;
+ return {name,key:key||slug||name.toLowerCase(),priority};
+}
+function leagueSort(a,b){
+ const la=leagueInfo(a),lb=leagueInfo(b);
+ if(la.priority!==lb.priority)return la.priority-lb.priority;
+ const byName=la.name.localeCompare(lb.name,"es",{sensitivity:"base"});
+ if(byName)return byName;
+ return Date.parse(a.commence_time)-Date.parse(b.commence_time);
+}
 function visibleItems(){
  const search=$("find").value.trim().toLowerCase(),days=$("datefilter").value;
  const now=new Date();now.setHours(0,0,0,0);const beginning=now.getTime(),until=days==="all"?Infinity:beginning+Number(days)*86400000;
@@ -459,16 +487,21 @@ function visibleItems(){
    const t=new Date(g.commence_time).getTime();
    return Number.isFinite(t)&&(days==="all"||(t>=beginning&&t<until))&&(!search||[g.home_team,g.away_team,g.tournament,g.league?.title].some(x=>String(x||"").toLowerCase().includes(search)));
  });
- if($("order").value==="coverage")filtered.sort((a,b)=>flatten(b).length-flatten(a).length);
+ if($("order").value==="priority")filtered.sort(leagueSort);
+ else if($("order").value==="coverage")filtered.sort((a,b)=>flatten(b).length-flatten(a).length);
  else filtered.sort((a,b)=>new Date(a.commence_time)-new Date(b.commence_time));
  return filtered;
 }
 function renderGames(){
  const matches=visibleItems();
  $("loadstatus").textContent=items.length+" partidos recibidos de "+sportNames[sport]+" · "+matches.length+" visibles. Datos y cuotas según cobertura del proveedor.";
+ let previousLeague="";
  $("games").innerHTML=matches.length?matches.map((g,i)=>{
+  const info=leagueInfo(g),leagueId=info.key+"|"+info.name;
+  const heading=$("order").value==="priority"&&leagueId!==previousLeague?'<div class="mp-league-heading"><span>🏆 '+esc(info.name)+'</span><small>'+((info.priority<=2)?"Competiciones internacionales":info.priority<=4?"Liga destacada":info.priority<=6?"Competición nacional":"Otras competiciones")+'</small></div>':"";
+  previousLeague=leagueId;
   const rows=flatten(g),title=String(g.away_team||"Visitante")+" vs "+String(g.home_team||"Local");
-  return '<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+probabilityBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
+  return heading+'<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+probabilityBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
  }).join(""):'<div class="empty">No hay partidos para los filtros actuales o la fuente no devolvió encuentros. Cambia el período o deporte.</div>';
  window.__modelVisible=matches;
 }
