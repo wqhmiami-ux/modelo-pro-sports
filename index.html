@@ -2014,10 +2014,10 @@ function renderDailyGames() {
           for(const outcome of (Array.isArray(market.outcomes)?market.outcomes:[])){
             const name = String(outcome.name||"");
             const point = outcome.point === undefined || outcome.point === null ? "" : String(outcome.point);
-            // Solo destacar líneas estándar de goles, no líneas extremas
-            // como Under 6.5 que pueden no existir en la casa del usuario.
+            // Mostrar todas las líneas reales de goles de 0.5 a 6.5;
+            // ninguna línea sin cuota comparable se considera verificada.
             if(game.sport==="Fútbol" && market.key==="totals" &&
-               ![1.5,2.5,3.5].includes(Number(point))) continue;
+               ![0.5,1.5,2.5,3.5,4.5,5.5,6.5].includes(Number(point))) continue;
             const id = market.key+"|"+name+"|"+point;
             if(seen.has(id))continue;
             seen.add(id);
@@ -2028,19 +2028,18 @@ function renderDailyGames() {
         }
       }
       candidates.sort((a,b)=>{
-        // Favorecer líneas de 2.5 como referencia cuando existan;
-        // nunca sustituir disponibilidad real por cuotas supuestas.
         if(game.sport==="Fútbol" && group.keys[0]==="totals"){
-          const priority=x=>x.point==="2.5"?0:x.point==="1.5"?1:2;
-          return priority(a)-priority(b) || b.probability-a.probability;
+          return Number(a.point)-Number(b.point)||String(a.name).localeCompare(String(b.name));
         }
         return b.probability-a.probability;
       });
-      const best=candidates[0];
-      if(best)availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'%</b></div>');
-      else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':game.sport==="Fútbol"?'<button class="mp-open-advanced" type="button">VER ESTADÍSTICAS</button>':'<b>Sin cuotas de este mercado</b>')+'</div>');
+      if(candidates.length){
+        for(const row of candidates.slice(0,16)){
+          availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(row.name)+(row.point?' '+escapeHTML(displayNumber(row.point)):'')+'</span><b>'+row.probability.toFixed(1)+'%</b></div>');
+        }
+      }else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':game.sport==="Fútbol"?'<button class="mp-open-advanced" type="button">VER ESTADÍSTICAS</button>':'<b>Sin cuotas de este mercado</b>')+'</div>');
     }
-    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO · CUOTAS</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros pulsa VER ESTADÍSTICAS para consultar API-Football si la liga y el partido están cubiertos. Las estadísticas observadas no son predicciones; sin un modelo histórico validado, no se publican porcentajes.</p></div>';
+    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES SEGÚN CUOTAS · LÍNEAS DISPONIBLES</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros pulsa VER ESTADÍSTICAS para consultar API-Football si la liga y el partido están cubiertos. Las estadísticas observadas no son predicciones; sin un modelo histórico validado, no se publican porcentajes.</p></div>';
     // Tabla comparativa de mercados con cuotas realmente recibidas. No genera precios faltantes.
     const bookRows=[];
     for(const book of (Array.isArray(game.bookmakers)?game.bookmakers:[])){
@@ -2993,8 +2992,8 @@ renderHistory();
         Array.from({ length: goals }, (_, i) => i + 1)
           .reduce((factor, value) => factor * value, 1);
 
-      let homeWin=0, draw=0, awayWin=0, btts=0, totalMass=0;
-      const overs={0.5:0,1.5:0,2.5:0,3.5:0,4.5:0};
+      let homeWin=0, draw=0, awayWin=0, btts=0, totalMass=0, homeOver05=0,awayOver05=0,homeOver15=0,awayOver15=0, totalExactly2=0,totalExactly3=0;
+      const overs={0.5:0,1.5:0,2.5:0,3.5:0,4.5:0,5.5:0,6.5:0};
       const scores=[];
       for (let h=0;h<=12;h++){
         for(let a=0;a<=12;a++){
@@ -3004,12 +3003,18 @@ renderHistory();
           else if(h===a)draw+=probability;
           else awayWin+=probability;
           if(h>0&&a>0)btts+=probability;
+          if(h>=1)homeOver05+=probability;
+          if(a>=1)awayOver05+=probability;
+          if(h>=2)homeOver15+=probability;
+          if(a>=2)awayOver15+=probability;
+          if(h+a===2)totalExactly2+=probability;
+          if(h+a===3)totalExactly3+=probability;
           for(const line of Object.keys(overs))if(h+a>Number(line))overs[line]+=probability;
           scores.push({h,a,probability});
         }
       }
       if(!(totalMass>0))throw new Error("Distribución incompleta");
-      homeWin/=totalMass;draw/=totalMass;awayWin/=totalMass;btts/=totalMass;
+      homeWin/=totalMass;draw/=totalMass;awayWin/=totalMass;btts/=totalMass;homeOver05/=totalMass;awayOver05/=totalMass;homeOver15/=totalMass;awayOver15/=totalMass;totalExactly2/=totalMass;totalExactly3/=totalMass;
       for(const line of Object.keys(overs))overs[line]/=totalMass;
       const pct=value=>(value*100).toFixed(1)+"%";
       const mostLikely=scores.sort((a,b)=>b.probability-a.probability)[0];
@@ -3019,6 +3024,15 @@ renderHistory();
         ["Gana "+canonicalAwayName,awayWin],
         ["Ambos marcan — Sí",btts],
         ["Ambos marcan — No",1-btts],
+        ["Doble oportunidad · 1X (local o empate)",homeWin+draw],
+        ["Doble oportunidad · X2 (empate o visitante)",draw+awayWin],
+        ["Doble oportunidad · 12 (sin empate)",homeWin+awayWin],
+        ["Local marca 1 o más goles",homeOver05],
+        ["Local marca 2 o más goles",homeOver15],
+        ["Visitante marca 1 o más goles",awayOver05],
+        ["Visitante marca 2 o más goles",awayOver15],
+        ["Exactamente 2 goles en el partido",totalExactly2],
+        ["Exactamente 3 goles en el partido",totalExactly3],
         ...Object.entries(overs).flatMap(([line,p])=>[
           ["Más de "+line+" goles",p],
           ["Menos de "+line+" goles",1-p]
