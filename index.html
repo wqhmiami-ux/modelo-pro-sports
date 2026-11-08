@@ -626,9 +626,7 @@ async function loadAdvancedFootball(g){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),16000);
  try{
   const qs=new URLSearchParams({from,to,league,season});
-  const response=await fetch(BASE+"/api/advanced/fixtures?"+qs,{signal:controller.signal});
-  const payload=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(response.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":apiFootballErrorMessage(payload,response.status));
+  const payload=await footballApiFetch("/api/advanced/fixtures?"+qs,controller.signal);
   const matches=Array.isArray(payload.response)?payload.response:[];
   const matching=apiFootballMatch(g,matches);
   if(selected!==g)return;
@@ -642,9 +640,7 @@ async function loadAdvancedFootball(g){
    return;
   }
   target.textContent="Partido encontrado. Consultando tiros, córners, tarjetas y posesión…";
-  const stats=await fetch(BASE+"/api/advanced/statistics?"+new URLSearchParams({fixture:String(matching.fixture.id)}),{signal:controller.signal});
-  const data=await stats.json().catch(()=>({}));
-  if(!stats.ok)throw Error(stats.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":apiFootballErrorMessage(data,stats.status));
+  const data=await footballApiFetch("/api/advanced/statistics?"+new URLSearchParams({fixture:String(matching.fixture.id)}),controller.signal);
   if(selected!==g)return;
   const report=Array.isArray(data.response)?data.response:[];
   if(!report.length){target.textContent="Partido confirmado, pero API-Football no devolvió estadísticas para este encuentro y su estado actual.";return}
@@ -781,6 +777,39 @@ function renderSaved(){
 $("clear-history").addEventListener("click",()=>{writeSaved([]);renderSaved()});
 $("find").addEventListener("input",renderGames);$("datefilter").addEventListener("change",renderGames);$("order").addEventListener("change",renderGames);
 $("refresh").addEventListener("click",()=>load(true));
+const footballApiCooldownKey="modeloProApiFootballCooldown";
+const footballApiCachePrefix="modeloProApiFootballResponse:";
+function footballApiCooldownRemaining(){
+ try{return Math.max(0,Math.ceil((Number(localStorage.getItem(footballApiCooldownKey)||0)-Date.now())/1000))}catch{return 0}
+}
+function footballApiCooldownText(){
+ const n=footballApiCooldownRemaining();
+ return n?"Límite por minuto alcanzado. Evitando nuevas consultas durante aproximadamente "+n+" segundos. No presiones varias veces el botón.":"";
+}
+function footballApiSetCooldown(response,data){
+ if(response.status!==429)return;
+ const serverTime=Number(data?.retryAfterSeconds||response.headers.get("Retry-After"));
+ const seconds=Math.max(90,Math.min(3600,Number.isFinite(serverTime)&&serverTime>0?serverTime:90));
+ try{localStorage.setItem(footballApiCooldownKey,String(Date.now()+seconds*1000))}catch{}
+}
+async function footballApiFetch(endpoint,signal){
+ const cacheKey=footballApiCachePrefix+endpoint;
+ let saved=null;
+ try{saved=JSON.parse(sessionStorage.getItem(cacheKey)||"null")}catch{}
+ if(saved&&Date.now()-saved.time<15*60*1000&&Array.isArray(saved.payload?.response))return saved.payload;
+ const cooldown=footballApiCooldownText();
+ if(cooldown)throw Error(cooldown);
+ const res=await fetch(BASE+endpoint,{signal});
+ const data=await res.json().catch(()=>({}));
+ if(!res.ok){
+  footballApiSetCooldown(res,data);
+  throw Error(res.status===503?"Falta configurar API_FOOTBALL_KEY en Cloudflare":
+   "HTTP "+res.status+" · "+(res.status===429?"Demasiadas solicitudes. "+footballApiCooldownText():apiFootballErrorMessage(data,res.status)));
+ }
+ if(!Array.isArray(data.response))throw Error("La fuente no devolvió una lista válida.");
+ try{sessionStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),payload:data}))}catch{}
+ return data;
+}
 function apiFootballErrorMessage(data,httpStatus){
  const details=data?.detail;
  const values=details&&typeof details==="object"?Object.entries(details).filter(([,v])=>v!==null&&v!==""&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>k+": "+(typeof v==="string"?v:JSON.stringify(v))):[];
@@ -793,20 +822,23 @@ function apiFootballErrorMessage(data,httpStatus){
 }
 $("apiFootballCheck").addEventListener("click",async()=>{
  const button=$("apiFootballCheck"),out=$("apiFootballCheckStatus"),indicator=$("apiFootballHealth");
+ if(footballApiCooldownRemaining()){
+  indicator.textContent="Límite temporal";
+  out.textContent=footballApiCooldownText();
+  return;
+ }
  button.disabled=true;out.textContent="Comprobando API-Football a través de Cloudflare…";
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
  try{
   const day=new Date().toISOString().slice(0,10),from=apiFootballDayShift(day,-1),to=apiFootballDayShift(day,1);
   const year=new Date().getUTCFullYear(),season=new Date().getUTCMonth()<6?year-1:year;
   const qs=new URLSearchParams({from,to,league:"39",season:String(season)});
-  const res=await fetch(BASE+"/api/advanced/fixtures?"+qs,{signal:ctrl.signal,cache:"no-store"});
-  const data=await res.json().catch(()=>({}));
-  if(!res.ok){indicator.textContent=res.status===503?"Sin clave":"Consulta rechazada";throw Error("HTTP "+res.status+" · "+(res.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":apiFootballErrorMessage(data,res.status)))}
+  const data=await footballApiFetch("/api/advanced/fixtures?"+qs,ctrl.signal);
   if(!Array.isArray(data.response))throw Error("Respuesta sin lista de partidos");
   indicator.textContent="Responde";
   out.textContent="✅ API-Football respondió. Se recibieron "+data.response.length+" encuentros de prueba; 0 también es válido si no hay partidos en estas fechas. Esto no confirma cobertura de todas las ligas o mercados.";
  }catch(error){
-  if(indicator.textContent==="Sin verificar")indicator.textContent="No disponible";
+  indicator.textContent=footballApiCooldownRemaining()?"Límite temporal":"Sin confirmar";
   out.textContent="API-Football no pudo verificarse: "+(error.name==="AbortError"?"tiempo de espera agotado":String(error.message||"Error de conexión"));
  }finally{clearTimeout(timer);button.disabled=false}
 });
