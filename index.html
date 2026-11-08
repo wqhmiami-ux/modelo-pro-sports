@@ -16,7 +16,7 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 .aside{position:sticky;top:75px;align-self:start;max-height:calc(100vh - 90px);overflow:auto}.aside h2{font-size:22px}.verdict{background:#203243;border:1px solid #3c566d;border-radius:12px;padding:13px;margin:12px 0}.verdict strong{color:var(--lime);font-size:16px}.verdict small{color:var(--muted);display:block;margin-top:6px;line-height:1.5}.metricgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:15px 0}.metric{background:#102135;border:1px solid #314660;border-radius:11px;padding:12px 8px;text-align:center}.metric strong{font-size:18px;color:var(--lime);display:block}.metric span{font-size:11px;color:var(--muted)}.tablewrap{max-height:400px;overflow:auto;border:1px solid #2b425c;border-radius:10px;margin-top:12px}table{border-collapse:collapse;width:100%;font-size:12px}td,th{text-align:left;padding:9px 8px;border-bottom:1px solid #283e55}th{background:#1b3249;position:sticky;top:0;color:#dbeafb}.callout{font-size:12px;line-height:1.55;color:#c1d1df;background:#0b1a2b;border-radius:11px;padding:12px;margin:12px 0}.reason{color:var(--red)}.success{color:var(--lime)}.empty{padding:30px 18px;text-align:center;color:var(--muted);border:1px dashed #43566f;border-radius:12px}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.statline{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}.statline b{color:var(--lime)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:15px}.hidden{display:none!important}.footnote{margin:30px 0;color:#8ea4b8;font-size:12px}.saved{display:grid;gap:8px}.saveditem{border:1px solid #304861;padding:12px;border-radius:11px}.right{text-align:right}.small{font-size:12px}.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btnrow button{flex:1}.banner{margin-top:15px;padding:10px 14px;border:1px solid #35546a;border-radius:10px;color:#b8cad8;font-size:12px}.badge{font-size:11px;color:var(--lime);font-weight:700}
 @media(max-width:900px){.shell{grid-template-columns:1fr}.aside{position:static;max-height:none}.hero{display:block}.hero-tag{display:inline-block;margin-top:16px}}@media(max-width:600px){main{padding:17px 10px 80px}.nav{padding:13px}.hero{padding:20px}.panel{padding:13px}.pill{padding:10px;font-size:12px}.sports{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.metricgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.filters input{flex-basis:100%}.twocol{grid-template-columns:1fr}.navright{display:none}}
 </style>
-</head>
+<style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
 <body>
 <header><div class="nav"><div class="logo">MODELO <b>PRO</b> SPORTS <span class="badge">V2</span></div><div class="navright">ESTADÍSTICAS · CUOTAS · DECISIONES CON EVIDENCIA</div></div></header>
 <main>
@@ -63,21 +63,45 @@ let sport="soccer",items=[],selected=null,pending=false;
 
 const standingsCache=new Map();
 function findStandingsTeam(table,name){
- const key=normalizeName(name);
- const exact=table.filter(r=>[r.team?.name,r.team?.shortName,r.team?.tla].some(v=>normalizeName(v)===key));
+ const aliases={
+  manchestercity:"mancity",mancity:"mancity",
+  manchesterunited:"manunited",manunited:"manunited",
+  brightonandhovealbion:"brightonhove",brightonhovealbion:"brightonhove",brightonhove:"brightonhove",brighton:"brightonhove",
+  tottenhamhotspur:"tottenham",tottenham:"tottenham",
+  newcastleunited:"newcastle",newcastle:"newcastle",
+  nottinghamforest:"nottingham",nottingham:"nottingham",
+  bournemouth:"bournemouth",afcbournemouth:"bournemouth",
+  crystalpalace:"crystalpalace",
+  wolverhamptonwanderers:"wolves",wolves:"wolves",
+  westhamunited:"westham",westham:"westham"
+ };
+ const norm=x=>{const key=normalizeName(x).replace(/and/g,"and");return aliases[key]||key};
+ const key=norm(name);
+ const exact=table.filter(r=>[r.team?.name,r.team?.shortName,r.team?.tla].some(v=>norm(v)===key));
  return exact.length===1?exact[0]:null;
+}
+function standingsForGame(g){
+ const explicit=competitionFor(g);
+ if(explicit&&standingsCache.has(explicit))return {competition:explicit,data:standingsCache.get(explicit)};
+ const matches=[];
+ for(const [competition,data] of standingsCache){
+  if(!Array.isArray(data?.table))continue;
+  if(findStandingsTeam(data.table,g.home_team)&&findStandingsTeam(data.table,g.away_team))matches.push({competition,data});
+ }
+ return matches.length===1?matches[0]:{competition:explicit,data:null};
 }
 function rankBrief(g){
  if(sport!=="soccer")return "";
- const data=standingsCache.get(competitionFor(g));if(!data?.table)return "";
+ const data=standingsForGame(g).data;
+ if(!data?.table)return '<div class="meta">🏆 Posición: sin clasificación confirmada</div>';
  const h=findStandingsTeam(data.table,g.home_team),a=findStandingsTeam(data.table,g.away_team);
- return h&&a?'<div class="meta">TABLA · Local '+h.position+'.º / Visitante '+a.position+'.º</div>':"";
+ return '<div class="mp-match-positions"><span>🏆 '+(a?'<b>'+a.position+'.º</b> ':'')+esc(g.away_team)+(a?' · '+a.points+' pts':' · sin posición')+'</span><span>🏆 '+(h?'<b>'+h.position+'.º</b> ':'')+esc(g.home_team)+(h?' · '+h.points+' pts':' · sin posición')+'</span></div>';
 }
 async function loadStandings(g){
  const target=$("standingboard");if(!target)return;
- const comp=competitionFor(g);
- if(!comp){target.innerHTML='<div class="callout">Clasificación no disponible para este torneo.</div>';return}
- let data=standingsCache.get(comp);
+ const comp=standingsForGame(g).competition;
+ if(!comp){target.innerHTML='<div class="callout">No se pudo identificar la liga de los dos equipos de forma inequívoca. Selecciona la liga en Clasificación del torneo para cargar sus posiciones.</div>';return}
+ let data=standingsForGame(g).data||standingsCache.get(comp);
  if(!data){try{const stored=JSON.parse(sessionStorage.getItem("modeloProStanding:"+comp)||"null");if(stored&&Date.now()-stored.at<1800000&&Array.isArray(stored.data?.table))data=stored.data}catch{}}
  if(!data){
   target.textContent="Consultando tabla oficial…";
@@ -118,6 +142,10 @@ async function showStandingsOverview(force=false){
  const rows=data.table.map(r=>'<tr><td><b>'+r.position+'</b></td><td>'+esc(r.team?.name||"Equipo")+'</td><td>'+r.playedGames+'</td><td>'+r.won+'</td><td>'+r.draw+'</td><td>'+r.lost+'</td><td>'+r.points+'</td><td>'+r.goalDifference+'</td></tr>').join("");
  box.innerHTML='<p class="hint">Fuente: '+esc(data.provider||"football-data.org")+' · '+esc(data.competition||comp)+' · Jornada '+esc(data.matchday??"no informada")+'</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pts</th><th>DG</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
  renderGames();
+ if(selected&&sport==="soccer"){
+  const match=standingsForGame(selected);
+  if(match.data?.table && $("standingboard"))void loadStandings(selected);
+ }
 }
 $("standings-league").addEventListener("change",()=>showStandingsOverview());
 $("standings-refresh").addEventListener("click",()=>showStandingsOverview(true));
@@ -178,7 +206,7 @@ function renderGames(){
  $("loadstatus").textContent=items.length+" partidos recibidos de "+sportNames[sport]+" · "+matches.length+" visibles. Datos y cuotas según cobertura del proveedor.";
  $("games").innerHTML=matches.length?matches.map((g,i)=>{
   const rows=flatten(g),title=String(g.away_team||"Visitante")+" vs "+String(g.home_team||"Local");
-  return '<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong><div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div>'+rankBrief(g)+'<div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
+  return '<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
  }).join(""):'<div class="empty">No hay partidos para los filtros actuales o la fuente no devolvió encuentros. Cambia el período o deporte.</div>';
  window.__modelVisible=matches;
 }
@@ -202,7 +230,7 @@ function renderDetail(){
  const table=groups.map(g=>'<tr><td>'+esc(displayMarket(g.best.market))+'</td><td>'+esc(g.best.name+(g.best.point?" "+g.best.point:""))+'</td><td>'+esc(priceText(g.best.price))+'</td><td>'+esc(g.best.book)+'</td><td>'+g.count+'</td></tr>').join("");
  const all=rows.map(r=>'<tr><td>'+esc(displayMarket(r.market))+'</td><td>'+esc(r.name+(r.point?" "+r.point:""))+'</td><td>'+esc(r.book)+'</td><td>'+esc(priceText(r.price))+'</td><td>'+(100/r.decimal).toFixed(1)+'%</td></tr>').join("");
  $("detail").innerHTML='<div class="sectionhead"><h2>'+esc(g.home_team||"Local")+' - '+esc(g.away_team||"Visitante")+'</h2><span class="tag">'+esc(sportNames[sport])+'</span></div>'+
- '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+
+ '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+rankBrief(g)+
  '<div class="metricgrid"><div class="metric"><strong>'+books.size+'</strong><span>Casas</span></div><div class="metric"><strong>'+markets.size+'</strong><span>Mercados</span></div><div class="metric"><strong>'+rows.length+'</strong><span>Cuotas</span></div></div>'+
  (sport==="soccer"?'<div id="standingboard" class="status">Cargando posiciones del torneo…</div>':"")+
  '<div class="verdict"><span class="meta">LECTURA DEL MERCADO</span><br>'+topnote+'</div>'+
@@ -219,7 +247,7 @@ function renderDetail(){
 }
 function normalizeName(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\b(fc|afc|cf|sc|club|de|the)\b/g,"").replace(/[^a-z0-9]/g,"")}
 function competitionFor(g){
- const k=[g.sport_key,g.league?.key,g.league?.title,g.league,g.tournament,g.competition].filter(v=>typeof v==="string").join(" ").toLowerCase();
+ const k=[g.sport_key,g.league?.key,g.league?.title,g.league,g.tournament,g.competition,g.sport_title,g.sport_group].filter(v=>typeof v==="string").join(" ").toLowerCase();
  const tests=[[/epl|premier.?league|england/,"PL"],[/spain|la.?liga/,"PD"],[/bundesliga|germany/,"BL1"],[/italy|serie.?a/,"SA"],[/ligue.?1|france/,"FL1"],[/netherlands|eredivisie/,"DED"],[/portugal|primeira/,"PPL"]];
  return tests.find(x=>x[0].test(k))?.[1]||null;
 }
