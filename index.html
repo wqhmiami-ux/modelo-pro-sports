@@ -240,16 +240,20 @@ function datedALeagueSnapshot(g){
 function datedOtherLeagueSnapshot(g){return datedALeagueSnapshot(g)||datedKLeague2Snapshot(g)}
 function rankBrief(g){
  if(sport!=="soccer")return "";
+ const match=standingsForGame(g),data=match.data;
+ const h=data?.table?findStandingsTeam(data.table,g.home_team):null;
+ const a=data?.table?findStandingsTeam(data.table,g.away_team):null;
+ if(h&&a)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+a.position+'.º</b> · '+a.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+h.position+'.º</b> · '+h.points+' pts</span><small>Fuente: '+esc(data.provider||"Clasificación")+' · '+esc(data.season||"Actual")+'</small></div>';
  const snapshot=datedOtherLeagueSnapshot(g);
- if(snapshot)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+snapshot.away.position+'.º</b> · '+snapshot.away.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+snapshot.home.position+'.º</b> · '+snapshot.home.points+' pts</span><small>Posiciones al '+snapshot.asOf+' · no en vivo</small>'+(snapshot.note?'<small class="reason">⚠️ '+esc(snapshot.note)+'</small>':'')+'</div>';
- const data=standingsForGame(g).data;
- if(!data?.table){const slug=espnLeagueFor(g);return '<div class="meta">🏆 '+(slug?(espnStandingsJobs.has(slug)?"Consultando clasificación…":"Clasificación no disponible o sin verificar"):"Liga sin clasificación conectada")+'</div>'}
- const h=findStandingsTeam(data.table,g.home_team),a=findStandingsTeam(data.table,g.away_team);
- return '<div class="mp-match-positions"><span>🏆 '+(a?'<b>'+a.position+'.º</b> · ':'')+esc(g.away_team)+(a?' · '+a.points+' pts':' · sin posición verificada')+'</span><span>🏆 '+(h?'<b>'+h.position+'.º</b> · ':'')+esc(g.home_team)+(h?' · '+h.points+' pts':' · sin posición verificada')+'</span><small>Fuente: '+esc(data.provider||"Clasificación")+' · '+esc(data.season||"Temporada actual")+'</small></div>';
+ if(snapshot)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+snapshot.away.position+'.º</b> · '+snapshot.away.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+snapshot.home.position+'.º</b> · '+snapshot.home.points+' pts</span><small>Referencia al '+snapshot.asOf+' · no en vivo</small>'+(snapshot.note?'<small>⚠️ '+esc(snapshot.note)+'</small>':'')+'</div>';
+ const slug=espnLeagueFor(g);
+ if(!data?.table)return '<div class="meta">🏆 '+(slug?(espnStandingsJobs.has(slug)?"Consultando clasificación…":"Clasificación no disponible o sin verificar"):"Liga sin clasificación conectada")+'</div>';
+ return '<div class="meta">🏆 Clasificación recibida · faltan coincidencias verificadas para estos equipos</div>';
 }
 async function loadStandings(g){
  const target=$("standingboard");if(!target)return;
- const snapshot=datedOtherLeagueSnapshot(g);
+ const currentStanding=standingsForGame(g);
+ const snapshot=currentStanding.data?.table&&findStandingsTeam(currentStanding.data.table,g.home_team)&&findStandingsTeam(currentStanding.data.table,g.away_team)?null:datedOtherLeagueSnapshot(g);
  if(snapshot){
   const box=(label,r)=>'<div class="verdict"><span class="meta">'+label+'</span><br><strong>'+r.position+'.º · '+esc(r.team.name)+'</strong><div class="statline"><span>Puntos / PJ</span><b>'+r.points+' / '+r.playedGames+'</b></div><div class="statline"><span>G / E / P</span><b>'+r.won+' / '+r.draw+' / '+r.lost+'</b></div><div class="statline"><span>Diferencia de goles</span><b>'+r.goalDifference+'</b></div></div>';
   target.innerHTML='<h3>🏆 POSICIÓN EN EL TORNEO</h3><div class="twocol">'+box("LOCAL SEGÚN ODDSLINK",snapshot.home)+box("VISITANTE SEGÚN ODDSLINK",snapshot.away)+'</div><p class="hint">'+esc(snapshot.source||"Clasificación")+' · referencia al '+snapshot.asOf+'. <a href="'+snapshot.url+'" target="_blank" rel="noopener noreferrer">Ver fuente de clasificación</a>. No es una conexión automática en vivo.</p><div class="callout">⚠️ '+esc(snapshot.note||"El calendario consultado muestra un orden de local/visitante diferente del recibido en OddsLink. Comprueba quién juega en casa antes de apostar.")+'</div>';
