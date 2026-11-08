@@ -73,7 +73,7 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 <div id="view-combinadas" class="hidden"><section class="panel" style="padding:8px;overflow:hidden"><iframe id="combinadas-frame" title="Combinadas sugeridas de todos los deportes" src="./combinadas.html" loading="lazy" style="width:100%;height:1050px;border:0;border-radius:14px;display:block" referrerpolicy="same-origin"></iframe></section></div>
 <div id="view-valor" class="hidden"><section class="panel"><h2>🎯 Comparador de cuotas</h2><p class="hint">Compara mercados de los partidos que realmente ha devuelto tu proveedor. Mostrar una cuota superior no significa que exista EDGE positivo.</p><div id="valueboard" class="games"></div></section></div>
 <div id="view-historial" class="hidden"><section class="panel"><div class="sectionhead"><div><h2>📈 Mis análisis guardados</h2><p class="hint">Historial local de partidos consultados. No es un registro de apuestas reales.</p></div><button id="clear-history" class="secondary">Borrar historial local</button></div><div id="saved" class="saved"></div></section></div>
-<div id="view-fuentes" class="hidden"><div class="twocol"><section class="panel"><h2>🔌 Conexiones</h2><div class="statline"><span>Cloudflare Worker</span><b id="apihealth">Sin comprobar</b></div><div class="statline"><span>OddsLink · cuotas</span><b>Fuente principal</b></div><div class="statline"><span>football-data.org · historial</span><b>A demanda</b></div><div class="statline"><span>API-Football · estadísticas</span><b>Limitada por el plan</b></div><button class="secondary" id="healthbtn" style="margin-top:18px">Comprobar conexión (sin consultar cuotas)</button><div class="status" id="healthstatus"></div></section><section class="panel"><h2>Transparencia</h2><p class="hint">HOF, OddsJam y Sofascore sirvieron de referencias de organización de información. Este diseño es original y no reproduce su software ni su modelo. Las probabilidades propias requieren muestras verificables y validación; no presentamos porcentajes del mercado como aciertos previstos.</p><p class="hint">Los datos de lesiones, alineaciones, córners, tarjetas y tiros se muestran solo cuando hay cobertura y acceso disponible; el sistema no los inventa.</p><a href="modelo-pro-legacy-2026-11-07.html">Abrir versión anterior de Modelo PRO</a></section></div></div>
+<div id="view-fuentes" class="hidden"><div class="twocol"><section class="panel"><h2>🔌 Conexiones</h2><div class="statline"><span>Cloudflare Worker</span><b id="apihealth">Sin comprobar</b></div><div class="statline"><span>OddsLink · cuotas</span><b>Fuente principal</b></div><div class="statline"><span>football-data.org · historial</span><b>A demanda</b></div><div class="statline"><span>API-Football · estadísticas</span><b id="apiFootballHealth">Sin verificar</b></div><button class="secondary" id="healthbtn" style="margin-top:18px">Comprobar conexión (sin consultar cuotas)</button><button class="secondary" id="apiFootballCheck" style="margin-top:12px">Comprobar API-Football</button><div class="status" id="apiFootballCheckStatus" role="status">Esta prueba consulta un calendario pequeño de API-Football y no solicita cuotas.</div><div class="status" id="healthstatus"></div></section><section class="panel"><h2>Transparencia</h2><p class="hint">HOF, OddsJam y Sofascore sirvieron de referencias de organización de información. Este diseño es original y no reproduce su software ni su modelo. Las probabilidades propias requieren muestras verificables y validación; no presentamos porcentajes del mercado como aciertos previstos.</p><p class="hint">Los datos de lesiones, alineaciones, córners, tarjetas y tiros se muestran solo cuando hay cobertura y acceso disponible; el sistema no los inventa.</p><a href="modelo-pro-legacy-2026-11-07.html">Abrir versión anterior de Modelo PRO</a></section></div></div>
 <div class="footnote">MODELO PRO SPORTS V2 · Las cuotas cambian. Las apuestas conllevan riesgo. Si faltan datos o no existe ventaja estadística verificable, la decisión es NO APOSTAR.</div>
 </main>
 <script>
@@ -568,11 +568,9 @@ function saveSelected(){
 // API-Football on-demand: only leagues exposed by our existing Cloudflare Worker.
 const apiFootballLeagueIds={PL:"39",PD:"140",SA:"135",BL1:"78",FL1:"61"};
 function apiFootballLeagueFor(g){
- const mapped=competitionFor(g);
- if(mapped&&apiFootballLeagueIds[mapped])return apiFootballLeagueIds[mapped];
  const slug=espnLeagueFor(g);
- if(slug==="usa.1"||/\bmls\b|major league soccer/i.test([g.league?.key,g.league?.title,g.tournament].join(" ")))return "253";
- return null;
+ const leagues={"eng.1":"39","esp.1":"140","ita.1":"135","ger.1":"78","fra.1":"61","usa.1":"253"};
+ return leagues[slug]||null;
 }
 function apiFootballDayShift(day,shift){
  const d=new Date(day+"T12:00:00Z");
@@ -621,7 +619,8 @@ async function loadAdvancedFootball(g){
  const date=new Date(g.commence_time);
  if(!Number.isFinite(date.getTime())){target.textContent="Fecha no válida para consultar API-Football.";return}
  const day=date.toISOString().slice(0,10);
- const from=apiFootballDayShift(day,-1),to=apiFootballDayShift(day,1),season=String(date.getUTCFullYear());
+ const seasonYear=league==="253"?date.getUTCFullYear():(date.getUTCMonth()<6?date.getUTCFullYear()-1:date.getUTCFullYear());
+ const from=apiFootballDayShift(day,-1),to=apiFootballDayShift(day,1),season=String(seasonYear);
  if(btn)btn.disabled=true;
  target.textContent="Verificando el partido en API-Football (sin consumir cuotas de OddsLink)…";
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),16000);
@@ -782,6 +781,25 @@ function renderSaved(){
 $("clear-history").addEventListener("click",()=>{writeSaved([]);renderSaved()});
 $("find").addEventListener("input",renderGames);$("datefilter").addEventListener("change",renderGames);$("order").addEventListener("change",renderGames);
 $("refresh").addEventListener("click",()=>load(true));
+$("apiFootballCheck").addEventListener("click",async()=>{
+ const button=$("apiFootballCheck"),out=$("apiFootballCheckStatus"),indicator=$("apiFootballHealth");
+ button.disabled=true;out.textContent="Comprobando API-Football a través de Cloudflare…";
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),14000);
+ try{
+  const day=new Date().toISOString().slice(0,10),from=apiFootballDayShift(day,-1),to=apiFootballDayShift(day,1);
+  const year=new Date().getUTCFullYear(),season=new Date().getUTCMonth()<6?year-1:year;
+  const qs=new URLSearchParams({from,to,league:"39",season:String(season)});
+  const res=await fetch(BASE+"/api/advanced/fixtures?"+qs,{signal:ctrl.signal,cache:"no-store"});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw Error(res.status===503?"Falta API_FOOTBALL_KEY en Cloudflare":String(data.error||"HTTP "+res.status));
+  if(!Array.isArray(data.response))throw Error("Respuesta sin lista de partidos");
+  indicator.textContent="Responde";
+  out.textContent="✅ API-Football respondió. Se recibieron "+data.response.length+" encuentros de prueba; 0 también es válido si no hay partidos en estas fechas. Esto no confirma cobertura de todas las ligas o mercados.";
+ }catch(error){
+  indicator.textContent="Sin confirmar";
+  out.textContent="API-Football no pudo verificarse: "+(error.name==="AbortError"?"tiempo de espera agotado":String(error.message||"Error de conexión"));
+ }finally{clearTimeout(timer);button.disabled=false}
+});
 $("healthbtn").addEventListener("click",async()=>{
  $("healthstatus").textContent="Comprobando Cloudflare…";
  try{const r=await fetch(BASE+"/",{cache:"no-store"});const d=await r.json();$("apihealth").textContent=d.ok?"Conectado":"Sin confirmar";$("healthstatus").textContent=d.ok?"El Worker responde. Esto no confirma disponibilidad de los proveedores externos.":"No se confirmó la conexión."}
