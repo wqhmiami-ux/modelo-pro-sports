@@ -39,6 +39,11 @@ main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear
 
 .mp-league-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px;margin:16px 0 4px;border-radius:12px;border:1px solid #54724e;background:#1c302d;color:#d6ffad;font-weight:800;font-size:15px}
 .mp-league-heading small{font-size:11px;color:#adc9b7;font-weight:500}
+
+.mp-advanced-box{margin:14px 0;padding:14px;border:1px solid #3e5f6b;border-radius:12px;background:#101e2a}
+.mp-advanced-box h3{margin:0 0 8px}
+.mp-advanced-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #294153;font-size:13px}
+.mp-advanced-row strong{font-variant-numeric:tabular-nums}
 </style>
 <style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
 <body>
@@ -560,6 +565,96 @@ function saveSelected(){
  const entry={id:selected.id||selected.home_team+"-"+selected.away_team,date:selected.commence_time,home:selected.home_team,away:selected.away_team,sport:sportNames[sport],savedAt:new Date().toISOString()};
  const rows=readSaved().filter(r=>r.id!==entry.id);rows.unshift(entry);writeSaved(rows);$("savebtn").textContent="✓ Guardado";
 }
+// API-Football on-demand: only leagues exposed by our existing Cloudflare Worker.
+const apiFootballLeagueIds={PL:"39",PD:"140",SA:"135",BL1:"78",FL1:"61"};
+function apiFootballLeagueFor(g){
+ const mapped=competitionFor(g);
+ if(mapped&&apiFootballLeagueIds[mapped])return apiFootballLeagueIds[mapped];
+ const slug=espnLeagueFor(g);
+ if(slug==="usa.1"||/\bmls\b|major league soccer/i.test([g.league?.key,g.league?.title,g.tournament].join(" ")))return "253";
+ return null;
+}
+function apiFootballDayShift(day,shift){
+ const d=new Date(day+"T12:00:00Z");
+ d.setUTCDate(d.getUTCDate()+shift);
+ return d.toISOString().slice(0,10);
+}
+function apiFootballTeamMatches(expected,actual){
+ // Match exact normalized team names only; never pair statistics by position or league alone.
+ const a=normalizeName(expected),b=normalizeName(actual);
+ if(!a||!b)return false;
+ return a===b;
+}
+function apiFootballMatch(g,fixtures){
+ const a=Array.isArray(fixtures)?fixtures:[];
+ const when=Date.parse(g.commence_time);
+ const candidates=a.filter(x=>{
+  if(!x.fixture?.id||!x.teams?.home?.name||!x.teams?.away?.name)return false;
+  const kickoff=Date.parse(x.fixture.date);
+  return Number.isFinite(kickoff)&&Number.isFinite(when)&&Math.abs(kickoff-when)<=4*3600000&&
+    apiFootballTeamMatches(g.home_team,x.teams.home.name)&&
+    apiFootballTeamMatches(g.away_team,x.teams.away.name);
+ });
+ return candidates.length===1?candidates[0]:null;
+}
+function apiFootballStat(stats,key){
+ const match=(Array.isArray(stats)?stats:[]).find(x=>String(x.type||"").toLowerCase()===key.toLowerCase());
+ if(match?.value==null||match.value==="")return "—";
+ const value=match.value;
+ return typeof value==="string"||typeof value==="number"?String(value):"—";
+}
+function renderAdvancedFootball(g,fixture,report){
+ const target=$("advanced-football-results");
+ if(!target||selected!==g)return;
+ const matchStatus=String(fixture.fixture?.status?.long||fixture.fixture?.status?.short||"No informado");
+ const home=report.find(x=>apiFootballTeamMatches(g.home_team,x.team?.name));
+ const away=report.find(x=>apiFootballTeamMatches(g.away_team,x.team?.name));
+ const keys=[["Shots on Goal","Tiros a puerta"],["Total Shots","Tiros totales"],["Corner Kicks","Córners"],["Yellow Cards","Tarjetas amarillas"],["Red Cards","Tarjetas rojas"],["Ball Possession","Posesión"],["Fouls","Faltas"],["Expected Goals","xG"]];
+ const metrics=keys.map(([key,label])=>'<div class="mp-advanced-row"><span>'+esc(label)+'</span><strong>'+esc(apiFootballStat(home?.statistics,key))+' · '+esc(apiFootballStat(away?.statistics,key))+'</strong></div>').join("");
+ target.innerHTML='<div class="verdict"><strong>📊 Estadísticas verificadas · API-Football</strong><p class="hint">'+esc(g.home_team)+' (local) · '+esc(g.away_team)+' (visitante) · '+esc(matchStatus)+'</p><div class="mp-advanced-row"><b>Estadística</b><b>Local · Visitante</b></div>'+metrics+'<p class="hint">Estas son estadísticas del partido observado, NO pronósticos ni cuotas. Si aún no comenzó, es normal que no haya registros.</p></div>';
+}
+async function loadAdvancedFootball(g){
+ const target=$("advanced-football-results"),btn=$("advancedFootballButton");
+ if(!target||selected!==g)return;
+ const league=apiFootballLeagueFor(g);
+ if(!league){target.textContent="API-Football: esta liga no está entre las seis habilitadas en el Worker actual.";return}
+ const date=new Date(g.commence_time);
+ if(!Number.isFinite(date.getTime())){target.textContent="Fecha no válida para consultar API-Football.";return}
+ const day=date.toISOString().slice(0,10);
+ const from=apiFootballDayShift(day,-1),to=apiFootballDayShift(day,1),season=String(date.getUTCFullYear());
+ if(btn)btn.disabled=true;
+ target.textContent="Verificando el partido en API-Football (sin consumir cuotas de OddsLink)…";
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),16000);
+ try{
+  const qs=new URLSearchParams({from,to,league,season});
+  const response=await fetch(BASE+"/api/advanced/fixtures?"+qs,{signal:controller.signal});
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(response.status===503?"Falta configurar API_FOOTBALL_KEY en Cloudflare":payload.error||"HTTP "+response.status);
+  const matches=Array.isArray(payload.response)?payload.response:[];
+  const matching=apiFootballMatch(g,matches);
+  if(selected!==g)return;
+  if(!matching){
+   target.textContent="API-Football respondió con "+matches.length+" eventos, pero no se encontró una coincidencia exacta para ambos equipos y la fecha. No se asignarán estadísticas de otro partido.";
+   return;
+  }
+  const status=String(matching.fixture?.status?.short||"").toUpperCase();
+  if(["NS","TBD","PST","CANC"].includes(status)){
+   target.textContent="✅ Partido confirmado en API-Football: "+matching.teams.home.name+" vs "+matching.teams.away.name+". Todavía no hay estadísticas observadas; estado: "+(matching.fixture?.status?.long||status)+".";
+   return;
+  }
+  target.textContent="Partido encontrado. Consultando tiros, córners, tarjetas y posesión…";
+  const stats=await fetch(BASE+"/api/advanced/statistics?"+new URLSearchParams({fixture:String(matching.fixture.id)}),{signal:controller.signal});
+  const data=await stats.json().catch(()=>({}));
+  if(!stats.ok)throw Error(stats.status===503?"Falta configurar API_FOOTBALL_KEY en Cloudflare":data.error||"HTTP "+stats.status);
+  if(selected!==g)return;
+  const report=Array.isArray(data.response)?data.response:[];
+  if(!report.length){target.textContent="Partido confirmado, pero API-Football no devolvió estadísticas para este encuentro y su estado actual.";return}
+  renderAdvancedFootball(g,matching,report);
+ }catch(error){
+  if(selected===g)target.textContent="Estadísticas API-Football no disponibles: "+(error.name==="AbortError"?"la consulta excedió el tiempo límite":String(error.message||"Error"));
+ }finally{clearTimeout(timer);if(btn&&selected===g)btn.disabled=false}
+}
+
 function renderDetail(){
  if(!selected){$("detail").innerHTML='<h2>Informe del partido</h2><div class="empty">Selecciona un encuentro para revisar el mercado y los datos que realmente existen.</div>';return}
  const g=selected,rows=flatten(g),groups=groupPrices(rows),books=new Set(rows.map(r=>r.book)),markets=new Set(rows.map(r=>r.market));
@@ -573,6 +668,8 @@ function renderDetail(){
  '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+rankBrief(g)+probabilityBrief(g)+
  '<div class="metricgrid"><div class="metric"><strong>'+books.size+'</strong><span>Casas</span></div><div class="metric"><strong>'+markets.size+'</strong><span>Mercados</span></div><div class="metric"><strong>'+rows.length+'</strong><span>Cuotas</span></div></div>'+
  (sport==="soccer"?'<div id="standingboard" class="status">Cargando posiciones del torneo…</div>':"")+
+ (sport==="soccer"?'<div class="mp-advanced-box"><h3>📊 API-Football · Estadísticas del encuentro</h3><p class="hint">Córners, tiros a puerta, tarjetas y posesión cuando la fuente tenga registros. Consulta bajo demanda para ahorrar solicitudes.</p><button type="button" class="secondary" id="advancedFootballButton">CONSULTAR ESTADÍSTICAS VERIFICADAS</button><div class="status" id="advanced-football-results">Aún no se han solicitado estadísticas de este encuentro.</div></div>':"")+
+
  (sport==="soccer"?'<button class="secondary" type="button" id="extraMarketsButton">↻ CONSULTAR AMBOS MARCAN, CÓRNERS Y TIROS</button>'+((g.__shotsRows||[]).length?'<div class="verdict"><span class="meta">TIROS A PUERTA · JUGADORES</span><br>'+g.__shotsRows.map(r=>'<p>'+esc(r.name)+' · '+pct(1/r.decimal)+' · '+esc(priceText(r.price))+' · '+esc(r.book)+'</p>').join("")+'</div>':''):'')+
  '<div class="verdict"><span class="meta">LECTURA DEL MERCADO</span><br>'+topnote+'</div>'+
  '<div class="verdict"><span class="meta">DECISIÓN MODELO PRO</span><br><strong>NO APOSTAR SIN EDGE VERIFICADO</strong><small>Una cuota no permite inferir rentabilidad. Requiere probabilidad propia validada y comparación con ese precio.</small></div>'+
@@ -583,6 +680,7 @@ function renderDetail(){
  '<details><summary class="gamebutton">TODAS LAS CUOTAS REALES ('+rows.length+')</summary><div class="tablewrap"><table><thead><tr><th>Mercado</th><th>Selección</th><th>Casa</th><th>Cuota</th><th>Implícita</th></tr></thead><tbody>'+all+'</tbody></table></div></details>'+
  '<div class="callout">Datos no suministrados por OddsLink: lesiones, alineaciones, últimos cinco partidos, córners, tarjetas y tiros a puerta. Si no hay otra fuente autorizada, se indican como no disponibles.</div>';
  $("savebtn").addEventListener("click",saveSelected);
+ if(sport==="soccer"&&$("advancedFootballButton"))$("advancedFootballButton").addEventListener("click",()=>void loadAdvancedFootball(g));
  if(sport==="soccer"&&$("extraMarketsButton"))$("extraMarketsButton").addEventListener("click",()=>{g.__extraChecked=false;void loadSoccerExtraMarkets(g)});
  $("predictbtn")?.addEventListener("click",predict);
  if(sport==="soccer")void loadStandings(g);
