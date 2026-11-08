@@ -377,7 +377,28 @@ $("games").addEventListener("click",e=>{
  const b=e.target.closest("[data-select]");if(!b)return;
  selected=window.__modelVisible[Number(b.dataset.select)];
  renderGames();renderDetail();$("detail").scrollIntoView({behavior:"smooth",block:"start"});
+ if(selected?.__compact)void loadFullFixtureOdds(selected);
 });
+async function loadFullFixtureOdds(g){
+ const target=$("detail");
+ if(!target||!g?.id)return;
+ const note=document.createElement("div");
+ note.className="status";note.id="full-odds-loading";note.textContent="Consultando todas las casas y mercados de este partido…";
+ target.appendChild(note);
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),12000);
+ try{
+  const qs=new URLSearchParams({sport,markets:"h2h,spreads,totals",eventId:String(g.id)});
+  const r=await fetch(BASE+"/api/odds?"+qs,{signal:ctrl.signal});
+  if(!r.ok)throw Error("HTTP "+r.status);
+  const data=await r.json();
+  const full=Array.isArray(data)?data[0]:null;
+  if(!full?.id||String(full.id)!==String(g.id))throw Error("El evento no apareció en la respuesta completa");
+  if(selected!==g)return;
+  const i=items.indexOf(g);if(i>=0)items[i]=full;
+  selected=full;renderGames();renderDetail();
+ }catch(e){if(selected===g&&$("full-odds-loading"))$("full-odds-loading").textContent="Se muestran cuotas resumidas. El detalle completo no está disponible: "+String(e.message||"error de conexión")}
+ finally{clearTimeout(timer)}
+}
 function saveSelected(){
  if(!selected)return;
  const entry={id:selected.id||selected.home_team+"-"+selected.away_team,date:selected.commence_time,home:selected.home_team,away:selected.away_team,sport:sportNames[sport],savedAt:new Date().toISOString()};
@@ -511,13 +532,15 @@ $("healthbtn").addEventListener("click",async()=>{
  catch(e){$("apihealth").textContent="Sin conexión";$("healthstatus").textContent=String(e.message||"Error de red")}
 });
 async function fetchOddsWithRetry(sportCode){
- const qs=new URLSearchParams({sport:sportCode,markets:"h2h,spreads,totals"});
+ const qs=new URLSearchParams({sport:sportCode,markets:"h2h,spreads,totals",view:"compact",days:"7",limit:"220"});
  const endpoint=BASE+"/api/odds?"+qs.toString();
  let lastError=null;
  for(let attempt=0;attempt<3;attempt++){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),attempt?17000:13000);
   try{
    const response=await fetch(endpoint+(attempt?"&_try="+attempt:""),{signal:controller.signal,cache:"no-store",mode:"cors"});
+   if(response.ok)return response;
+   if(response.status===400&&attempt<2)continue;
    return response;
   }catch(e){
    lastError=e;
