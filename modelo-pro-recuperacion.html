@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a1220">
+<meta name="description" content="Modelo PRO Sports V2: calendario deportivo, cuotas verificables, análisis estadístico y gestión de pronósticos.">
+<title>Modelo PRO Sports V2 | Inteligencia deportiva</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark;--bg:#0a1220;--card:#142235;--dark:#0e1b2c;--line:#273c55;--text:#eff6ff;--muted:#9eb3cb;--lime:#c8f76c;--blue:#6eb7ef;--red:#ff9a9a}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{background:var(--bg);color:var(--text);margin:0}button,select,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}a{color:var(--lime)}header{border-bottom:1px solid var(--line);position:sticky;top:0;background:#0a1220f2;z-index:20;backdrop-filter:blur(15px)}
+.nav{max-width:1250px;margin:auto;padding:15px 22px;display:flex;align-items:center;justify-content:space-between;gap:15px}.logo{font-size:19px;font-weight:900;letter-spacing:-.6px}.logo b{color:var(--lime)}.navright{font-size:12px;color:var(--muted)}
+main{max-width:1250px;margin:auto;padding:25px 20px 90px}.hero{background:linear-gradient(110deg,#192e42,#101e30 60%,#203e38);border:1px solid #314961;border-radius:22px;padding:30px;display:flex;justify-content:space-between;gap:25px}.eyebrow{color:var(--lime);font-size:12px;font-weight:850;letter-spacing:2px}.hero h1{font-size:clamp(28px,4vw,45px);line-height:1.1;letter-spacing:-1.2px;margin:12px 0}.hero h1 span{color:var(--lime)}.hero p{color:#b6c6d9;max-width:660px;margin:0}.hero-tag{font-size:12px;color:var(--lime);align-self:center;border:1px solid #507751;border-radius:99px;padding:11px 16px;white-space:nowrap}
+.tabs,.sports,.filters{display:flex;gap:8px;flex-wrap:wrap}.tabs{margin:22px 0 12px}.sports{margin:14px 0}.pill{background:#182a40;color:#d8e7f3;border:1px solid #334962;border-radius:12px;padding:12px 16px;font-weight:780}.pill[aria-pressed=true]{background:var(--lime);border-color:var(--lime);color:#162416}
+.shell{display:grid;grid-template-columns:minmax(0,1fr) 375px;gap:16px;margin-top:16px}.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:19px}.panel h2{font-size:19px;margin:0 0 6px}.hint{color:var(--muted);font-size:13px;line-height:1.55}.filters{margin:18px 0}.filters input,.filters select{min-height:42px;background:#0c1b2b;border:1px solid #38506a;color:var(--text);border-radius:10px;padding:8px 11px;min-width:130px}.filters input{flex:1;min-width:150px}.primary{border:0;border-radius:10px;background:var(--lime);color:#152119;padding:12px 17px;font-weight:850}.secondary{background:#213750;color:var(--text);border:1px solid #3a526c;border-radius:10px;padding:11px 14px;font-weight:760}
+.status{font-size:12px;color:#b7c9da;padding:11px 0;min-height:35px}.games{display:grid;gap:10px}.game{padding:15px;border:1px solid #32465e;border-radius:14px;background:#102033;transition:border-color .1s}.game:hover,.game.selected{border-color:var(--lime)}.gamehead{display:flex;justify-content:space-between;gap:8px;align-items:start}.tag{font-size:11px;border:1px solid #40526d;border-radius:999px;padding:5px 9px;color:#b9cde0}.game strong{display:block;font-size:17px;margin:8px 0}.meta{font-size:12px;color:var(--muted)}.bookline{font-size:12px;color:#d4e7fb;margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}.bookline b{color:var(--lime)}.gamebutton{margin-top:12px;background:#223950;color:#dff4ff;border:1px solid #416082;border-radius:9px;padding:9px 12px;font-weight:750;width:100%;text-align:left}
+.aside{position:sticky;top:75px;align-self:start;max-height:calc(100vh - 90px);overflow:auto}.aside h2{font-size:22px}.verdict{background:#203243;border:1px solid #3c566d;border-radius:12px;padding:13px;margin:12px 0}.verdict strong{color:var(--lime);font-size:16px}.verdict small{color:var(--muted);display:block;margin-top:6px;line-height:1.5}.metricgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:15px 0}.metric{background:#102135;border:1px solid #314660;border-radius:11px;padding:12px 8px;text-align:center}.metric strong{font-size:18px;color:var(--lime);display:block}.metric span{font-size:11px;color:var(--muted)}.tablewrap{max-height:400px;overflow:auto;border:1px solid #2b425c;border-radius:10px;margin-top:12px}table{border-collapse:collapse;width:100%;font-size:12px}td,th{text-align:left;padding:9px 8px;border-bottom:1px solid #283e55}th{background:#1b3249;position:sticky;top:0;color:#dbeafb}.callout{font-size:12px;line-height:1.55;color:#c1d1df;background:#0b1a2b;border-radius:11px;padding:12px;margin:12px 0}.reason{color:var(--red)}.success{color:var(--lime)}.empty{padding:30px 18px;text-align:center;color:var(--muted);border:1px dashed #43566f;border-radius:12px}.sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.statline{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}.statline b{color:var(--lime)}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:15px}.hidden{display:none!important}.footnote{margin:30px 0;color:#8ea4b8;font-size:12px}.saved{display:grid;gap:8px}.saveditem{border:1px solid #304861;padding:12px;border-radius:11px}.right{text-align:right}.small{font-size:12px}.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.btnrow button{flex:1}.banner{margin-top:15px;padding:10px 14px;border:1px solid #35546a;border-radius:10px;color:#b8cad8;font-size:12px}.badge{font-size:11px;color:var(--lime);font-weight:700}
+@media(max-width:900px){.shell{grid-template-columns:1fr}.aside{position:static;max-height:none}.hero{display:block}.hero-tag{display:inline-block;margin-top:16px}}@media(max-width:600px){main{padding:17px 10px 80px}.nav{padding:13px}.hero{padding:20px}.panel{padding:13px}.pill{padding:10px;font-size:12px}.sports{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.metricgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.filters input{flex-basis:100%}.twocol{grid-template-columns:1fr}.navright{display:none}}
+</style>
+<style id="match-ranks-css">.mp-match-positions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px;background:#0c1e31;border:1px solid #36536c;border-radius:9px;font-size:12px;color:#d8e8f6}.mp-match-positions span{flex:1 1 155px}.mp-match-positions b{color:#c8f76c;font-size:16px}</style></head>
+<body>
+<header><div class="nav"><div class="logo">MODELO <b>PRO</b> SPORTS <span class="badge">V2 · RECUPERACIÓN 08/11</span></div><div class="navright">ESTADÍSTICAS · CUOTAS · DECISIONES CON EVIDENCIA</div></div></header>
+<main>
+<div style="padding:8px 18px;background:#18334d;color:#f1fae9;font-size:12px;font-weight:700;text-align:center">VERSIÓN ACTIVA: RECUPERACIÓN 08/11 · Reintentos y calendario alternativo habilitados</div>
+<section class="hero"><div><div class="eyebrow">NUEVO PANEL DE ANÁLISIS</div><h1>El partido primero.<br><span>Los datos para decidir.</span></h1><p>Una ficha por encuentro: horario, competición, mercados verificables, mejor cuota, muestra histórica y un veredicto responsable. Nunca confundimos una cuota con un pronóstico.</p></div><div class="hero-tag">● FUENTES CONECTADAS · COBERTURA VARIABLE</div></section>
+<nav class="tabs" aria-label="Secciones">
+<button class="pill" data-tab="partidos" aria-pressed="true">⚡ Partidos</button>
+<button class="pill" data-tab="valor" aria-pressed="false">🎯 Comparar cuotas</button>
+<button class="pill" data-tab="historial" aria-pressed="false">📈 Mis análisis</button>
+<button class="pill" data-tab="fuentes" aria-pressed="false">🔌 Fuentes</button>
+</nav>
+<div id="view-partidos">
+<div class="callout" style="margin:10px 0">Si no cargan las cuotas, comprueba <a href="https://modelo-pro-api.wqhmiami.workers.dev/" target="_blank" rel="noopener noreferrer">el estado de la API Cloudflare</a>. Debe responder <b>ok: true</b>.</div>
+<section class="panel" id="standings-quick-panel">
+<div class="sectionhead"><div><h2>🏆 Clasificación del torneo</h2><p class="hint">Tabla oficial de la liga, independiente de las cuotas y del calendario.</p></div><div class="filters"><select id="standings-league" aria-label="Liga para clasificación"><option value="PL">Premier League</option><option value="PD">LaLiga</option><option value="BL1">Bundesliga</option><option value="SA">Serie A</option><option value="FL1">Ligue 1</option><option value="DED">Eredivisie</option><option value="PPL">Portugal</option></select><button class="secondary" type="button" id="standings-refresh">Ver posiciones</button></div></div>
+<div id="standings-quick-result" class="status">Selecciona una liga para consultar su clasificación.</div>
+</section>
+<nav class="sports" aria-label="Deportes">
+<button class="pill" data-sport="soccer" aria-pressed="true">⚽ Fútbol</button><button class="pill" data-sport="basketball_nba" aria-pressed="false">🏀 NBA</button><button class="pill" data-sport="americanfootball_nfl" aria-pressed="false">🏈 NFL</button><button class="pill" data-sport="baseball_mlb" aria-pressed="false">⚾ MLB</button><button class="pill" data-sport="icehockey_nhl" aria-pressed="false">🏒 NHL</button><button class="pill" data-sport="mma_mixed_martial_arts" aria-pressed="false">🥊 UFC</button>
+</nav>
+<div class="shell"><section class="panel">
+<div class="sectionhead"><div><h2>Calendario y partidos</h2><span class="hint">Selecciona un partido para ver todos los datos que entrega la fuente.</span></div><button class="secondary" id="refresh" type="button">↻ Actualizar</button></div>
+<div class="filters"><select id="datefilter" aria-label="Fechas"><option value="3">Hoy + 2 días</option><option value="7">Próximos 7 días</option><option value="all">Todos los recibidos</option></select><input id="find" type="search" placeholder="Buscar equipo o torneo" aria-label="Buscar"><select id="order" aria-label="Ordenar"><option value="date">Por fecha</option><option value="coverage">Más cuotas</option></select></div>
+<div class="status" id="loadstatus" role="status">Preparando el calendario...</div><div id="games" class="games"></div>
+</section>
+<aside class="panel aside" id="detail"><h2>Informe del partido</h2><div class="empty">Selecciona un partido para analizar sus cuotas, mercados y estadísticas disponibles.</div></aside></div></div>
+<div id="view-valor" class="hidden"><section class="panel"><h2>🎯 Comparador de cuotas</h2><p class="hint">Compara mercados de los partidos que realmente ha devuelto tu proveedor. Mostrar una cuota superior no significa que exista EDGE positivo.</p><div id="valueboard" class="games"></div></section></div>
+<div id="view-historial" class="hidden"><section class="panel"><div class="sectionhead"><div><h2>📈 Mis análisis guardados</h2><p class="hint">Historial local de partidos consultados. No es un registro de apuestas reales.</p></div><button id="clear-history" class="secondary">Borrar historial local</button></div><div id="saved" class="saved"></div></section></div>
+<div id="view-fuentes" class="hidden"><div class="twocol"><section class="panel"><h2>🔌 Conexiones</h2><div class="statline"><span>Cloudflare Worker</span><b id="apihealth">Sin comprobar</b></div><div class="statline"><span>OddsLink · cuotas</span><b>Fuente principal</b></div><div class="statline"><span>football-data.org · historial</span><b>A demanda</b></div><div class="statline"><span>API-Football · estadísticas</span><b>Limitada por el plan</b></div><button class="secondary" id="healthbtn" style="margin-top:18px">Comprobar conexión (sin consultar cuotas)</button><div class="status" id="healthstatus"></div></section><section class="panel"><h2>Transparencia</h2><p class="hint">HOF, OddsJam y Sofascore sirvieron de referencias de organización de información. Este diseño es original y no reproduce su software ni su modelo. Las probabilidades propias requieren muestras verificables y validación; no presentamos porcentajes del mercado como aciertos previstos.</p><p class="hint">Los datos de lesiones, alineaciones, córners, tarjetas y tiros se muestran solo cuando hay cobertura y acceso disponible; el sistema no los inventa.</p><a href="modelo-pro-legacy-2026-11-07.html">Abrir versión anterior de Modelo PRO</a></section></div></div>
+<div class="footnote">MODELO PRO SPORTS V2 · Las cuotas cambian. Las apuestas conllevan riesgo. Si faltan datos o no existe ventaja estadística verificable, la decisión es NO APOSTAR.</div>
+</main>
+<script>
+(()=>{
+"use strict";
+const BASE="https://modelo-pro-api.wqhmiami.workers.dev";
+const $=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const localDay=d=>{const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};
+const today=()=>localDay(new Date());
+const sportNames={soccer:"Fútbol",basketball_nba:"NBA",americanfootball_nfl:"NFL",baseball_mlb:"MLB",icehockey_nhl:"NHL",mma_mixed_martial_arts:"UFC"};
+const priceDecimal=p=>{const v=Number(p);if(!Number.isFinite(v)||v===0)return null;return Number.isInteger(v)&&Math.abs(v)>=100?(v>0?1+v/100:1+100/-v):(v>1?v:null)};
+const priceAmerican=p=>{const v=Number(p),d=priceDecimal(p);if(!d)return null;if(Number.isInteger(v)&&Math.abs(v)>=100)return v;return d>=2?Math.round((d-1)*100):-Math.round(100/(d-1))};
+const priceText=p=>{const n=priceAmerican(p);return n===null?"—":n>0?"+"+n:String(n)};
+const pct=p=>Number.isFinite(p)?(p*100).toFixed(1)+"%":"—";
+const dateText=s=>{const d=new Date(s);return Number.isFinite(d.getTime())?d.toLocaleString("es-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"Hora sin confirmar"};
+let sport="soccer",items=[],selected=null,pending=false;
+
+const standingsCache=new Map();
+const espnStandingsJobs=new Map(),espnStandingsFailures=new Map();
+const espnLeagueRules=[
+ [/k[\s-]*league[\s-]*2|korean.*second|south.korea.*2/,"kor.2"],
+ [/k[\s-]*league[\s-]*1|k[\s-]*league|korean.*first/,"kor.1"],
+ [/a[\s-]*league.*women|women.*a[\s-]*league/,"aus.w.1"],
+ [/a[\s-]*league|australia.*league/,"aus.1"],
+ [/premier[\s-]*league|english[\s-]*premier|soccer_epl|\bepl\b/,"eng.1"],
+ [/championship|england.*second/,"eng.2"],
+ [/league[\s-]*one|england.*third/,"eng.3"],
+ [/league[\s-]*two|england.*fourth/,"eng.4"],
+ [/la[\s-]*liga[\s-]*2|segunda.*division|spain.*second/,"esp.2"],
+ [/la[\s-]*liga|primera.*division.*spain|spanish.*primera/,"esp.1"],
+ [/bundesliga[\s-]*2|2[\s-]*bundesliga/,"ger.2"],
+ [/bundesliga|germany.*1/,"ger.1"],
+ [/serie[\s-]*b.*ital|italian.*serie[\s-]*b/,"ita.2"],
+ [/serie[\s-]*a.*braz|brasileir[aã]o|brazil.*serie[\s-]*a/,"bra.1"],
+ [/serie[\s-]*b.*braz|brazil.*serie[\s-]*b/,"bra.2"],
+ [/serie[\s-]*a|italian.*first|italy.*serie/,"ita.1"],
+ [/ligue[\s-]*2|france.*second/,"fra.2"],
+ [/ligue[\s-]*1|france.*first/,"fra.1"],
+ [/eredivisie|netherlands.*first|dutch.*first/,"ned.1"],
+ [/primeira[\s-]*liga|liga[\s-]*portugal|portugal.*first/,"por.1"],
+ [/premier[\s-]*league.*portugal/,"por.1"],
+ [/major[\s-]*league[\s-]*soccer|\bmls\b/,"usa.1"],
+ [/usl[\s-]*championship/,"usa.usl.1"],
+ [/liga[\s-]*mx|mexico.*primera/,"mex.1"],
+ [/expansi[oó]n[\s-]*mx|mexico.*second/,"mex.2"],
+ [/liga[\s-]*profesional|argentina.*primera|argentine.*primera/,"arg.1"],
+ [/primera[\s-]*a|colombia.*primera|liga[\s-]*betplay/,"col.1"],
+ [/brasileir[aã]o|brazil.*serie/,"bra.1"],
+ [/j[\s-]*league[\s-]*1|j1[\s-]*league|japan.*first/,"jpn.1"],
+ [/super[\s-]*league.*china|china.*super/,"chn.1"],
+ [/saudi[\s-]*pro[\s-]*league|saudi[\s-]*arabia/,"ksa.1"],
+ [/scottish[\s-]*premiership|scotland.*premier/,"sco.1"],
+ [/belgian[\s-]*pro[\s-]*league|belgium.*first/,"bel.1"],
+ [/turkish[\s-]*super[\s-]*lig|super[\s-]*lig.*turkey|turkiye.*super/,"tur.1"],
+ [/swiss[\s-]*super[\s-]*league|switzerland.*first/,"sui.1"],
+ [/austrian[\s-]*bundesliga|austria.*first/,"aut.1"],
+ [/danish[\s-]*superliga|denmark.*first/,"den.1"],
+ [/norwegian[\s-]*eliteserien|eliteserien/,"nor.1"],
+ [/swedish[\s-]*allsvenskan|allsvenskan/,"swe.1"],
+ [/uefa.*champions|champions[\s-]*league|\bucl\b/,"uefa.champions"],
+ [/europa[\s-]*league/,"uefa.europa"],
+ [/conference[\s-]*league/,"uefa.europa.conf"],
+ [/copa[\s-]*libertadores|libertadores/,"conmebol.libertadores"],
+ [/copa[\s-]*sudamericana|sudamericana/,"conmebol.sudamericana"]
+];
+function espnLeagueFor(g){
+ const values=[g.league?.title,g.league?.key,g.league?.name,g.tournament,g.competition,g.sport_title,g.sport_key,g.sport_group].filter(v=>typeof v==="string").join(" ").toLowerCase();
+ return espnLeagueRules.find(([regex])=>regex.test(values))?.[1]||null;
+}
+function normalizeEspnStandings(raw,slug){
+ const groups=Array.isArray(raw.children)&&raw.children.length?raw.children:[raw];
+ const table=[];
+ const keys=(stats,names)=>{
+  for(const n of names){const row=stats.find(s=>String(s.name||"").toLowerCase()===n||String(s.type||"").toLowerCase()===n||String(s.abbreviation||"").toLowerCase()===n);if(row){const v=Number(row.value??row.displayValue);if(Number.isFinite(v))return v}}
+  return null;
+ };
+ for(const group of groups){
+  const entries=Array.isArray(group?.standings?.entries)?group.standings.entries:[];
+  for(const entry of entries){
+   const stats=Array.isArray(entry.stats)?entry.stats:[];
+   const team=entry.team||{},position=keys(stats,["rank","position","standingsrank","seed"]),points=keys(stats,["points","point","pts"]);
+   if(!team.displayName&&!team.name||!Number.isFinite(position)||!Number.isFinite(points))continue;
+   table.push({
+    position,points,
+    team:{name:team.displayName||team.name,shortName:team.shortDisplayName||team.name||"",tla:team.abbreviation||""},
+    playedGames:keys(stats,["gamesplayed","matchesplayed","played"]),
+    won:keys(stats,["wins","win"]),
+    draw:keys(stats,["ties","draws","draw"]),
+    lost:keys(stats,["losses","loss"]),
+    goalDifference:keys(stats,["pointdifferential","goaldifference","goal_difference","gd"]),
+    group:group.name||group.abbreviation||""
+   });
+  }
+ }
+ if(!table.length)throw Error("Tabla vacía o formato no reconocido");
+ return {ok:true,provider:"ESPN",competition:raw.name||raw.league?.name||slug,season:raw.season?.displayName||raw.season?.year||"Actual",table,sourceUrl:"https://www.espn.com/soccer/standings/_/league/"+slug,fetchedAt:new Date().toISOString()};
+}
+async function ensureEspnStandings(slug){
+ const key="ESPN:"+slug;
+ if(standingsCache.has(key))return standingsCache.get(key);
+ if(espnStandingsJobs.has(slug))return espnStandingsJobs.get(slug);
+ if((espnStandingsFailures.get(slug)||0)>Date.now())return null;
+ const task=(async()=>{
+  const cacheKey="modeloProESPNStandings:"+slug;
+  try{
+   const saved=JSON.parse(sessionStorage.getItem(cacheKey)||"null");
+   if(saved&&Date.now()-saved.at<15*60*1000&&Array.isArray(saved.data?.table)){standingsCache.set(key,saved.data);return saved.data}
+  }catch{}
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9500);
+  try{
+   const res=await fetch("https://site.api.espn.com/apis/v2/sports/soccer/"+encodeURIComponent(slug)+"/standings",{signal:controller.signal});
+   if(!res.ok)throw Error("HTTP "+res.status);
+   const data=normalizeEspnStandings(await res.json(),slug);
+   standingsCache.set(key,data);
+   try{sessionStorage.setItem(cacheKey,JSON.stringify({at:Date.now(),data}))}catch{}
+   return data;
+  }catch(e){espnStandingsFailures.set(slug,Date.now()+5*60*1000);return null}
+  finally{clearTimeout(timer)}
+ })();
+ espnStandingsJobs.set(slug,task);
+ try{return await task}finally{espnStandingsJobs.delete(slug)}
+}
+let standingsQueue=Promise.resolve(),standingsCycle=0;
+function primeGameStandings(){
+ if(sport!=="soccer")return;
+ const slugs=[...new Set(visibleItems().map(espnLeagueFor).filter(Boolean))].slice(0,28);
+ const batch=++standingsCycle;
+ standingsQueue=standingsQueue.catch(()=>{}).then(async()=>{
+  for(let i=0;i<slugs.length;i+=4){
+   await Promise.all(slugs.slice(i,i+4).map(ensureEspnStandings));
+   if(batch!==standingsCycle||sport!=="soccer")return;
+   renderGames();
+   if(selected&&$("standingboard"))void loadStandings(selected);
+  }
+ });
+}
+
+function findStandingsTeam(table,name){
+ const aliases={
+  manchestercity:"mancity",mancity:"mancity",
+  manchesterunited:"manunited",manunited:"manunited",
+  brightonandhovealbion:"brightonhove",brightonhovealbion:"brightonhove",brightonhove:"brightonhove",brighton:"brightonhove",
+  tottenhamhotspur:"tottenham",tottenham:"tottenham",
+  newcastleunited:"newcastle",newcastle:"newcastle",
+  nottinghamforest:"nottingham",nottingham:"nottingham",
+  bournemouth:"bournemouth",afcbournemouth:"bournemouth",
+  crystalpalace:"crystalpalace",
+  wolverhamptonwanderers:"wolves",wolves:"wolves",
+  westhamunited:"westham",westham:"westham"
+ };
+ const norm=x=>{const key=normalizeName(x).replace(/and/g,"and");return aliases[key]||key};
+ const key=norm(name);
+ const exact=table.filter(r=>[r.team?.name,r.team?.shortName,r.team?.tla].some(v=>norm(v)===key));
+ return exact.length===1?exact[0]:null;
+}
+function standingsForGame(g){
+ const slug=espnLeagueFor(g),explicit=competitionFor(g),espnKey=slug?"ESPN:"+slug:null;
+ if(espnKey&&standingsCache.has(espnKey))return {competition:espnKey,data:standingsCache.get(espnKey)};
+ if(explicit&&standingsCache.has(explicit))return {competition:explicit,data:standingsCache.get(explicit)};
+ // Only accept unambiguously matched teams from a complete league table.
+ const candidates=[];
+ for(const [competition,data] of standingsCache){
+  if(!Array.isArray(data?.table))continue;
+  if(findStandingsTeam(data.table,g.home_team)&&findStandingsTeam(data.table,g.away_team))candidates.push({competition,data});
+ }
+ return candidates.length===1?candidates[0]:{competition:explicit,data:null};
+}
+function datedKLeague2Snapshot(g){
+ const league=[g.league?.title,g.league?.key,g.tournament,g.competition,g.sport_title].filter(x=>typeof x==="string").join(" ").toLowerCase();
+ const when=new Date(g.commence_time||"").getTime();
+ const names=[normalizeName(g.home_team),normalizeName(g.away_team)];
+ if(!Number.isFinite(when)||Math.abs(when-Date.parse("2026-11-08T12:00:00Z"))>36*3600000)return null;
+ if(!names.some(n=>n.includes("chungnamasan"))||!names.some(n=>n.includes("pajufrontier")))return null;
+ const ranks=[
+  {key:"chungnamasan",position:7,points:42,playedGames:29,won:11,draw:9,lost:9,goalDifference:8,team:{name:"Chungnam Asan"}},
+  {key:"pajufrontier",position:10,points:34,playedGames:29,won:9,draw:7,lost:13,goalDifference:-6,team:{name:"Paju Frontier"}}
+ ];
+ const match=name=>ranks.find(r=>normalizeName(name).includes(r.key))||null;
+ return {home:match(g.home_team),away:match(g.away_team),asOf:"7 nov 2026",source:"Rotascore · K League 2 2026",url:"https://www.rotascore.com/en/league/k-league-2/kn54qllh25dqvy9/standings"};
+}
+function datedALeagueSnapshot(g){
+ const label=[g.league?.title,g.league?.key,g.tournament,g.competition,g.sport_title].filter(x=>typeof x==="string").join(" ").toLowerCase();
+ const names=[normalizeName(g.home_team),normalizeName(g.away_team)];
+ const when=new Date(g.commence_time||"").getTime();
+ if(!Number.isFinite(when)||Math.abs(when-Date.parse("2026-11-08T12:00:00Z"))>36*3600000)return null;
+ if(!names.some(x=>x.includes("melbournevictory"))||!names.some(x=>x.includes("adelaideunited")))return null;
+ const ranks=[
+  {key:"melbournevictory",position:9,points:2,playedGames:3,won:0,draw:2,lost:1,goalDifference:-1,team:{name:"Melbourne Victory"}},
+  {key:"adelaideunited",position:12,points:0,playedGames:2,won:0,draw:0,lost:2,goalDifference:-5,team:{name:"Adelaide United"}}
+ ];
+ const match=name=>ranks.find(r=>normalizeName(name).includes(r.key))||null;
+ return {home:match(g.home_team),away:match(g.away_team),asOf:"7 nov 2026",source:"A-League 2026–27 · tabla previa",url:"https://www.aleaguefixtures.com/matches/4mvevo83k8p4b37geo1vc1tzo/adelaide-united-vs-melbourne-victory",note:"El calendario oficial indica Adelaide United como local y Melbourne Victory como visitante. El orden de OddsLink aparece invertido; comprueba los mercados."};
+}
+function datedOtherLeagueSnapshot(g){return datedALeagueSnapshot(g)||datedKLeague2Snapshot(g)}
+function rankBrief(g){
+ if(sport!=="soccer")return "";
+ const match=standingsForGame(g),data=match.data;
+ const h=data?.table?findStandingsTeam(data.table,g.home_team):null;
+ const a=data?.table?findStandingsTeam(data.table,g.away_team):null;
+ if(h&&a)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+a.position+'.º</b> · '+a.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+h.position+'.º</b> · '+h.points+' pts</span><small>Fuente: '+esc(data.provider||"Clasificación")+' · '+esc(data.season||"Actual")+'</small></div>';
+ const snapshot=datedOtherLeagueSnapshot(g);
+ if(snapshot)return '<div class="mp-match-positions"><span>🏆 '+esc(g.away_team)+': <b>'+snapshot.away.position+'.º</b> · '+snapshot.away.points+' pts</span><span>🏆 '+esc(g.home_team)+': <b>'+snapshot.home.position+'.º</b> · '+snapshot.home.points+' pts</span><small>Referencia al '+snapshot.asOf+' · no en vivo</small>'+(snapshot.note?'<small>⚠️ '+esc(snapshot.note)+'</small>':'')+'</div>';
+ const slug=espnLeagueFor(g);
+ if(!data?.table)return '<div class="meta">🏆 '+(slug?(espnStandingsJobs.has(slug)?"Consultando clasificación…":"Clasificación no disponible o sin verificar"):"Liga sin clasificación conectada")+'</div>';
+ return '<div class="meta">🏆 Clasificación recibida · faltan coincidencias verificadas para estos equipos</div>';
+}
+async function loadStandings(g){
+ const target=$("standingboard");if(!target)return;
+ const currentStanding=standingsForGame(g);
+ const snapshot=currentStanding.data?.table&&findStandingsTeam(currentStanding.data.table,g.home_team)&&findStandingsTeam(currentStanding.data.table,g.away_team)?null:datedOtherLeagueSnapshot(g);
+ if(snapshot){
+  const box=(label,r)=>'<div class="verdict"><span class="meta">'+label+'</span><br><strong>'+r.position+'.º · '+esc(r.team.name)+'</strong><div class="statline"><span>Puntos / PJ</span><b>'+r.points+' / '+r.playedGames+'</b></div><div class="statline"><span>G / E / P</span><b>'+r.won+' / '+r.draw+' / '+r.lost+'</b></div><div class="statline"><span>Diferencia de goles</span><b>'+r.goalDifference+'</b></div></div>';
+  target.innerHTML='<h3>🏆 POSICIÓN EN EL TORNEO</h3><div class="twocol">'+box("LOCAL SEGÚN ODDSLINK",snapshot.home)+box("VISITANTE SEGÚN ODDSLINK",snapshot.away)+'</div><p class="hint">'+esc(snapshot.source||"Clasificación")+' · referencia al '+snapshot.asOf+'. <a href="'+snapshot.url+'" target="_blank" rel="noopener noreferrer">Ver fuente de clasificación</a>. No es una conexión automática en vivo.</p><div class="callout">⚠️ '+esc(snapshot.note||"El calendario consultado muestra un orden de local/visitante diferente del recibido en OddsLink. Comprueba quién juega en casa antes de apostar.")+'</div>';
+  return;
+ }
+ const slug=espnLeagueFor(g),match=standingsForGame(g),comp=match.competition;
+ if(!comp&&!slug){target.innerHTML='<div class="callout">Esta liga todavía no tiene una fuente de clasificación compatible. Sin posiciones inventadas.</div>';return}
+ let data=match.data||(comp?standingsCache.get(comp):null);
+ if(!data&&slug){target.textContent="Consultando tabla de la liga…";data=await ensureEspnStandings(slug);if(selected!==g)return}
+ if(!data&&!comp){target.textContent="No hay clasificación verificable en la fuente consultada.";return}
+ if(!data&&comp?.startsWith("ESPN:")){target.textContent="No fue posible verificar la clasificación de esta liga en ESPN.";return}
+ if(!data){try{const stored=JSON.parse(sessionStorage.getItem("modeloProStanding:"+comp)||"null");if(stored&&Date.now()-stored.at<1800000&&Array.isArray(stored.data?.table))data=stored.data}catch{}}
+ if(!data){
+  target.textContent="Consultando tabla oficial…";
+  try{
+   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),9000);
+   let res;try{res=await fetch(BASE+"/api/standings?competition="+encodeURIComponent(comp),{signal:ctrl.signal})}finally{clearTimeout(timer)}
+   if(!res.ok){target.innerHTML='<div class="callout">'+(res.status===404?"El endpoint de clasificación requiere publicar el Worker actualizado en Cloudflare.":"Clasificación no disponible: HTTP "+res.status)+'.</div>';return}
+   data=await res.json();if(!Array.isArray(data.table))throw Error("Tabla no incluida");
+   try{sessionStorage.setItem("modeloProStanding:"+comp,JSON.stringify({at:Date.now(),data}))}catch{}
+  }catch(e){target.textContent="Sin clasificación verificable: "+String(e.message||"error de red");return}
+ }
+ standingsCache.set(comp,data);
+ if(selected!==g||!$("standingboard"))return;
+ const h=findStandingsTeam(data.table,g.home_team),a=findStandingsTeam(data.table,g.away_team);
+ const block=(label,r)=>r?'<div class="verdict"><span class="meta">'+esc(label)+'</span><br><strong>'+r.position+'.º · '+esc(r.team.name)+'</strong><div class="statline"><span>Puntos / PJ</span><b>'+r.points+' / '+r.playedGames+'</b></div><div class="statline"><span>Victorias / Empates / Derrotas</span><b>'+r.won+' / '+r.draw+' / '+r.lost+'</b></div><div class="statline"><span>Diferencia de goles</span><b>'+r.goalDifference+'</b></div></div>':'<div class="callout">'+esc(label)+': el nombre del equipo no coincide exactamente con la tabla.</div>';
+ const tr=data.table.map(r=>'<tr><td>'+r.position+'</td><td>'+esc(r.team?.name)+'</td><td>'+r.playedGames+'</td><td>'+r.points+'</td><td>'+r.goalDifference+'</td></tr>').join("");
+ target.innerHTML='<h3>🏆 POSICIÓN EN EL TORNEO</h3><div class="meta">'+esc(data.competition||comp)+' · '+esc(data.season||"Temporada actual")+'</div><div class="twocol">'+block("LOCAL",h)+block("VISITANTE",a)+'</div><details><summary class="gamebutton">VER TABLA COMPLETA ('+data.table.length+' EQUIPOS)</summary><div class="tablewrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>Pts</th><th>DG</th></tr></thead><tbody>'+tr+'</tbody></table></div></details>';
+ renderGames();
+}
+
+
+async function showStandingsOverview(force=false){
+ const box=$("standings-quick-result"),comp=$("standings-league").value;
+ let data=!force?standingsCache.get(comp):null;
+ box.textContent="Consultando posiciones de "+$("standings-league").selectedOptions[0].textContent+"…";
+ if(!data){
+  try{
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   let res;
+   try{res=await fetch(BASE+"/api/standings?competition="+encodeURIComponent(comp),{signal:controller.signal})}finally{clearTimeout(timer)}
+   const payload=await res.json().catch(()=>({}));
+   if(!res.ok)throw Error("HTTP "+res.status+" · "+String(payload.error||"La fuente no está disponible"));
+   if(!Array.isArray(payload.table))throw Error("Respuesta sin tabla");
+   data=payload;standingsCache.set(comp,data);
+  }catch(e){if($("standings-league").value===comp)box.textContent="No fue posible consultar la clasificación: "+String(e.message||"Error de red");return}
+ }
+ if($("standings-league").value!==comp)return;
+ const rows=data.table.map(r=>'<tr><td><b>'+r.position+'</b></td><td>'+esc(r.team?.name||"Equipo")+'</td><td>'+r.playedGames+'</td><td>'+r.won+'</td><td>'+r.draw+'</td><td>'+r.lost+'</td><td>'+r.points+'</td><td>'+r.goalDifference+'</td></tr>').join("");
+ box.innerHTML='<p class="hint">Fuente: '+esc(data.provider||"football-data.org")+' · '+esc(data.competition||comp)+' · Jornada '+esc(data.matchday??"no informada")+'</p><div class="tablewrap"><table><thead><tr><th>#</th><th>Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>Pts</th><th>DG</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ renderGames();
+ if(selected&&sport==="soccer"){
+  const match=standingsForGame(selected);
+  if(match.data?.table && $("standingboard"))void loadStandings(selected);
+ }
+}
+$("standings-league").addEventListener("change",()=>showStandingsOverview());
+$("standings-refresh").addEventListener("click",()=>showStandingsOverview(true));
+
+const savedKey="modeloProV2History";
+const readSaved=()=>{try{return JSON.parse(localStorage.getItem(savedKey)||"[]")}catch{return []}};
+const writeSaved=rows=>{try{localStorage.setItem(savedKey,JSON.stringify(rows.slice(0,60)))}catch{}};
+function selectTab(tab){
+ for(const b of document.querySelectorAll("[data-tab]"))b.setAttribute("aria-pressed",String(b.dataset.tab===tab));
+ for(const id of ["partidos","valor","historial","fuentes"])$("view-"+id).classList.toggle("hidden",id!==tab);
+ if(tab==="valor")renderValue();
+ if(tab==="historial")renderSaved();
+}
+document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)selectTab(b.dataset.tab)});
+document.querySelector(".sports").addEventListener("click",e=>{
+ const b=e.target.closest("[data-sport]");if(!b||pending)return;
+ sport=b.dataset.sport;
+ $("standings-quick-panel").classList.toggle("hidden",sport!=="soccer");
+ if(sport==="soccer")void showStandingsOverview();
+ for(const x of document.querySelectorAll("[data-sport]"))x.setAttribute("aria-pressed",String(x.dataset.sport===sport));
+ selected=null;renderDetail();load(false);
+});
+function flatten(game){
+ const rows=[];
+ for(const book of (Array.isArray(game.bookmakers)?game.bookmakers:[])){
+  for(const market of (Array.isArray(book.markets)?book.markets:[])){
+   for(const o of (Array.isArray(market.outcomes)?market.outcomes:[])){
+    const decimal=priceDecimal(o.price);if(!decimal)continue;
+    rows.push({market:market.key||"otros",name:String(o.name||"Selección"),point:o.point==null?"":String(o.point),price:o.price,decimal,book:String(book.title||book.key||"Casa"),updated:market.last_update||book.last_update||""});
+   }
+  }
+ }
+ return rows;
+}
+function groupPrices(rows){
+ const by=new Map();
+ for(const r of rows){const key=[r.market,r.name,r.point].join("|"),group=by.get(key)||[];group.push(r);by.set(key,group)}
+ return [...by.values()].map(arr=>({best:arr.reduce((a,b)=>a.decimal>=b.decimal?a:b),count:new Set(arr.map(r=>r.book)).size,rows:arr})).sort((a,b)=>b.count-a.count||b.best.decimal-a.best.decimal);
+}
+function briefOdds(game){
+ const groups=groupPrices(flatten(game));
+ const main=groups.filter(g=>g.best.market==="h2h"&&g.count>=1).sort((a,b)=>a.best.decimal-b.best.decimal)[0];
+ return main?'<span>Mercado: '+esc(main.best.name)+' <b>'+esc(priceText(main.best.price))+'</b> · '+main.count+' casas</span>':"<span>Sin cuotas de ganador verificadas</span>";
+}
+function visibleItems(){
+ const search=$("find").value.trim().toLowerCase(),days=$("datefilter").value;
+ const now=new Date();now.setHours(0,0,0,0);const beginning=now.getTime(),until=days==="all"?Infinity:beginning+Number(days)*86400000;
+ const filtered=items.filter(g=>{
+   const t=new Date(g.commence_time).getTime();
+   return Number.isFinite(t)&&(days==="all"||(t>=beginning&&t<until))&&(!search||[g.home_team,g.away_team,g.tournament,g.league?.title].some(x=>String(x||"").toLowerCase().includes(search)));
+ });
+ if($("order").value==="coverage")filtered.sort((a,b)=>flatten(b).length-flatten(a).length);
+ else filtered.sort((a,b)=>new Date(a.commence_time)-new Date(b.commence_time));
+ return filtered;
+}
+function renderGames(){
+ const matches=visibleItems();
+ $("loadstatus").textContent=items.length+" partidos recibidos de "+sportNames[sport]+" · "+matches.length+" visibles. Datos y cuotas según cobertura del proveedor.";
+ $("games").innerHTML=matches.length?matches.map((g,i)=>{
+  const rows=flatten(g),title=String(g.away_team||"Visitante")+" vs "+String(g.home_team||"Local");
+  return '<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
+ }).join(""):'<div class="empty">No hay partidos para los filtros actuales o la fuente no devolvió encuentros. Cambia el período o deporte.</div>';
+ window.__modelVisible=matches;
+}
+$("games").addEventListener("click",e=>{
+ const b=e.target.closest("[data-select]");if(!b)return;
+ selected=window.__modelVisible[Number(b.dataset.select)];
+ renderGames();renderDetail();$("detail").scrollIntoView({behavior:"smooth",block:"start"});
+});
+function saveSelected(){
+ if(!selected)return;
+ const entry={id:selected.id||selected.home_team+"-"+selected.away_team,date:selected.commence_time,home:selected.home_team,away:selected.away_team,sport:sportNames[sport],savedAt:new Date().toISOString()};
+ const rows=readSaved().filter(r=>r.id!==entry.id);rows.unshift(entry);writeSaved(rows);$("savebtn").textContent="✓ Guardado";
+}
+function renderDetail(){
+ if(!selected){$("detail").innerHTML='<h2>Informe del partido</h2><div class="empty">Selecciona un encuentro para revisar el mercado y los datos que realmente existen.</div>';return}
+ const g=selected,rows=flatten(g),groups=groupPrices(rows),books=new Set(rows.map(r=>r.book)),markets=new Set(rows.map(r=>r.market));
+ const latest=rows.map(r=>Date.parse(r.updated)).filter(Number.isFinite).sort((a,b)=>b-a)[0];
+ const displayMarket=k=>({h2h:"Ganador",totals:"Total goles/puntos",spreads:"Hándicap",btts:"Ambos marcan",both_teams_to_score:"Ambos marcan"})[k]||k;
+ const top=groups.filter(x=>x.best.market==="h2h"&&x.count>=2).sort((a,b)=>a.best.decimal-b.best.decimal)[0];
+ const topnote=top?'<strong>'+esc(top.best.name)+' · '+esc(priceText(top.best.price))+'</strong><small>Favorito según las cuotas comparadas ('+top.count+' casas). No es una predicción propia.</small>':'<strong>Sin favorito verificable</strong><small>El proveedor no devolvió suficientes precios comparables.</small>';
+ const table=groups.map(g=>'<tr><td>'+esc(displayMarket(g.best.market))+'</td><td>'+esc(g.best.name+(g.best.point?" "+g.best.point:""))+'</td><td>'+esc(priceText(g.best.price))+'</td><td>'+esc(g.best.book)+'</td><td>'+g.count+'</td></tr>').join("");
+ const all=rows.map(r=>'<tr><td>'+esc(displayMarket(r.market))+'</td><td>'+esc(r.name+(r.point?" "+r.point:""))+'</td><td>'+esc(r.book)+'</td><td>'+esc(priceText(r.price))+'</td><td>'+(100/r.decimal).toFixed(1)+'%</td></tr>').join("");
+ $("detail").innerHTML='<div class="sectionhead"><h2>'+esc(g.home_team||"Local")+' - '+esc(g.away_team||"Visitante")+'</h2><span class="tag">'+esc(sportNames[sport])+'</span></div>'+
+ '<p class="hint">'+esc(dateText(g.commence_time))+' · '+esc(g.league?.title||g.tournament||"Competición no informada")+'</p>'+rankBrief(g)+
+ '<div class="metricgrid"><div class="metric"><strong>'+books.size+'</strong><span>Casas</span></div><div class="metric"><strong>'+markets.size+'</strong><span>Mercados</span></div><div class="metric"><strong>'+rows.length+'</strong><span>Cuotas</span></div></div>'+
+ (sport==="soccer"?'<div id="standingboard" class="status">Cargando posiciones del torneo…</div>':"")+
+ '<div class="verdict"><span class="meta">LECTURA DEL MERCADO</span><br>'+topnote+'</div>'+
+ '<div class="verdict"><span class="meta">DECISIÓN MODELO PRO</span><br><strong>NO APOSTAR SIN EDGE VERIFICADO</strong><small>Una cuota no permite inferir rentabilidad. Requiere probabilidad propia validada y comparación con ese precio.</small></div>'+
+ '<p class="hint">Última actualización reportada: '+esc(latest?new Date(latest).toLocaleString("es-US"):"No disponible")+'</p>'+
+ (sport==="soccer"?'<button class="primary" type="button" id="predictbtn">CALCULAR ANÁLISIS HISTÓRICO</button><div id="predictstatus" class="status" role="status"></div><div id="prediction"></div>':'<div class="callout">Estadísticas avanzadas de forma, lesiones y jugadores: no disponibles en la fuente conectada para este partido. No se muestran porcentajes inventados.</div>')+
+ '<div class="btnrow"><button class="secondary" id="savebtn">☆ Guardar partido</button></div>'+
+ '<details open><summary class="gamebutton">MEJORES CUOTAS POR SELECCIÓN ('+groups.length+')</summary><div class="tablewrap"><table><thead><tr><th>Mercado</th><th>Selección</th><th>Cuota</th><th>Casa</th><th>Casas</th></tr></thead><tbody>'+table+'</tbody></table></div></details>'+
+ '<details><summary class="gamebutton">TODAS LAS CUOTAS REALES ('+rows.length+')</summary><div class="tablewrap"><table><thead><tr><th>Mercado</th><th>Selección</th><th>Casa</th><th>Cuota</th><th>Implícita</th></tr></thead><tbody>'+all+'</tbody></table></div></details>'+
+ '<div class="callout">Datos no suministrados por OddsLink: lesiones, alineaciones, últimos cinco partidos, córners, tarjetas y tiros a puerta. Si no hay otra fuente autorizada, se indican como no disponibles.</div>';
+ $("savebtn").addEventListener("click",saveSelected);
+ $("predictbtn")?.addEventListener("click",predict);
+ if(sport==="soccer")void loadStandings(g);
+}
+function normalizeName(name){return String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\b(fc|afc|cf|sc|club|de|the)\b/g,"").replace(/[^a-z0-9]/g,"")}
+function competitionFor(g){
+ const k=[g.sport_key,g.league?.key,g.league?.title,g.league,g.tournament,g.competition,g.sport_title,g.sport_group].filter(v=>typeof v==="string").join(" ").toLowerCase();
+ const tests=[[/epl|premier.?league|england/,"PL"],[/spain|la.?liga/,"PD"],[/bundesliga|germany/,"BL1"],[/italy|serie.?a/,"SA"],[/ligue.?1|france/,"FL1"],[/netherlands|eredivisie/,"DED"],[/portugal|primeira/,"PPL"]];
+ return tests.find(x=>x[0].test(k))?.[1]||null;
+}
+function pPoisson(lambda,n){let p=Math.exp(-lambda);for(let i=1;i<=n;i++)p*=lambda/i;return p}
+async function predict(){
+ const g=selected,btn=$("predictbtn"),status=$("predictstatus"),target=$("prediction"),competition=competitionFor(g);
+ if(!competition){status.textContent="No hay competición histórica compatible identificada. Sin pronóstico propio.";return}
+ btn.disabled=true;status.textContent="Buscando historial de ambos equipos…";target.innerHTML="";
+ try{
+  const qs=new URLSearchParams({competition,homeTeam:g.home_team||"",awayTeam:g.away_team||"",limit:"20"});
+  const cacheKey="modeloProV2History:"+qs.toString();
+  let payload=null;
+  try{const saved=JSON.parse(sessionStorage.getItem(cacheKey)||"null");if(saved&&Date.now()-saved.at<900000)payload=saved.payload}catch{}
+  if(!payload){
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+   try{
+    let r=await fetch(BASE+"/api/football?"+qs,{signal:controller.signal}),d=await r.json().catch(()=>({}));
+    if(r.status===400&&Array.isArray(d.availableTeams)){
+     const resolve=name=>{
+      const normalized=normalizeName(name);
+      const matches=d.availableTeams.filter(n=>normalizeName(n)===normalized);
+      return matches.length===1?matches[0]:null;
+     };
+     const home=resolve(g.home_team),away=resolve(g.away_team);
+     if(home&&away){qs.set("homeTeam",home);qs.set("awayTeam",away);r=await fetch(BASE+"/api/football?"+qs,{signal:controller.signal});d=await r.json().catch(()=>({}))}
+    }
+    if(!r.ok)throw Error(r.status===400?"El proveedor no identificó estos equipos en la competición elegida.":String(d.error||d.message||"HTTP "+r.status));
+    payload=d;try{sessionStorage.setItem(cacheKey,JSON.stringify({at:Date.now(),payload}))}catch{}
+   }finally{clearTimeout(timer)}
+  }
+  const homeName=payload.sampleTeams?.home||g.home_team,awayName=payload.sampleTeams?.away||g.away_team;
+  const games=(Array.isArray(payload.matches)?payload.matches:[]).filter(m=>Number.isFinite(Number(m.score?.fullTime?.home))&&Number.isFinite(Number(m.score?.fullTime?.away))&&m.score?.fullTime?.home!=null&&m.score?.fullTime?.away!=null);
+  const home=games.filter(m=>normalizeName(m.homeTeam?.name)===normalizeName(homeName)).slice(0,10);
+  const away=games.filter(m=>normalizeName(m.awayTeam?.name)===normalizeName(awayName)).slice(0,10);
+  // Estadísticas reales: forma reciente en casa y fuera, promedios de goles y cara a cara.
+  const buildStats=(arr,teamSide)=>{
+   const last=arr.slice(0,5),s={played:last.length,w:0,d:0,l:0,gf:0,ga:0,cs:0,btts:0,o25:0};
+   for(const m of last){
+    const homeGoals=Number(m.score.fullTime.home),awayGoals=Number(m.score.fullTime.away);
+    const f=teamSide==="home"?homeGoals:awayGoals,a=teamSide==="home"?awayGoals:homeGoals;
+    s.gf+=f;s.ga+=a;if(f>a)s.w++;else if(f===a)s.d++;else s.l++;
+    if(a===0)s.cs++;if(f>0&&a>0)s.btts++;if(f+a>=3)s.o25++;
+   }return s
+  };
+  const renderStats=(name,v)=>{
+   const n=v.played,ratio=x=>n?(x*100/n).toFixed(0)+"%":"—";
+   return '<div class="verdict"><strong>'+esc(name)+'</strong><small>Últimos '+n+' partidos de la muestra en '+(name==="Local"?"casa":"visita")+'</small>'+
+    '<div class="statline"><span>Victorias / Empates / Derrotas</span><b>'+v.w+' / '+v.d+' / '+v.l+'</b></div>'+
+    '<div class="statline"><span>Goles a favor / contra</span><b>'+v.gf+' / '+v.ga+'</b></div>'+
+    '<div class="statline"><span>Promedio goles marcados / recibidos</span><b>'+(n?v.gf/n:0).toFixed(2)+' / '+(n?v.ga/n:0).toFixed(2)+'</b></div>'+
+    '<div class="statline"><span>Portería a cero</span><b>'+v.cs+' de '+n+'</b></div>'+
+    '<div class="statline"><span>Ambos marcaron</span><b>'+ratio(v.btts)+'</b></div>'+
+    '<div class="statline"><span>Más de 2.5 goles (observado)</span><b>'+ratio(v.o25)+'</b></div></div>';
+  };
+  const recentHome=buildStats(home,"home"),recentAway=buildStats(away,"away");
+  const h2h=games.filter(m=>
+    (normalizeName(m.homeTeam?.name)===normalizeName(homeName)&&normalizeName(m.awayTeam?.name)===normalizeName(awayName))||
+    (normalizeName(m.awayTeam?.name)===normalizeName(homeName)&&normalizeName(m.homeTeam?.name)===normalizeName(awayName))
+   ).slice(0,5);
+  const resultHistory=h2h.length?'<details><summary class="gamebutton">ENFRENTAMIENTOS DIRECTOS DISPONIBLES ('+h2h.length+')</summary>'+
+   h2h.map(m=>'<div class="statline"><span>'+esc(dateText(m.utcDate))+' · '+esc(m.homeTeam?.shortName||m.homeTeam?.name)+' - '+esc(m.awayTeam?.shortName||m.awayTeam?.name)+'</span><b>'+m.score.fullTime.home+'-'+m.score.fullTime.away+'</b></div>').join("")+'</details>':
+   '<p class="hint">No hay enfrentamientos directos en la muestra histórica consultada.</p>';
+  const evidenceHtml='<h3>📊 ESTADÍSTICAS HISTÓRICAS REALES</h3><div class="twocol">'+
+   renderStats("Local",recentHome)+renderStats("Visitante",recentAway)+'</div>'+resultHistory+
+   '<p class="hint">Fuente: football-data.org mediante Cloudflare. Las frecuencias observadas NO son probabilidades de ganar ni garantizan repetición. La muestra cubre como máximo 20 partidos por equipo de esta competición.</p>';
+  if(home.length<5||away.length<5){
+   status.textContent="Muestra insuficiente para generar pronóstico. Se muestran los resultados históricos disponibles.";
+   target.innerHTML=evidenceHtml+'<div class="callout">NO APOSTAR: menos de cinco partidos por condición local/visitante.</div>';
+   return
+  }
+  const avg=(arr,key)=>arr.reduce((a,m)=>a+Number(m.score.fullTime[key]),0)/arr.length;
+  const expectedH=(avg(home,"home")+avg(away,"home"))/2,expectedA=(avg(away,"away")+avg(home,"away"))/2;
+  let hw=0,draw=0,aw=0,btts=0,over25=0,total=0;
+  for(let h=0;h<=12;h++)for(let a=0;a<=12;a++){const p=pPoisson(expectedH,h)*pPoisson(expectedA,a);total+=p;if(h>a)hw+=p;else if(h===a)draw+=p;else aw+=p;if(h&&a)btts+=p;if(h+a>=3)over25+=p}
+  if(!total)throw Error("No se pudo construir la distribución.");
+  const options=[{name:"Gana "+homeName,p:hw/total},{name:"Empate",p:draw/total},{name:"Gana "+awayName,p:aw/total},{name:"Ambos marcan · Sí",p:btts/total},{name:"Ambos marcan · No",p:1-btts/total},{name:"Más de 2.5 goles",p:over25/total},{name:"Menos de 2.5 goles",p:1-over25/total},{name:"Doble oportunidad · 1X",p:(hw+draw)/total},{name:"Doble oportunidad · X2",p:(aw+draw)/total}].sort((a,b)=>b.p-a.p);
+  const main=options[0],alternative=options.find(x=>x.name!==main.name&&!(x.name.includes("Doble oportunidad")&&main.name.includes("Doble oportunidad")));
+  status.textContent="Modelo preliminar calculado. Aún no hay calibración histórica que demuestre precisión predictiva.";
+  target.innerHTML=evidenceHtml+'<div class="verdict"><span class="meta">ESCENARIO PRINCIPAL (MODELO)</span><br><strong>'+esc(main.name)+' · '+pct(main.p)+'</strong><small>Alternativa: '+esc(alternative?.name||"No disponible")+' · '+pct(alternative?.p)+'</small></div><div class="statline"><span>Goles esperados local / visita</span><b>'+expectedH.toFixed(2)+' / '+expectedA.toFixed(2)+'</b></div><div class="statline"><span>Muestra local / visitante</span><b>'+home.length+' / '+away.length+'</b></div><div class="callout">No se confirma APOSTAR ni EDGE. Modelo Poisson ilustrativo, sin backtesting/calibración demostrados. Probabilidad alta no garantiza valor.</div>';
+ }catch(e){status.textContent="No se pudo obtener el historial: "+String(e.message||"servicio sin respuesta").slice(0,220)+". Sin pronóstico."}
+ finally{btn.disabled=false}
+}
+function renderValue(){
+ const groups=[];
+ for(const g of items){const arr=groupPrices(flatten(g)).filter(x=>x.count>=2);if(!arr.length)continue;const m=arr[0];groups.push({g,m,count:arr.length})}
+ $("valueboard").innerHTML=groups.length?groups.slice(0,50).map(({g,m,count})=>'<div class="game"><span class="meta">'+esc(dateText(g.commence_time))+'</span><strong>'+esc(g.away_team)+' vs '+esc(g.home_team)+'</strong><div class="statline"><span>'+esc(m.best.name+(m.best.point?" "+m.best.point:""))+' · '+esc(m.best.market)+'</span><b>'+esc(priceText(m.best.price))+'</b></div><div class="meta">'+esc(m.best.book)+' · '+m.count+' casas comparables · '+count+' selecciones contrastadas</div><small class="reason">No implica EDGE positivo; faltan probabilidades independientes verificadas.</small></div>').join(""):'<div class="empty">Todavía no hay comparaciones de dos o más casas para los partidos cargados.</div>';
+}
+function renderSaved(){
+ const saved=readSaved();
+ $("saved").innerHTML=saved.length?saved.map(row=>'<div class="saveditem"><div class="meta">'+esc(dateText(row.date))+' · '+esc(row.sport)+'</div><strong>'+esc(row.away)+' vs '+esc(row.home)+'</strong><div class="small">Guardado: '+esc(dateText(row.savedAt))+'</div></div>').join(""):'<div class="empty">Aún no has guardado partidos.</div>';
+}
+$("clear-history").addEventListener("click",()=>{writeSaved([]);renderSaved()});
+$("find").addEventListener("input",renderGames);$("datefilter").addEventListener("change",renderGames);$("order").addEventListener("change",renderGames);
+$("refresh").addEventListener("click",()=>load(true));
+$("healthbtn").addEventListener("click",async()=>{
+ $("healthstatus").textContent="Comprobando Cloudflare…";
+ try{const r=await fetch(BASE+"/",{cache:"no-store"});const d=await r.json();$("apihealth").textContent=d.ok?"Conectado":"Sin confirmar";$("healthstatus").textContent=d.ok?"El Worker responde. Esto no confirma disponibilidad de los proveedores externos.":"No se confirmó la conexión."}
+ catch(e){$("apihealth").textContent="Sin conexión";$("healthstatus").textContent=String(e.message||"Error de red")}
+});
+async function fetchOddsWithRetry(sportCode){
+ const qs=new URLSearchParams({sport:sportCode,markets:"h2h,spreads,totals"});
+ const endpoint=BASE+"/api/odds?"+qs.toString();
+ let lastError=null;
+ for(let attempt=0;attempt<3;attempt++){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),attempt?17000:13000);
+  try{
+   const response=await fetch(endpoint+(attempt?"&_try="+attempt:""),{signal:controller.signal,cache:"no-store",mode:"cors"});
+   return response;
+  }catch(e){
+   lastError=e;
+   if(attempt<2)await new Promise(resolve=>setTimeout(resolve,650*(attempt+1)));
+  }finally{clearTimeout(timer)}
+ }
+ throw Error("No hubo conexión con Cloudflare después de 3 intentos ("+String(lastError?.message||"error de red")+").");
+}
+async function fallbackEspnEvents(sportCode){
+ if(sportCode!=="soccer")return [];
+ const now=new Date(),ymd=d=>{const x=new Date(d),p=n=>String(n).padStart(2,"0");return x.getFullYear()+p(x.getMonth()+1)+p(x.getDate())};
+ const until=new Date(now.getTime()+7*86400000);
+ const leagues=["eng.1","esp.1","ita.1","ger.1","fra.1","usa.1","mex.1","arg.1","col.1","aus.1","kor.1","kor.2"];
+ const dates=ymd(now)+"-"+ymd(until),found=new Map();
+ await Promise.all(leagues.map(async slug=>{
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
+  try{
+   const response=await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/"+slug+"/scoreboard?dates="+dates+"&limit=100",{signal:ctrl.signal});
+   if(!response.ok)return;
+   const payload=await response.json(),events=Array.isArray(payload.events)?payload.events:[];
+   for(const e of events){
+    const competitors=e.competitions?.[0]?.competitors||[];
+    const home=competitors.find(x=>x.homeAway==="home")?.team?.displayName;
+    const away=competitors.find(x=>x.homeAway==="away")?.team?.displayName;
+    if(!home||!away||!e.date)continue;
+    const id="espn:"+slug+":"+e.id;
+    found.set(id,{id,commence_time:e.date,home_team:home,away_team:away,league:{key:slug,title:payload.leagues?.[0]?.name||slug},sport_key:"soccer",bookmakers:[],__calendarOnly:true});
+   }
+  }catch{}finally{clearTimeout(timer)}
+ }));
+ return [...found.values()].sort((a,b)=>new Date(a.commence_time)-new Date(b.commence_time));
+}
+async function load(force){
+ if(pending)return;
+ pending=true;$("refresh").disabled=true;
+ const key="modeloProV2Odds:"+sport,read=()=>{try{return JSON.parse(sessionStorage.getItem(key)||"null")}catch{return null}};
+ const cached=read();const fresh=cached&&Date.now()-cached.time<10*60*1000;
+ if(cached&&Array.isArray(cached.items)){items=cached.items;renderGames();primeGameStandings()}
+ if(fresh&&!force){pending=false;$("refresh").disabled=false;return}
+ const throttleKey="modeloProV2Cooldown:"+sport;
+ let remaining=0;try{remaining=Math.ceil((Number(localStorage.getItem(throttleKey)||0)-Date.now())/1000)}catch{}
+ if(remaining>0){$("loadstatus").textContent="Límite de consultas. Conservando los últimos datos guardados. Nueva consulta disponible en "+remaining+" s.";pending=false;$("refresh").disabled=false;return}
+ $("loadstatus").textContent=cached?"Actualizando precios; se conservan los datos anteriores…":"Consultando partidos y cuotas…";
+ try{
+  const r=await fetchOddsWithRetry(sport);
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok){if(r.status===429||data.code==="SPEED_LIMIT"){const sec=Math.max(20,Math.min(600,Number(data.retryAfterSeconds)||60));try{localStorage.setItem(throttleKey,String(Date.now()+sec*1000))}catch{}}throw Error(String(data.error||"HTTP "+r.status))}
+  const list=Array.isArray(data)?data:Array.isArray(data.events)?data.events:Array.isArray(data.data)?data.data:[];
+  items=list.filter(x=>x&&x.commence_time);try{sessionStorage.setItem(key,JSON.stringify({time:Date.now(),items}))}catch{}
+  renderGames();renderValue();primeGameStandings();
+ }catch(e){
+  const message=String(e.message||"sin respuesta");
+  if(!cached&&sport==="soccer"){
+   $("loadstatus").textContent="Sin conexión a cuotas de Cloudflare. Recuperando calendario alternativo (sin cuotas)…";
+   const replacement=await fallbackEspnEvents(sport);
+   if(replacement.length){
+    items=replacement;renderGames();primeGameStandings();
+    $("loadstatus").textContent="Calendario alternativo ESPN · "+replacement.length+" partidos. Cuotas no disponibles por fallo de conexión con Cloudflare. Reintentar con ↻ Actualizar.";
+   }else{
+    $("loadstatus").textContent="No fue posible conectar con Cloudflare: "+message+". También falló el calendario alternativo.";
+    $("games").innerHTML='<div class="empty">Sin datos verificables disponibles ahora. Revisa la conexión y reintenta.</div>';
+   }
+  }else $("loadstatus").textContent="No fue posible actualizar "+sportNames[sport]+": "+message+". "+(cached?"Se conserva el último calendario.":"No se inventan partidos ni cuotas.");
+ }finally{pending=false;$("refresh").disabled=false}
+}
+load(false);
+void showStandingsOverview();
+})();
+</script>
+</body>
+</html>
