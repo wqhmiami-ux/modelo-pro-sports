@@ -184,7 +184,42 @@ async function predict(){
   const games=(Array.isArray(payload.matches)?payload.matches:[]).filter(m=>Number.isFinite(Number(m.score?.fullTime?.home))&&Number.isFinite(Number(m.score?.fullTime?.away))&&m.score?.fullTime?.home!=null&&m.score?.fullTime?.away!=null);
   const home=games.filter(m=>normalizeName(m.homeTeam?.name)===normalizeName(homeName)).slice(0,10);
   const away=games.filter(m=>normalizeName(m.awayTeam?.name)===normalizeName(awayName)).slice(0,10);
-  if(home.length<5||away.length<5){status.textContent="Muestra insuficiente de resultados recientes como local y visitante. NO APOSTAR.";return}
+  // Estadísticas reales: forma reciente en casa y fuera, promedios de goles y cara a cara.
+  const buildStats=(arr,teamSide)=>{
+   const last=arr.slice(0,5),s={played:last.length,w:0,d:0,l:0,gf:0,ga:0,cs:0,btts:0,o25:0};
+   for(const m of last){
+    const homeGoals=Number(m.score.fullTime.home),awayGoals=Number(m.score.fullTime.away);
+    const f=teamSide==="home"?homeGoals:awayGoals,a=teamSide==="home"?awayGoals:homeGoals;
+    s.gf+=f;s.ga+=a;if(f>a)s.w++;else if(f===a)s.d++;else s.l++;
+    if(a===0)s.cs++;if(f>0&&a>0)s.btts++;if(f+a>=3)s.o25++;
+   }return s
+  };
+  const renderStats=(name,v)=>{
+   const n=v.played,ratio=x=>n?(x*100/n).toFixed(0)+"%":"—";
+   return '<div class="verdict"><strong>'+esc(name)+'</strong><small>Últimos '+n+' partidos de la muestra en '+(name==="Local"?"casa":"visita")+'</small>'+
+    '<div class="statline"><span>Victorias / Empates / Derrotas</span><b>'+v.w+' / '+v.d+' / '+v.l+'</b></div>'+
+    '<div class="statline"><span>Goles a favor / contra</span><b>'+v.gf+' / '+v.ga+'</b></div>'+
+    '<div class="statline"><span>Promedio goles marcados / recibidos</span><b>'+(n?v.gf/n:0).toFixed(2)+' / '+(n?v.ga/n:0).toFixed(2)+'</b></div>'+
+    '<div class="statline"><span>Portería a cero</span><b>'+v.cs+' de '+n+'</b></div>'+
+    '<div class="statline"><span>Ambos marcaron</span><b>'+ratio(v.btts)+'</b></div>'+
+    '<div class="statline"><span>Más de 2.5 goles (observado)</span><b>'+ratio(v.o25)+'</b></div></div>';
+  };
+  const recentHome=buildStats(home,"home"),recentAway=buildStats(away,"away");
+  const h2h=games.filter(m=>
+    (normalizeName(m.homeTeam?.name)===normalizeName(homeName)&&normalizeName(m.awayTeam?.name)===normalizeName(awayName))||
+    (normalizeName(m.awayTeam?.name)===normalizeName(homeName)&&normalizeName(m.homeTeam?.name)===normalizeName(awayName))
+   ).slice(0,5);
+  const resultHistory=h2h.length?'<details><summary class="gamebutton">ENFRENTAMIENTOS DIRECTOS DISPONIBLES ('+h2h.length+')</summary>'+
+   h2h.map(m=>'<div class="statline"><span>'+esc(dateText(m.utcDate))+' · '+esc(m.homeTeam?.shortName||m.homeTeam?.name)+' - '+esc(m.awayTeam?.shortName||m.awayTeam?.name)+'</span><b>'+m.score.fullTime.home+'-'+m.score.fullTime.away+'</b></div>').join("")+'</details>':
+   '<p class="hint">No hay enfrentamientos directos en la muestra histórica consultada.</p>';
+  const evidenceHtml='<h3>📊 ESTADÍSTICAS HISTÓRICAS REALES</h3><div class="twocol">'+
+   renderStats("Local",recentHome)+renderStats("Visitante",recentAway)+'</div>'+resultHistory+
+   '<p class="hint">Fuente: football-data.org mediante Cloudflare. Las frecuencias observadas NO son probabilidades de ganar ni garantizan repetición. La muestra cubre como máximo 20 partidos por equipo de esta competición.</p>';
+  if(home.length<5||away.length<5){
+   status.textContent="Muestra insuficiente para generar pronóstico. Se muestran los resultados históricos disponibles.";
+   target.innerHTML=evidenceHtml+'<div class="callout">NO APOSTAR: menos de cinco partidos por condición local/visitante.</div>';
+   return
+  }
   const avg=(arr,key)=>arr.reduce((a,m)=>a+Number(m.score.fullTime[key]),0)/arr.length;
   const expectedH=(avg(home,"home")+avg(away,"home"))/2,expectedA=(avg(away,"away")+avg(home,"away"))/2;
   let hw=0,draw=0,aw=0,btts=0,over25=0,total=0;
@@ -193,7 +228,7 @@ async function predict(){
   const options=[{name:"Gana "+homeName,p:hw/total},{name:"Empate",p:draw/total},{name:"Gana "+awayName,p:aw/total},{name:"Ambos marcan · Sí",p:btts/total},{name:"Ambos marcan · No",p:1-btts/total},{name:"Más de 2.5 goles",p:over25/total},{name:"Menos de 2.5 goles",p:1-over25/total},{name:"Doble oportunidad · 1X",p:(hw+draw)/total},{name:"Doble oportunidad · X2",p:(aw+draw)/total}].sort((a,b)=>b.p-a.p);
   const main=options[0],alternative=options.find(x=>x.name!==main.name&&!(x.name.includes("Doble oportunidad")&&main.name.includes("Doble oportunidad")));
   status.textContent="Modelo preliminar calculado. Aún no hay calibración histórica que demuestre precisión predictiva.";
-  target.innerHTML='<div class="verdict"><span class="meta">ESCENARIO PRINCIPAL (MODELO)</span><br><strong>'+esc(main.name)+' · '+pct(main.p)+'</strong><small>Alternativa: '+esc(alternative?.name||"No disponible")+' · '+pct(alternative?.p)+'</small></div><div class="statline"><span>Goles esperados local / visita</span><b>'+expectedH.toFixed(2)+' / '+expectedA.toFixed(2)+'</b></div><div class="statline"><span>Muestra local / visitante</span><b>'+home.length+' / '+away.length+'</b></div><div class="callout">No se confirma APOSTAR ni EDGE. Modelo Poisson ilustrativo, sin backtesting/calibración demostrados. Probabilidad alta no garantiza valor.</div>';
+  target.innerHTML=evidenceHtml+'<div class="verdict"><span class="meta">ESCENARIO PRINCIPAL (MODELO)</span><br><strong>'+esc(main.name)+' · '+pct(main.p)+'</strong><small>Alternativa: '+esc(alternative?.name||"No disponible")+' · '+pct(alternative?.p)+'</small></div><div class="statline"><span>Goles esperados local / visita</span><b>'+expectedH.toFixed(2)+' / '+expectedA.toFixed(2)+'</b></div><div class="statline"><span>Muestra local / visitante</span><b>'+home.length+' / '+away.length+'</b></div><div class="callout">No se confirma APOSTAR ni EDGE. Modelo Poisson ilustrativo, sin backtesting/calibración demostrados. Probabilidad alta no garantiza valor.</div>';
  }catch(e){status.textContent="No se pudo obtener el historial: "+String(e.message||"servicio sin respuesta").slice(0,220)+". Sin pronóstico."}
  finally{btn.disabled=false}
 }
