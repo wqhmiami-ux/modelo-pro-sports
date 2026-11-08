@@ -2031,19 +2031,33 @@ function renderDailyGames() {
           }
         }
       }
-      candidates.sort((a,b)=>{
-        if(game.sport==="Fútbol" && group.keys[0]==="totals"){
-          return Number(a.point)-Number(b.point)||String(a.name).localeCompare(String(b.name));
+      candidates.sort((a,b)=>b.probability-a.probability);
+      if(group.keys[0]==="totals" && game.sport==="Fútbol"){
+        // Una única lectura del mercado de goles, usando la línea principal 2.5.
+        // No destacar Over 0.5 / Under 6.5 solo por su alta probabilidad.
+        const at25=candidates.filter(row=>Number(row.point)===2.5);
+        const main=at25[0];
+        if(main){
+          availableMarketRows.push('<div class="mp-market-line"><span>Goles · '+escapeHTML(main.name)+' 2.5</span><b>'+main.probability.toFixed(1)+'% <small>mercado</small></b></div>');
+        }else{
+          availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>Goles · línea 2.5</span><b>Sin cuotas comparables</b></div>');
         }
-        return b.probability-a.probability;
-      });
-      if(candidates.length){
-        for(const row of candidates.slice(0,16)){
-          availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(row.name)+(row.point?' '+escapeHTML(displayNumber(row.point)):'')+'</span><b>'+row.probability.toFixed(1)+'%</b></div>');
+      }else if(group.keys[0]==="btts" && game.sport==="Fútbol"){
+        const best=candidates[0];
+        if(best)availableMarketRows.push('<div class="mp-market-line"><span>Ambos marcan · '+escapeHTML(best.name)+'</span><b>'+best.probability.toFixed(1)+'% <small>mercado</small></b></div>');
+        else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>Ambos marcan</span><button class="mp-btts-model" type="button">ANALIZAR CON HISTORIAL</button></div>');
+      }else if(group.keys[0]!=="totals"){
+        // Estas fuentes suelen omitir corners/tarjetas/tiros. Evitar falsas recomendaciones.
+        if(candidates.length){
+          const best=candidates[0];
+          availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'% <small>mercado</small></b></div>');
         }
-      }else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':game.sport==="Fútbol"?'<button class="mp-open-advanced" type="button">VER ESTADÍSTICAS</button>':'<b>Sin cuotas de este mercado</b>')+'</div>');
+      }else{
+        const best=candidates[0];
+        if(best)availableMarketRows.push('<div class="mp-market-line"><span>'+escapeHTML(group.title)+' · '+escapeHTML(best.name)+(best.point?' '+escapeHTML(displayNumber(best.point)):'')+'</span><b>'+best.probability.toFixed(1)+'% <small>mercado</small></b></div>');
+      }
     }
-    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES SEGÚN CUOTAS · LÍNEAS DISPONIBLES</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros pulsa VER ESTADÍSTICAS para consultar API-Football si la liga y el partido están cubiertos. Las estadísticas observadas no son predicciones; sin un modelo histórico validado, no se publican porcentajes.</p></div>';
+    const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">LECTURA RÁPIDA · CUOTAS DISPONIBLES</div>'+availableMarketRows.join("")+'<p>Porcentajes derivados de cuotas, NO pronósticos propios. Para obtener una estimación independiente, pulsa ANALIZAR PARTIDO · MODELO. Sin cuota comparable y modelo validado: NO HAY APUESTA CONFIRMADA. Las demás líneas están en VER TODOS LOS DATOS Y CUOTAS DISPONIBLES.</p></div>';
     // Tabla comparativa de mercados con cuotas realmente recibidas. No genera precios faltantes.
     const bookRows=[];
     for(const book of (Array.isArray(game.bookmakers)?game.bookmakers:[])){
