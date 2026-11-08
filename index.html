@@ -378,7 +378,8 @@ function groupPrices(rows){
 function marketCategory(key){
  const k=String(key||"").toLowerCase();
  if(/corner/.test(k))return "Córners";
- if(/shot|on_target/.test(k))return "Tiros a puerta";
+ if(/on.?target|shots?_on_target|shotsontarget/.test(k))return "Tiros a puerta";
+ if(/shot/.test(k))return "Tiros";
  if(/both.?teams|btts/.test(k))return "Ambos marcan";
  if(/card|booking/.test(k))return "Tarjetas";
  if(/double.?chance/.test(k))return "Doble oportunidad";
@@ -390,7 +391,7 @@ function marketCategory(key){
 }
 function probabilityBrief(game){
  const rows=[...flatten(game),...(Array.isArray(game.__shotsRows)?game.__shotsRows:[])].filter(r=>Number.isFinite(r.decimal)&&r.decimal>1&&1/r.decimal<0.80);
- const categories=["Ganador","Goles / total","Ambos marcan","Córners","Tiros a puerta","Tarjetas","Hándicap","Doble oportunidad","Empate no apuesta"];
+ const categories=["Ganador","Goles / total","Ambos marcan","Córners","Tiros a puerta","Tiros","Tarjetas","Hándicap","Doble oportunidad","Empate no apuesta"];
  const groups=new Map();
  for(const r of rows){
   const cat=marketCategory(r.market),current=groups.get(cat);
@@ -408,7 +409,7 @@ function probabilityBrief(game){
 function soccerPropsRows(raw){
  const out=[];
  for(const p of (Array.isArray(raw?.props)?raw.props:[])){
-  if(!/shot|target/i.test(String(p.stat||"")))continue;
+  if(!/on.?target|shots?_on_target|shotsontarget/i.test(String(p.stat||"")))continue;
   for(const outcome of (Array.isArray(p.outcomes)?p.outcomes:[])){
    const decimal=priceDecimal(outcome.price);
    if(!decimal||1/decimal>=0.8)continue;
