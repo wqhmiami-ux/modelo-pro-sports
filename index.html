@@ -681,6 +681,25 @@ body.mp-vip-simple .mp-api-game{border-radius:12px}
 body.mp-vip-simple #mp-vip-workspace{display:block!important}
 @media(max-width:660px){#mp-vip-workspace{padding:16px;margin:8px 0 14px;border-radius:17px}.mp-vip-head{display:block}.mp-vip-live-tag{display:inline-block;margin-bottom:14px}.mp-vip-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.mp-vip-tabs button:last-child{grid-column:1/-1}#mp-vip-workspace button{font-size:12px;padding:9px 7px}.mp-vip-sportbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
+<style id="mp-match-data-css">
+.mp-data-details{margin:14px 0 4px;padding:12px 14px;border:1px solid #4b6580;border-radius:13px;background:#112238}
+.mp-data-details summary{cursor:pointer;font-weight:800;font-size:13px;color:#e1f8ff;list-style:none}
+.mp-data-details summary::-webkit-details-marker{display:none}
+.mp-data-details summary span{float:right;font-weight:600;color:#9dc3d7;font-size:11px}
+.mp-data-details[open] summary{margin-bottom:15px}
+.mp-data-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mp-data-metrics>div{background:#203148;padding:10px;border-radius:9px}
+.mp-data-metrics small{display:block;font-size:11px;color:#aec0d4}.mp-data-metrics strong{font-size:19px}
+.mp-data-timestamp{font-size:12px;color:#c0cddd;margin:12px 0}
+.mp-data-subhead{font-weight:800;font-size:12px;margin:15px 0 8px}
+.mp-data-compare{display:grid;grid-template-columns:1fr auto;gap:3px 12px;border-bottom:1px solid #32455b;padding:8px 0;font-size:12px}
+.mp-data-compare strong{color:#c2f56d}.mp-data-compare small{grid-column:1/-1;color:#b0c4d7}
+.mp-data-table-wrap{overflow:auto;max-height:430px;margin-top:12px}
+.mp-data-table{border-collapse:collapse;min-width:570px;width:100%;font-size:12px}
+.mp-data-table th,.mp-data-table td{padding:9px 8px;text-align:left;border-bottom:1px solid #30445d}
+.mp-data-table th{position:sticky;top:0;background:#1c344c;color:#daebf6}
+@media(max-width:700px){.mp-data-details summary span{display:block;float:none;margin-top:4px}.mp-data-metrics small{font-size:10px}}
+</style>
 </head>
 <body>
 <header>
@@ -2022,12 +2041,60 @@ function renderDailyGames() {
       else availableMarketRows.push('<div class="mp-market-line mp-market-missing"><span>'+escapeHTML(group.title)+'</span>'+(group.keys[0]==="btts" && game.sport==="Fútbol"?'<button class="mp-btts-model" type="button">CALCULAR PROBABILIDAD</button>':game.sport==="Fútbol"?'<button class="mp-open-advanced" type="button">VER ESTADÍSTICAS</button>':'<b>Sin cuotas de este mercado</b>')+'</div>');
     }
     const additionalMarkets = '<div class="mp-market-panel"><div class="mp-market-title">PROBABILIDADES POR MERCADO · CUOTAS</div>'+availableMarketRows.join("")+'<p>Los porcentajes mostrados aquí proceden de cuotas, no son pronósticos propios. Para «Ambos marcan», abre el modelo de goles del mismo partido: calcula una probabilidad independiente cuando existen resultados históricos suficientes. Para córners, tarjetas y tiros pulsa VER ESTADÍSTICAS para consultar API-Football si la liga y el partido están cubiertos. Las estadísticas observadas no son predicciones; sin un modelo histórico validado, no se publican porcentajes.</p></div>';
+    // Tabla comparativa de mercados con cuotas realmente recibidas. No genera precios faltantes.
+    const bookRows=[];
+    for(const book of (Array.isArray(game.bookmakers)?game.bookmakers:[])){
+      const bookmaker=String(book.title||book.key||"Casa no identificada");
+      const updated=book.last_update?new Date(book.last_update):null;
+      for(const market of (Array.isArray(book.markets)?book.markets:[])){
+        if(!["h2h","totals","spreads","btts","both_teams_to_score"].includes(market.key))continue;
+        for(const outcome of (Array.isArray(market.outcomes)?market.outcomes:[])){
+          const decimal=Number(outcome.price);
+          if(!Number.isFinite(decimal)||decimal<=1)continue;
+          const american=toAmericanOdds(decimal);
+          const point=outcome.point===undefined||outcome.point===null?"":String(outcome.point);
+          const marketLabel=market.key==="h2h"?"Ganador":market.key==="totals"?(game.sport==="Fútbol"?"Total goles":"Total puntos"):market.key==="spreads"?"Hándicap":"Ambos marcan";
+          const implied=100/decimal;
+          const timestamp=market.last_update||book.last_update||"";
+          bookRows.push({bookmaker,market:marketLabel,selection:String(outcome.name||"Selección"),point,american,decimal,implied,timestamp});
+        }
+      }
+    }
+    const availableBooks=[...new Set(bookRows.map(x=>x.bookmaker))];
+    const marketsCovered=[...new Set(bookRows.map(x=>x.market))];
+    const selectionGroups=new Map();
+    for(const row of bookRows){
+      const key=row.market+"|"+row.selection+"|"+row.point;
+      const stored=selectionGroups.get(key)||[];
+      stored.push(row);selectionGroups.set(key,stored);
+    }
+    const compareRows=[...selectionGroups.entries()].filter(([_,rows])=>rows.length>=2).map(([key,rows])=>{
+      const best=rows.reduce((a,b)=>b.decimal>a.decimal?b:a);
+      const worst=rows.reduce((a,b)=>b.decimal<a.decimal?b:a);
+      return {best,worst,count:rows.length,gap:((best.decimal/worst.decimal-1)*100)};
+    }).sort((a,b)=>b.gap-a.gap).slice(0,12);
+    const fmtPrice=price=>price===null?"—":(price>0?"+":"")+price;
+    const detailedRows=bookRows.slice(0,80).map(row=>
+      '<tr><td>'+escapeHTML(row.market)+'</td><td>'+escapeHTML(row.selection+(row.point?" "+row.point:""))+'</td><td>'+escapeHTML(row.bookmaker)+'</td><td><b>'+escapeHTML(fmtPrice(row.american))+'</b></td><td>'+row.implied.toFixed(1)+'%</td></tr>'
+    ).join("");
+    const comparison=compareRows.length?'<div class="mp-data-subhead">MEJORES PRECIOS ENTRE CASAS (NO PREDICCIONES)</div>'+
+      compareRows.map(row=>'<div class="mp-data-compare"><span>'+escapeHTML(row.best.market+' · '+row.best.selection+(row.best.point?' '+row.best.point:''))+'</span><strong>'+escapeHTML(fmtPrice(row.best.american))+'</strong><small>'+escapeHTML(row.best.bookmaker)+' · '+row.count+' casas comparadas</small></div>').join("")
+      :'<p class="note">No hay dos casas comparables suficientes para identificar una mejor cuota.</p>';
+    const lastUpdates=bookRows.map(x=>Date.parse(x.timestamp)).filter(Number.isFinite);
+    const newestUpdate=lastUpdates.length?new Date(Math.max(...lastUpdates)).toLocaleString("es-US"):"Hora de actualización no reportada";
+    const detailPanel='<details class="mp-data-details"><summary>📊 VER TODOS LOS DATOS Y CUOTAS DISPONIBLES <span>'+availableBooks.length+' casas · '+bookRows.length+' precios</span></summary>'+
+      '<div class="mp-data-metrics"><div><small>Casas con cuotas</small><strong>'+availableBooks.length+'</strong></div><div><small>Mercados recibidos</small><strong>'+marketsCovered.length+'</strong></div><div><small>Precios disponibles</small><strong>'+bookRows.length+'</strong></div></div>'+
+      '<p class="mp-data-timestamp">Última actualización reportada: '+escapeHTML(newestUpdate)+'. Probabilidad implícita sin retirar margen; NO es una predicción independiente.</p>'+
+      comparison+
+      (bookRows.length?'<div class="mp-data-table-wrap"><table class="mp-data-table"><thead><tr><th>Mercado</th><th>Selección</th><th>Casa</th><th>Cuota US</th><th>Implícita</th></tr></thead><tbody>'+detailedRows+'</tbody></table></div>':'<p>La fuente no entregó cuotas utilizables para este partido.</p>')+
+      (bookRows.length>80?'<p class="note">Se muestran 80 de '+bookRows.length+' cotizaciones recibidas.</p>':'')+
+      '<p class="note">No incluye lesiones, forma, posesión, córners, tiros ni tarjetas si el proveedor no los devuelve. EDGE y recomendación requieren una probabilidad propia validada.</p></details>';
     const details=[game.sport,game.tournament||game.country||""].filter(Boolean);
     const price=favorite?(favorite.price>0?"+":"")+favorite.price:"";
     const prediction=favorite
       ? '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE SEGÚN LAS CUOTAS</div><strong class="mp-pick-name">'+escapeHTML(favorite.name)+'</strong><div class="mp-pick-prob">'+favorite.probability.toFixed(1)+'% <span>probabilidad de mercado sin margen aproximada</span></div><div class="mp-prediction-stats"><span>Mejor cuota encontrada <b>'+price+'</b></span><span>Casa <b>'+escapeHTML(favorite.book)+'</b></span><span>Fuentes <b>'+favorite.count+'</b></span></div><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO CONFIRMADA</b></div><p>Esta selección es el resultado favorito del mercado, no una predicción independiente. Para recomendar APOSTAR hacen falta una estimación estadística verificable, EDGE positivo y comprobación de datos. Un favorito puede perder.</p>'
       : '<div class="mp-pick-heading">RESULTADO MÁS PROBABLE</div><strong>NO DETERMINADO</strong><div class="mp-pick-verdict">MEJOR OPCIÓN PARA APOSTAR: <b>NO APOSTAR SIN DATOS</b></div><p>La fuente no devolvió al menos dos cuotas comparables. No se inventa ganador, porcentaje ni predicción.</p>';
-    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div>'+additionalMarkets+'<div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">'+(game.sport==="Fútbol"?"CALCULADORA OPCIONAL":"ANALIZAR CUOTAS")+'</button>'+(game.sport==="Fútbol"?'<button type="button" class="mp-auto-football" data-home="'+escapeHTML(game.home_team||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-league="'+escapeHTML(game.league_key||game.tournament||"")+'">ANALIZAR PARTIDO · MODELO</button>':'')+'</div>'+(game.sport==="Fútbol"?'<div class="mp-inline-model" role="status" aria-live="polite"></div>':'')+'</article>';
+    return '<article class="daily-game mp-match-card"><div class="mp-match-top"><div class="mp-match-date"><strong>'+escapeHTML(date)+'</strong><span>'+escapeHTML(time)+'</span></div><span class="mp-match-status">'+(liveWindow?"EN VENTANA EN VIVO · SIN CONFIRMAR":"PROGRAMADO")+'</span></div><div class="daily-game-title">'+escapeHTML(eventName)+'</div><div class="daily-game-tags">'+details.map(x=>'<span>'+escapeHTML(x)+'</span>').join("")+'</div><div class="mp-prediction-box"><small>LECTURA AUTOMÁTICA DEL PARTIDO</small>'+prediction+'</div>'+additionalMarkets+'<div class="mp-match-actions"><button type="button" class="load-game-odds" data-sport="'+escapeHTML(game.sport)+'" data-sport-key="'+escapeHTML(game.sport_key||SPORT_KEYS[game.sport]||"")+'" data-event-id="'+escapeHTML(game.id||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-home="'+escapeHTML(game.home_team||"")+'" data-event="'+escapeHTML(eventName)+'">VER MERCADOS Y CUOTAS</button><button type="button" class="use-daily-game" data-sport="'+escapeHTML(game.sport)+'" data-event="'+escapeHTML(eventName)+'">'+(game.sport==="Fútbol"?"CALCULADORA OPCIONAL":"ANALIZAR CUOTAS")+'</button>'+(game.sport==="Fútbol"?'<button type="button" class="mp-auto-football" data-home="'+escapeHTML(game.home_team||"")+'" data-away="'+escapeHTML(game.away_team||"")+'" data-league="'+escapeHTML(game.league_key||game.tournament||"")+'">ANALIZAR PARTIDO · MODELO</button>':'')+'</div>'+detailPanel+(game.sport==="Fútbol"?'<div class="mp-inline-model" role="status" aria-live="polite"></div>':'')+'</article>';
   }).join("");
   $("dailyGamesStatus").textContent = "Mostrando "+filtered.length+" partidos · Fechas en tu hora local. El consenso de mercado no equivale a una predicción independiente.";
 }
