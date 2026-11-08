@@ -68,7 +68,7 @@ export default {
           ok: true,
           service: "Modelo PRO Sports API",
           oddsProvider: "OddsLink",
-          endpoints: ["/api/odds", "/api/football", "/api/advanced/fixtures", "/api/advanced/statistics", "/api/standings"],
+          endpoints: ["/api/odds", "/api/football", "/api/advanced/fixtures", "/api/advanced/statistics", "/api/standings", "/api/soccer-extras"],
           sports: Object.keys(sportMap),
         },
         { headers: corsHeaders }
@@ -120,6 +120,62 @@ export default {
       } catch {
         return jsonError("Standings provider unavailable", 502);
       }
+    }
+
+    // Optional additional soccer game-lines and player shots, discovered from the provider's live catalogue.
+    // We never manufacture market names or prices. Player props may require a higher OddsLink plan.
+    if (path === "/api/soccer-extras") {
+      const key = env.ODDSLINK_API_KEY || env.ODDS_API_KEY;
+      if (!key) return jsonError("OddsLink key not configured", 503);
+      const eventId = String(url.searchParams.get("eventId") || "");
+      if (!/^soccer:[a-z0-9_:.-]{6,190}$/i.test(eventId)) return jsonError("Invalid soccer event ID", 400);
+      const headers = {"X-API-Key": key, Accept:"application/json"};
+      const catalogKey=new Request("https://oddslink.app/v1/markets?sport=soccer");
+      let catalog;
+      try {
+        const cacheHit=await caches.default.match(catalogKey);
+        if(cacheHit)catalog=await cacheHit.json();
+        else{
+          const r=await fetch(catalogKey.url,{headers});
+          if(!r.ok)return jsonError("OddsLink market catalogue unavailable",502,{providerStatus:r.status});
+          catalog=await r.json();
+          if(Array.isArray(catalog)){
+            const cacheResp=Response.json(catalog,{headers:{"Cache-Control":"public, max-age=3600"}});
+            try{await caches.default.put(catalogKey,cacheResp)}catch{}
+          }
+        }
+      }catch{return jsonError("Market catalogue connection failed",502)}
+      const all=Array.isArray(catalog)?catalog:Array.isArray(catalog?.markets)?catalog.markets:[];
+      const wanted=e=>/both.?teams|btts|double.?chance|draw.?no.?bet|corner|shot|booking|card|goal/i.test(String(e.key||"")+" "+String(e.description||""));
+      const additional=all.filter(e=>!e.period&&e.kind==="game_line"&&wanted(e)&&!["h2h","totals","spreads"].includes(e.key))
+        .map(e=>String(e.key)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,12);
+      const props=all.filter(e=>!e.period&&e.kind==="player_prop"&&/shot|on.?target/i.test(String(e.key||"")+" "+String(e.description||"")))
+        .map(e=>String(e.key)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,6);
+      const base="https://oddslink.app/v1/sports/soccer/events/"+encodeURIComponent(eventId);
+      const oddsUrl=new URL(base+"/odds");
+      oddsUrl.searchParams.set("markets",["h2h","spreads","totals",...additional].join(","));
+      oddsUrl.searchParams.set("oddsFormat","american");
+      const propUrl=new URL(base+"/props");
+      propUrl.searchParams.set("markets",props.join(","));
+      propUrl.searchParams.set("oddsFormat","american");
+      const fetchJson=async target=>{
+        const r=await fetch(target.toString(),{headers});
+        const body=await r.json().catch(()=>null);
+        return {ok:r.ok,status:r.status,data:body};
+      };
+      const [oddsResult,propResult]=await Promise.all([
+        fetchJson(oddsUrl).catch(()=>({ok:false,status:502})),
+        props.length?fetchJson(propUrl).catch(()=>({ok:false,status:502})):Promise.resolve({ok:false,status:204})
+      ]);
+      // Prop errors are informative; they do not hide game lines.
+      return Response.json({
+        ok:oddsResult.ok,provider:"OddsLink",availableGameMarkets:additional,availableShotProps:props,
+        fixture:oddsResult.ok?oddsResult.data:null,
+        oddsStatus:oddsResult.status,
+        playerProps:propResult.ok?propResult.data:null,
+        propsStatus:propResult.status,
+        note:propResult.status===403?"Player prop access may require the Growth plan":null
+      },{headers:{...corsHeaders,"Cache-Control":"public, max-age=30"}});
     }
 
     // Se conserva la ruta existente para resultados y partidos de fútbol.
