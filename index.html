@@ -700,6 +700,10 @@ body.mp-vip-simple #mp-vip-workspace{display:block!important}
 .mp-data-table th{position:sticky;top:0;background:#1c344c;color:#daebf6}
 @media(max-width:700px){.mp-data-details summary span{display:block;float:none;margin-top:4px}.mp-data-metrics small{font-size:10px}}
 </style>
+<style id="mp-focused-predictions-style">
+.mp-focus-prob{font-weight:850;font-size:29px;color:#c9f879;margin-top:8px}
+.mp-focus-prob span{font-weight:500;font-size:12px;color:#b6c6d7;display:block}
+</style>
 </head>
 <body>
 <header>
@@ -3016,38 +3020,42 @@ renderHistory();
       if(!(totalMass>0))throw new Error("Distribución incompleta");
       homeWin/=totalMass;draw/=totalMass;awayWin/=totalMass;btts/=totalMass;homeOver05/=totalMass;awayOver05/=totalMass;homeOver15/=totalMass;awayOver15/=totalMass;totalExactly2/=totalMass;totalExactly3/=totalMass;
       for(const line of Object.keys(overs))overs[line]/=totalMass;
-      const pct=value=>(value*100).toFixed(1)+"%";
-      const mostLikely=scores.sort((a,b)=>b.probability-a.probability)[0];
-      const independentRows=[
-        ["Gana "+canonicalHomeName,homeWin],
-        ["Empate",draw],
-        ["Gana "+canonicalAwayName,awayWin],
-        ["Ambos marcan — Sí",btts],
-        ["Ambos marcan — No",1-btts],
-        ["Doble oportunidad · 1X (local o empate)",homeWin+draw],
-        ["Doble oportunidad · X2 (empate o visitante)",draw+awayWin],
-        ["Doble oportunidad · 12 (sin empate)",homeWin+awayWin],
-        ["Local marca 1 o más goles",homeOver05],
-        ["Local marca 2 o más goles",homeOver15],
-        ["Visitante marca 1 o más goles",awayOver05],
-        ["Visitante marca 2 o más goles",awayOver15],
-        ["Exactamente 2 goles en el partido",totalExactly2],
-        ["Exactamente 3 goles en el partido",totalExactly3],
-        ...Object.entries(overs).flatMap(([line,p])=>[
-          ["Más de "+line+" goles",p],
-          ["Menos de "+line+" goles",1-p]
-        ])
+      const pct=value=>Math.round(value*100)+"%";
+      // Evaluar mercados útiles evitando opciones casi obvias de 0.5 y marcadores exactos.
+      // Son estimaciones de Poisson aún sin calibración; no implican una apuesta rentable.
+      const candidateMarkets=[
+        {label:"Más de 1.5 goles",p:overs[1.5],family:"goles"},
+        {label:"Más de 2.5 goles",p:overs[2.5],family:"goles"},
+        {label:"Menos de 2.5 goles",p:1-overs[2.5],family:"goles"},
+        {label:"Menos de 3.5 goles",p:1-overs[3.5],family:"goles"},
+        {label:"Ambos marcan · Sí",p:btts,family:"ambos"},
+        {label:"Ambos marcan · No",p:1-btts,family:"ambos"},
+        {label:"Doble oportunidad · 1X",p:homeWin+draw,family:"resultado"},
+        {label:"Doble oportunidad · X2",p:draw+awayWin,family:"resultado"},
+        {label:"Gana "+canonicalHomeName,p:homeWin,family:"ganador"},
+        {label:"Gana "+canonicalAwayName,p:awayWin,family:"ganador"}
       ];
-      const ordered=[...independentRows].sort((a,b)=>b[1]-a[1]);
-      status.textContent="Estimación propia basada en historial. No depende de que una casa ofrezca este mercado.";
+      const sorted=candidateMarkets.filter(x=>Number.isFinite(x.p)&&x.p>=0&&x.p<=1)
+        .sort((a,b)=>b.p-a.p);
+      const selections=[];
+      for(const market of sorted){
+        if(selections.some(x=>x.family===market.family))continue;
+        selections.push(market);
+        if(selections.length===2)break;
+      }
+      const top=selections[0];
+      const evidence=Math.min(homeMatches.length,awayMatches.length);
+      const coverage=evidence>=8?"Muestra moderada":"Muestra limitada";
+      const verdict="SIN APUESTA CONFIRMADA";
+      status.textContent="Análisis compacto: hasta 2 escenarios del modelo. No hay recomendación de apostar sin cuotas comparables y validación.";
       results.innerHTML=`
-        <div class="mp-independent-header"><strong>MODELO PRO · PROBABILIDADES PROPIAS</strong><small>Fuente: resultados históricos recuperados mediante Cloudflare</small></div>
-        <div class="mp-independent-meta">Goles esperados: <b>${escapeHTML(canonicalHomeName)} ${homeExpected.toFixed(2)}</b> · <b>${escapeHTML(canonicalAwayName)} ${awayExpected.toFixed(2)}</b></div>
-        <div class="mp-independent-meta">Muestra: ${homeMatches.length} partidos recientes del local en casa y ${awayMatches.length} del visitante fuera. Modelo Poisson preliminar.</div>
-        <div class="mp-independent-best"><small>Resultado exacto más probable</small><strong>${mostLikely.h}–${mostLikely.a} · ${pct(mostLikely.probability/totalMass)}</strong></div>
-        <div class="mp-independent-grid">${independentRows.map(([title,value])=>'<div class="mp-independent-row"><span>'+escapeHTML(title)+'</span><b>'+pct(value)+'</b></div>').join("")}</div>
-        <div class="mp-independent-best"><small>Escenario de mayor probabilidad de esta lista (no equivale a mejor apuesta)</small><strong>${escapeHTML(ordered[0][0])} · ${pct(ordered[0][1])}</strong></div>
-        <p class="note">Estas probabilidades proceden del modelo, no de las cuotas. Para córners, tarjetas, tiros a puerta, jugadores y lesiones aún se requieren estadísticas verificables adicionales. No se calcula EDGE ni se recomienda apostar si no existe cuota real comparable. El modelo no tiene calibración ni validación retrospectiva demostrada.</p>
+        <div class="mp-independent-header"><strong>MODELO PRO · ANÁLISIS DEL PARTIDO</strong><small>Estimaciones propias basadas en resultados históricos; no cuotas</small></div>
+        <div class="mp-independent-best"><small>ESCENARIO ESTADÍSTICO PRINCIPAL</small><strong>${escapeHTML(top?.label||"Datos insuficientes")}</strong><div class="mp-focus-prob">${top?pct(top.p):"—"} <span>estimación preliminar, no probabilidad garantizada</span></div></div>
+        ${selections.length>1?'<div class="mp-independent-row"><span>Alternativa · '+escapeHTML(selections[1].label)+'</span><b>'+pct(selections[1].p)+'</b></div>':""}
+        <div class="mp-independent-meta">Goles esperados: ${escapeHTML(canonicalHomeName)} <b>${homeExpected.toFixed(2)}</b> · ${escapeHTML(canonicalAwayName)} <b>${awayExpected.toFixed(2)}</b></div>
+        <div class="mp-independent-meta">${coverage}: ${homeMatches.length} partidos del local en casa y ${awayMatches.length} del visitante fuera.</div>
+        <div class="mp-independent-best"><small>DECISIÓN PARA APOSTAR</small><strong>${verdict}</strong><p>Faltan cuotas comparables vinculadas a este cálculo y validación retrospectiva del modelo. Una probabilidad alta, por sí sola, no confirma valor de apuesta.</p></div>
+        <p class="note">Se muestran solo 2 escenarios relevantes, no todos los marcadores ni todas las líneas. Modelo Poisson sin calibración demostrada. Si hay datos insuficientes o no existe una cuota verificable, la decisión es NO APOSTAR.</p>
       `;
     } catch (error) {
       const reason=error?.name==="AbortError"?"Tiempo de espera agotado":String(error?.message||"Servicio no disponible");
