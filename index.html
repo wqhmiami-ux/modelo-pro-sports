@@ -2286,7 +2286,7 @@ $("dailyGamesResults").addEventListener("click", event => {
       inline.innerHTML='<div class="mp-inline-model-heading">ANÁLISIS HISTÓRICO DEL PARTIDO</div>'+modelResults.innerHTML;
       window.mpInlinePredictionObserver?.disconnect();
     }else if(/No se generó|No se pudieron|Diagnóstico:|Faltan al menos|Escribe dos equipos/i.test(message)){
-      inline.textContent=message+" · NO APOSTAR SIN DATOS.";
+      inline.textContent=message.includes("NO APOSTAR SIN DATOS")?message:message+" · NO APOSTAR SIN DATOS.";
       window.mpInlinePredictionObserver?.disconnect();
     }
   };
@@ -2852,9 +2852,36 @@ renderHistory();
         const controller=new AbortController();
         const timer=setTimeout(()=>controller.abort(),12000);
         try{
-          const response=await fetch(api.toString(),{signal:controller.signal});
-          if(!response.ok)throw new Error("La API devolvió HTTP "+response.status);
-          payload=await response.json();
+          let response=await fetch(api.toString(),{signal:controller.signal});
+          let data=await response.json().catch(()=>({}));
+          if(!response.ok && response.status===400 && Array.isArray(data.availableTeams)){
+            // Los nombres de las casas y de football-data.org no siempre coinciden.
+            // Solo reintentar coincidencias inequívocas.
+            const norm=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\b(fc|afc|cf|sc|club|de|the)\b/g,"").replace(/[^a-z0-9]/g,"");
+            const resolve=query=>{
+              const key=norm(query);
+              const exact=data.availableTeams.filter(name=>norm(name)===key);
+              if(exact.length===1)return exact[0];
+              const partial=key.length>=6?data.availableTeams.filter(name=>{
+                const candidate=norm(name);return candidate.length>=6&&(candidate.includes(key)||key.includes(candidate));
+              }):[];
+              return partial.length===1?partial[0]:null;
+            };
+            const homeResolved=resolve(homeName),awayResolved=resolve(awayName);
+            if(homeResolved&&awayResolved&&homeResolved!==awayResolved){
+              api.searchParams.set("homeTeam",homeResolved);
+              api.searchParams.set("awayTeam",awayResolved);
+              response=await fetch(api.toString(),{signal:controller.signal});
+              data=await response.json().catch(()=>({}));
+            }
+          }
+          if(!response.ok){
+            const providerMessage=String(data.error||data.message||data.detail||"").slice(0,230);
+            const nameError=response.status===400&&Array.isArray(data.availableTeams);
+            const hint=nameError?"No se pudieron identificar los equipos con los nombres de la fuente histórica. Comprueba la competición o los nombres oficiales.":providerMessage||"Proveedor sin datos disponibles";
+            throw new Error("HTTP "+response.status+": "+hint);
+          }
+          payload=data;
           if(payload&&Array.isArray(payload.matches)){
             try{sessionStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),payload}))}catch{}
           }
