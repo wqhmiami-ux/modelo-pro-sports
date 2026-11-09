@@ -507,12 +507,21 @@ function leagueSort(a,b){
  if(byName)return byName;
  return Date.parse(a.commence_time)-Date.parse(b.commence_time);
 }
+function upcomingFixture(g,nowMs=Date.now()){
+ const start=Date.parse(g?.commence_time||"");
+ if(!Number.isFinite(start)||start<=nowMs)return false;
+ if(g.is_live===true)return false;
+ const status=String(g.status?.type?.name||g.status?.type?.state||g.status?.description||g.status||"").toLowerCase();
+ if(/live|in.?progress|in.?play|started|halftime|half.?time|final|finish|complete|closed|postpon|cancel|suspend|abandon|delayed/.test(status))return false;
+ return true;
+}
 function visibleItems(){
  const search=$("find").value.trim().toLowerCase(),days=$("datefilter").value;
- const now=new Date();now.setHours(0,0,0,0);const beginning=now.getTime(),until=days==="all"?Infinity:beginning+Number(days)*86400000;
+ const nowMs=Date.now(),today=new Date();today.setHours(0,0,0,0);
+ const until=days==="all"?Infinity:today.getTime()+Number(days)*86400000;
  const filtered=items.filter(g=>{
-   const t=new Date(g.commence_time).getTime();
-   return Number.isFinite(t)&&(days==="all"||(t>=beginning&&t<until))&&(!search||[g.home_team,g.away_team,g.tournament,g.league?.title].some(x=>String(x||"").toLowerCase().includes(search)));
+   const t=Date.parse(g.commence_time||"");
+   return upcomingFixture(g,nowMs)&&t<until&&(!search||[g.home_team,g.away_team,g.tournament,g.league?.title].some(x=>String(x||"").toLowerCase().includes(search)));
  });
  if($("order").value==="priority")filtered.sort(leagueSort);
  else if($("order").value==="coverage")filtered.sort((a,b)=>flatten(b).length-flatten(a).length);
@@ -521,7 +530,7 @@ function visibleItems(){
 }
 function renderGames(){
  const matches=visibleItems();
- $("loadstatus").textContent=items.length+" partidos recibidos de "+sportNames[sport]+" · "+matches.length+" visibles. Datos y cuotas según cobertura del proveedor.";
+ $("loadstatus").textContent=items.length+" partidos recibidos de "+sportNames[sport]+" · "+matches.length+" próximos por jugar. Se ocultan automáticamente los iniciados, finalizados o cancelados.";
  let previousLeague="";
  $("games").innerHTML=matches.length?matches.map((g,i)=>{
   const info=leagueInfo(g),leagueId=info.key+"|"+info.name;
@@ -924,6 +933,18 @@ async function load(force){
 }
 load(false);
 void showStandingsOverview();
+// Keep the forthcoming fixture list current even when cached data is displayed.
+setInterval(()=>{
+ if(document.visibilityState!=="visible")return;
+ const previous=selected;
+ if(previous&&!upcomingFixture(previous)){selected=null;renderDetail()}
+ renderGames();
+},30000);
+document.addEventListener("visibilitychange",()=>{
+ if(document.visibilityState!=="visible")return;
+ if(selected&&!upcomingFixture(selected)){selected=null;renderDetail()}
+ renderGames();
+});
 })();
 </script>
 </body>
