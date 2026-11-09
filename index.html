@@ -94,6 +94,8 @@ let sport="soccer",items=[],selected=null,pending=false;
 const standingsCache=new Map();
 const espnStandingsJobs=new Map(),espnStandingsFailures=new Map();
 const espnLeagueRules=[
+ [/fifa[.]friendly|international friendly|amistos.*(seleccion|internacional)/,"fifa.friendly"],
+ [/club[.]friendly|club friendly|amistos.*club/,"club.friendly"],
  [/k[\s-]*league[\s-]*2|korean.*second|south.korea.*2/,"kor.2"],
  [/k[\s-]*league[\s-]*1|k[\s-]*league|korean.*first/,"kor.1"],
  [/a[\s-]*league.*women|women.*a[\s-]*league/,"aus.w.1"],
@@ -270,6 +272,7 @@ function datedALeagueSnapshot(g){
 function datedOtherLeagueSnapshot(g){return datedALeagueSnapshot(g)||datedKLeague2Snapshot(g)}
 function rankBrief(g){
  if(sport!=="soccer")return "";
+ if(/^(fifa|club)[.]friendly$/.test(String(g.league?.key||"")))return '<div class="meta">🤝 Amistoso · sin tabla de liga</div>';
  const match=standingsForGame(g),data=match.data;
  const h=data?.table?findStandingsTeam(data.table,g.home_team):null;
  const a=data?.table?findStandingsTeam(data.table,g.away_team):null;
@@ -282,6 +285,7 @@ function rankBrief(g){
 }
 async function loadStandings(g){
  const target=$("standingboard");if(!target)return;
+ if(/^(fifa|club)[.]friendly$/.test(String(g.league?.key||""))){target.textContent="Partido amistoso: no existe una tabla de posiciones propia de esta competición.";return}
  const currentStanding=standingsForGame(g);
  const snapshot=currentStanding.data?.table&&findStandingsTeam(currentStanding.data.table,g.home_team)&&findStandingsTeam(currentStanding.data.table,g.away_team)?null:datedOtherLeagueSnapshot(g);
  if(snapshot){
@@ -483,6 +487,8 @@ function briefOdds(game){
  return main?'<span>Mercado: '+esc(main.best.name)+' <b>'+esc(priceText(main.best.price))+'</b> · '+main.count+' casas</span>':"<span>Sin cuotas de ganador verificadas</span>";
 }
 const leaguePriorityRules=[
+ [/fifa\.friendly|international friendly|amistos.*(internacional|seleccion)|friendlies.*international/,7],
+ [/club\.friendly|club friendly|amistos.*club|friendly match/,8],
  [/uefa.champions|champions league|copa libertadores|libertadores|world cup|copa mundial/,1],
  [/uefa.europa$|europa league|copa america|euro championship|euros\b|gold cup/,2],
  [/eng\.1|premier league|esp\.1|la liga|laliga|ita\.1|serie a.*ital|ger\.1|bundesliga|fra\.1|ligue 1/,3],
@@ -538,7 +544,7 @@ function renderGames(){
   previousLeague=leagueId;
   const rows=flatten(g),title=String(g.away_team||"Visitante")+" vs "+String(g.home_team||"Local");
   return heading+'<article class="game '+(selected?.id===g.id?"selected":"")+'"><div class="gamehead"><span class="meta">'+esc(dateText(g.commence_time))+'</span><span class="tag">'+esc(g.league?.title||g.tournament||sportNames[sport])+'</span></div><strong>'+esc(title)+'</strong>'+rankBrief(g)+probabilityBrief(g)+'<div class="meta">'+rows.length+' cuotas · '+new Set(rows.map(r=>r.book)).size+' casas · '+new Set(rows.map(r=>r.market)).size+' mercados</div><div class="bookline">'+briefOdds(g)+'</div><button type="button" class="gamebutton" data-select="'+i+'">ABRIR INFORME Y TODOS LOS MERCADOS →</button></article>';
- }).join(""):'<div class="empty">No hay partidos para los filtros actuales o la fuente no devolvió encuentros. Cambia el período o deporte.</div>';
+ }).join(""):'<div class="empty">No hay encuentros próximos con los filtros actuales. Incluidos amistosos de clubes y selecciones cuando el calendario los ofrece.</div>';
  window.__modelVisible=matches;
 }
 $("games").addEventListener("click",e=>{
@@ -874,11 +880,64 @@ async function fetchOddsWithRetry(sportCode){
  }
  throw Error("No hubo conexión con Cloudflare después de 3 intentos ("+String(lastError?.message||"error de red")+").");
 }
+// Complementary FRIENDLY calendar from ESPN; odds remain sourced only from OddsLink.
+const friendlyLeagueNames={"fifa.friendly":"Amistosos internacionales","club.friendly":"Amistosos de clubes"};
+let friendliesJob=null,friendliesLoadedAt=0;
+const friendlyCacheKey="modeloProFriendlyCalendarV1";
+function friendlyEventKey(g){
+ const when=Date.parse(g.commence_time||"");
+ return [normalizeName(g.home_team),normalizeName(g.away_team),Math.round(when/(45*60*1000))].join("|");
+}
+function attachFriendlies(fixtures){
+ if(sport!=="soccer"||!Array.isArray(fixtures)||!fixtures.length)return;
+ const seen=new Set(items.map(friendlyEventKey));
+ for(const game of fixtures){
+  if(!upcomingFixture(game)||seen.has(friendlyEventKey(game)))continue;
+  seen.add(friendlyEventKey(game));items.push(game);
+ }
+ renderGames();
+}
+async function fetchFriendlyFixtures(force=false){
+ if(sport!=="soccer")return [];
+ if(friendliesJob)return friendliesJob;
+ let stored;
+ try{stored=JSON.parse(sessionStorage.getItem(friendlyCacheKey)||"null")}catch{}
+ if(!force&&stored&&Date.now()-stored.at<20*60*1000&&Array.isArray(stored.events)){
+  attachFriendlies(stored.events);return stored.events;
+ }
+ friendliesJob=(async()=>{
+  const now=Date.now(),until=now+7*86400000,results=[];
+  const ymd=x=>new Date(x).toISOString().slice(0,10).replace(/-/g,"");
+  const dates=ymd(now)+"-"+ymd(until);
+  await Promise.all(Object.keys(friendlyLeagueNames).map(async slug=>{
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8500);
+   try{
+    const url="https://site.api.espn.com/apis/site/v2/sports/soccer/"+slug+"/scoreboard?dates="+dates+"&limit=100";
+    const response=await fetch(url,{signal:controller.signal});
+    if(!response.ok)return;
+    const body=await response.json();
+    for(const e of (Array.isArray(body.events)?body.events:[])){
+     const teams=e.competitions?.[0]?.competitors||[];
+     const home=teams.find(t=>t.homeAway==="home")?.team?.displayName;
+     const away=teams.find(t=>t.homeAway==="away")?.team?.displayName;
+     if(!home||!away||!e.date)continue;
+     const game={id:"espn:"+slug+":"+String(e.id),commence_time:e.date,home_team:home,away_team:away,league:{key:slug,title:friendlyLeagueNames[slug]},sport_key:"soccer",bookmakers:[],status:e.status?.type?.state||"scheduled",__calendarOnly:true};
+     if(upcomingFixture(game))results.push(game);
+    }
+   }catch{}finally{clearTimeout(timer)}
+  }));
+  try{sessionStorage.setItem(friendlyCacheKey,JSON.stringify({at:Date.now(),events:results}))}catch{}
+  friendliesLoadedAt=Date.now();
+  return results;
+ })();
+ try{const result=await friendliesJob;if(sport==="soccer")attachFriendlies(result);return result}
+ finally{friendliesJob=null}
+}
 async function fallbackEspnEvents(sportCode){
  if(sportCode!=="soccer")return [];
  const now=new Date(),ymd=d=>{const x=new Date(d),p=n=>String(n).padStart(2,"0");return x.getFullYear()+p(x.getMonth()+1)+p(x.getDate())};
  const until=new Date(now.getTime()+7*86400000);
- const leagues=["eng.1","esp.1","ita.1","ger.1","fra.1","usa.1","mex.1","arg.1","col.1","aus.1","kor.1","kor.2"];
+ const leagues=["eng.1","esp.1","ita.1","ger.1","fra.1","usa.1","mex.1","arg.1","col.1","aus.1","kor.1","kor.2","fifa.friendly","club.friendly"];
  const dates=ymd(now)+"-"+ymd(until),found=new Map();
  await Promise.all(leagues.map(async slug=>{
   const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7500);
@@ -903,7 +962,7 @@ async function load(force){
  pending=true;$("refresh").disabled=true;
  const key="modeloProV2Odds:"+sport,read=()=>{try{return JSON.parse(sessionStorage.getItem(key)||"null")}catch{return null}};
  const cached=read();const fresh=cached&&Date.now()-cached.time<10*60*1000;
- if(cached&&Array.isArray(cached.items)){items=cached.items;renderGames();primeGameStandings()}
+ if(cached&&Array.isArray(cached.items)){items=cached.items;renderGames();primeGameStandings();if(sport==="soccer")void fetchFriendlyFixtures()}
  if(fresh&&!force){pending=false;$("refresh").disabled=false;return}
  const throttleKey="modeloProV2Cooldown:"+sport;
  let remaining=0;try{remaining=Math.ceil((Number(localStorage.getItem(throttleKey)||0)-Date.now())/1000)}catch{}
@@ -915,6 +974,7 @@ async function load(force){
   if(!r.ok){if(r.status===429||data.code==="SPEED_LIMIT"){const sec=Math.max(20,Math.min(600,Number(data.retryAfterSeconds)||60));try{localStorage.setItem(throttleKey,String(Date.now()+sec*1000))}catch{}}throw Error(String(data.error||"HTTP "+r.status))}
   const list=Array.isArray(data)?data:Array.isArray(data.events)?data.events:Array.isArray(data.data)?data.data:[];
   items=list.filter(x=>x&&x.commence_time);try{sessionStorage.setItem(key,JSON.stringify({time:Date.now(),items}))}catch{}
+  if(sport==="soccer")void fetchFriendlyFixtures();
   renderGames();renderValue();primeGameStandings();
  }catch(e){
   const message=String(e.message||"sin respuesta");
@@ -922,7 +982,7 @@ async function load(force){
    $("loadstatus").textContent="Sin conexión a cuotas de Cloudflare. Recuperando calendario alternativo (sin cuotas)…";
    const replacement=await fallbackEspnEvents(sport);
    if(replacement.length){
-    items=replacement;renderGames();primeGameStandings();
+    items=replacement;renderGames();primeGameStandings();void fetchFriendlyFixtures();
     $("loadstatus").textContent="Calendario alternativo ESPN · "+replacement.length+" partidos. Cuotas no disponibles por fallo de conexión con Cloudflare. Reintentar con ↻ Actualizar.";
    }else{
     $("loadstatus").textContent="No fue posible conectar con Cloudflare: "+message+". También falló el calendario alternativo.";
