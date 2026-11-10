@@ -9,7 +9,7 @@
 <main><h1>🧩 Combinadas sugeridas · hasta 10 opciones</h1><p class="intro">Consulta cuotas verificables de fútbol, NBA, NFL, NHL, MLB y UFC. Este generador presenta selecciones favoritas según precios de mercado, <strong>no</strong> pronósticos de un modelo estadístico validado.</p>
 <section class="panel"><div class="filters">
 <label><span>Deportes</span><select id="sports"><option value="all">Todos los deportes</option><option value="soccer">Fútbol</option><option value="basketball_nba">NBA</option><option value="americanfootball_nfl">NFL</option><option value="icehockey_nhl">NHL</option><option value="baseball_mlb">MLB</option><option value="mma_mixed_martial_arts">UFC</option></select></label>
-<label><span>Partidos</span><select id="legs"><option value="2">2 selecciones</option><option value="3" selected>3 selecciones</option><option value="4">4 selecciones</option><option value="5">5 selecciones</option><option value="6">6 selecciones</option><option value="7">7 selecciones</option><option value="8">8 selecciones</option><option value="9">9 selecciones</option><option value="10">10 selecciones</option></select></label>
+<label><span>Equipos por combinada (2–10)</span><select id="legs"><option value="2">2 selecciones</option><option value="3">3 selecciones</option><option value="4">4 selecciones</option><option value="5">5 selecciones</option><option value="6">6 selecciones</option><option value="7">7 selecciones</option><option value="8">8 selecciones</option><option value="9">9 selecciones</option><option value="10" selected>10 selecciones</option></select></label>
 <label><span>Apuesta de ejemplo</span><select id="stake"><option value="5">$5</option><option value="10" selected>$10</option><option value="20">$20</option></select></label>
 <button class="primary" id="generate">✨ GENERAR COMBINADAS</button>
 </div><div class="status" id="status" role="status">Elige de 2 a 10 equipos por combinada. Se generarán hasta 10 boletos distintos, solo cuando haya suficientes selecciones verificadas.</div>
@@ -42,7 +42,7 @@ function findPick(game,code,book){
  const picks=market.outcomes.filter(o=>teamNames.has(normalized(o.name))).map(o=>({name:o.name,price:o.price,d:decimal(o.price)})).filter(o=>Number.isFinite(o.d));
  if(picks.length!==2)return null;
  picks.sort((a,b)=>a.d-b.d);
- if(picks[0].d<1.3||picks[0].d>2.1)return null;
+ if(picks[0].d<1.15||picks[0].d>4.0)return null;
  const updated=Date.parse(market.last_update||b.last_update);
  if(Number.isFinite(updated)&&Date.now()-updated>7200000)return null;
  return {id:code+":"+String(game.id),sport:code,match:String(game.away_team)+" vs "+String(game.home_team),league:String(game.league?.title||game.tournament||names[code]),time:game.commence_time,pick:picks[0],bookName:String(b.title||book),updated};
@@ -87,7 +87,7 @@ function optionsFor(items,n){
 }
 function reportHeight(){if(window.parent!==window)window.parent.postMessage({type:"modelo-pro-parlay-height",height:Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)} ,window.location.origin)}
 function display(proposals,stake){
- if(!proposals.length){$("results").innerHTML='<div class="empty">No hay suficientes partidos distintos con cuotas verificadas en una misma casa para esa cantidad de selecciones. Prueba con menos equipos o con todos los deportes.</div>';return}
+ if(!proposals.length){$("results").innerHTML='<div class="empty">No hay suficientes partidos diferentes con cuotas verificadas de una misma casa. Se requiere al menos una cuota válida por cada selección; prueba con menos equipos o todos los deportes.</div>';return}
  $("results").innerHTML=proposals.map(p=>{
   const d=p.picks.reduce((x,v)=>x*v.pick.d,1),implied=100/d;
   const legs=p.picks.map((x,i)=>'<div class="leg"><div><strong>'+(i+1)+'. '+esc(x.pick.name)+'</strong><small>'+esc(names[x.sport])+' · '+esc(x.match)+' · '+esc(date(x.time))+'</small><small>'+esc(x.league)+'</small></div><span class="price">'+esc(american(x.pick.price))+'</span></div>').join("");
@@ -119,7 +119,9 @@ async function generate(){
   }
   const suggestions=optionsFor(items,count);
   display(suggestions,stake);
-  $("status").textContent=items.length+" partidos recibidos · "+suggestions.length+" combinadas posibles."+(failures.length?" Fuentes no disponibles: "+failures.join("; "):"");
+  const availableByBook=bookKeys.map(k=>({book:k,count:new Set(items.map(item=>findPick(item.game,item.sport,k)).filter(Boolean).map(x=>x.id)).size})).sort((a,b)=>b.count-a.count);
+  const best=availableByBook[0]||{book:"Ninguna",count:0};
+  $("status").textContent=items.length+" partidos recibidos · "+suggestions.length+" combinadas de "+count+" selecciones."+(suggestions.length? "":" Máximo verificado en una misma casa: "+best.count+" partidos ("+best.book+"). No se crean cuotas faltantes.")+(failures.length?" Fuentes no disponibles: "+failures.join("; "):"");
  }catch(e){$("status").textContent="No fue posible generar combinadas: "+String(e.message||"error")}
  finally{busy=false;$("generate").disabled=false;reportHeight()}
 }
